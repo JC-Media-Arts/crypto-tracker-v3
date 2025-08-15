@@ -18,12 +18,12 @@ class Settings(BaseSettings):
     supabase_key: str = Field(..., env="SUPABASE_KEY")
 
     # Kraken
-    kraken_api_key: str = Field(..., env="KRAKEN_API_KEY")
-    kraken_api_secret: str = Field(..., env="KRAKEN_API_SECRET")
+    kraken_api_key: Optional[str] = Field(None, env="KRAKEN_API_KEY")
+    kraken_api_secret: Optional[str] = Field(None, env="KRAKEN_API_SECRET")
 
     # Slack
-    slack_webhook_url: str = Field(..., env="SLACK_WEBHOOK_URL")
-    slack_bot_token: str = Field(..., env="SLACK_BOT_TOKEN")
+    slack_webhook_url: Optional[str] = Field(None, env="SLACK_WEBHOOK_URL")
+    slack_bot_token: Optional[str] = Field(None, env="SLACK_BOT_TOKEN")
     slack_app_token: Optional[str] = Field(None, env="SLACK_APP_TOKEN")
     slack_signing_secret: Optional[str] = Field(None, env="SLACK_SIGNING_SECRET")
 
