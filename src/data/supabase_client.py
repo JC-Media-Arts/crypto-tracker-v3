@@ -3,7 +3,6 @@ Supabase client for database operations.
 Handles all database interactions for the crypto trading system.
 """
 
-
 from datetime import datetime, timezone
 from typing import List, Dict, Optional, Any
 from loguru import logger
@@ -300,9 +299,7 @@ class SupabaseClient:
     def save_hummingbot_trade(self, trade_data: Dict) -> None:
         """Save a Hummingbot paper trade record."""
         try:
-            _ = (
-                self.client.table("hummingbot_trades").insert(trade_data).execute()
-            )
+            _ = self.client.table("hummingbot_trades").insert(trade_data).execute()
             logger.info(f"Saved Hummingbot trade: {trade_data['hummingbot_order_id']}")
         except Exception as e:
             logger.error(f"Failed to save Hummingbot trade: {e}")
