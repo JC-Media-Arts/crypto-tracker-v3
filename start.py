@@ -2,6 +2,7 @@
 """
 Railway startup script for crypto-tracker-v3
 Runs the data collector as the main service
+Version: 1.0.1
 """
 
 import os
