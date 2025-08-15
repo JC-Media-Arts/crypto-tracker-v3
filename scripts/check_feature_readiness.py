@@ -7,10 +7,10 @@ import os
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from datetime import datetime, timedelta
-from loguru import logger
-from src.data.supabase_client import SupabaseClient
-from src.ml.feature_calculator import FeatureCalculator
+from datetime import datetime, timedelta  # noqa: E402
+from loguru import logger  # noqa: E402
+from src.data.supabase_client import SupabaseClient  # noqa: E402
+from src.ml.feature_calculator import FeatureCalculator  # noqa: E402
 
 
 def main():
@@ -42,7 +42,7 @@ def main():
         print(f"  - Minimum required: {calculator.min_periods}")
 
         if data_count >= calculator.min_periods:
-            print(f"  - Status: ✅ READY for feature calculation")
+            print("  - Status: ✅ READY for feature calculation")
             ready_symbols.append(symbol)
 
             # Try calculating features for this symbol
@@ -56,7 +56,7 @@ def main():
                     )
                     print(f"  - Latest features: {features_df.columns.tolist()[:5]}...")
                 else:
-                    print(f"  - Test calculation: ❌ Failed")
+                    print("  - Test calculation: ❌ Failed")
             except Exception as e:
                 print(f"  - Test calculation: ❌ Error: {e}")
         else:

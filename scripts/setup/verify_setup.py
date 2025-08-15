@@ -7,7 +7,7 @@ import importlib
 from pathlib import Path
 from rich.console import Console
 from rich.table import Table
-from rich import print as rprint
+
 
 # Add project root to path
 project_root = Path(__file__).parent.parent.parent

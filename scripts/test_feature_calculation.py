@@ -8,7 +8,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from datetime import datetime, timedelta
-import pandas as pd
+
 from loguru import logger
 from src.data.supabase_client import SupabaseClient
 from src.ml.feature_calculator import FeatureCalculator
@@ -50,15 +50,15 @@ def main():
             )  # 7 days
 
             if features_df is not None and not features_df.empty:
-                print(f"\n✅ Feature calculation successful!")
+                print("\n✅ Feature calculation successful!")
                 print(f"Number of feature records: {len(features_df)}")
-                print(f"\nFeatures calculated:")
+                print("\nFeatures calculated:")
                 for col in features_df.columns:
                     if col != "symbol":
                         print(f"  - {col}")
 
                 # Show sample of recent features
-                print(f"\nSample of most recent features:")
+                print("\nSample of most recent features:")
                 recent = features_df.tail(1).iloc[0]
                 for col in [
                     "price_change_5m",
@@ -70,7 +70,7 @@ def main():
                         print(f"  - {col}: {recent[col]:.4f}")
 
                 # Test saving features
-                print(f"\nTesting save to database...")
+                print("\nTesting save to database...")
                 recent_features = features_df.tail(5)
                 success = calculator.save_features(recent_features)
                 if success:
@@ -79,7 +79,7 @@ def main():
                     print("❌ Failed to save features")
 
             else:
-                print(f"❌ Feature calculation returned no data")
+                print("❌ Feature calculation returned no data")
 
         except Exception as e:
             print(f"❌ Error during feature calculation: {e}")

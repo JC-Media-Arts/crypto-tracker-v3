@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 from rich.console import Console
 from rich.table import Table
-from rich import print as rprint
+
 
 # Add project root to path
 project_root = Path(__file__).parent.parent.parent
@@ -31,7 +31,7 @@ async def test_polygon_connection():
         ticker = client.get_ticker_details("X:BTCUSD")
 
         if ticker:
-            return True, f"✅ Connected - BTC ticker retrieved"
+            return True, "✅ Connected - BTC ticker retrieved"
         else:
             return False, "❌ Connected but no data returned"
 
@@ -50,7 +50,7 @@ async def test_supabase_connection():
 
         # Test with a simple query
         try:
-            response = client.table("price_data").select("*").limit(1).execute()
+            client.table("price_data").select("*").limit(1).execute()
             return True, "✅ Connected to Supabase (tables exist)"
         except Exception as table_error:
             # If table doesn't exist, that's OK - connection still works

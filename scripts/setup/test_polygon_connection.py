@@ -9,7 +9,7 @@ import time
 import json
 from pathlib import Path
 from rich.console import Console
-from rich import print as rprint
+
 import websocket
 import threading
 
@@ -102,7 +102,7 @@ def test_polygon_websocket():
 
     def on_close(ws, close_status_code, close_msg):
         """Handle connection close."""
-        console.print(f"[yellow]WebSocket closed[/yellow]")
+        console.print("[yellow]WebSocket closed[/yellow]")
 
     # Create WebSocket connection
     ws_url = "wss://socket.polygon.io/crypto"

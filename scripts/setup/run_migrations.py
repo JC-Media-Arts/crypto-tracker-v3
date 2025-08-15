@@ -4,13 +4,13 @@ Run database migrations on Supabase.
 Executes SQL migration files in order.
 """
 
-import os
+
 import sys
 from pathlib import Path
-from datetime import datetime
+
 from rich.console import Console
 from rich.table import Table
-from rich import print as rprint
+
 
 # Add project root to path
 project_root = Path(__file__).parent.parent.parent
@@ -88,9 +88,9 @@ def check_tables_exist(client: Client):
     for table in tables_to_check:
         try:
             # Try to query the table
-            response = client.table(table).select("*").limit(1).execute()
+            client.table(table).select("*").limit(1).execute()
             existing_tables.append(table)
-        except:
+        except Exception:
             pass
 
     return existing_tables

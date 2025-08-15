@@ -6,7 +6,7 @@ Manages Polygon WebSocket connection and saves data to Supabase.
 import asyncio
 import time
 from datetime import datetime, timezone
-from typing import Dict, List
+from typing import Dict
 from loguru import logger
 from collections import defaultdict
 

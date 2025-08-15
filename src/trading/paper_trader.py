@@ -6,7 +6,7 @@ Implements risk management and position tracking.
 import asyncio
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
-from decimal import Decimal
+
 from loguru import logger
 
 from src.config import Settings

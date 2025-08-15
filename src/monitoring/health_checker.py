@@ -4,7 +4,7 @@ Monitors data flow, ML predictions, and trading performance.
 """
 
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Dict, Optional, Any
 from loguru import logger
 

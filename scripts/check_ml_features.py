@@ -7,7 +7,7 @@ import os
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from datetime import datetime, timezone, timedelta
+
 from loguru import logger
 from src.data.supabase_client import SupabaseClient
 import pandas as pd

@@ -4,8 +4,8 @@ Handles all Slack communications including trades, alerts, and daily summaries.
 """
 
 import asyncio
-from datetime import datetime, time
-from typing import Dict, List, Optional
+from datetime import datetime
+from typing import Dict, Optional
 from loguru import logger
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError

@@ -3,7 +3,7 @@ Supabase client for database operations.
 Handles all database interactions for the crypto trading system.
 """
 
-import asyncio
+
 from datetime import datetime, timezone
 from typing import List, Dict, Optional, Any
 from loguru import logger
@@ -30,7 +30,7 @@ class SupabaseClient:
 
         try:
             # Try batch insert first
-            response = self.client.table("price_data").insert(data).execute()
+            _ = self.client.table("price_data").insert(data).execute()
             logger.debug(f"Inserted {len(data)} price records")
         except Exception as e:
             # If batch fails due to duplicates, insert one by one
@@ -87,7 +87,7 @@ class SupabaseClient:
                 "alert_sent": False,
             }
 
-            response = self.client.table("health_metrics").insert(data).execute()
+            _ = self.client.table("health_metrics").insert(data).execute()
 
             # If critical, we might want to send an alert
             if status == "critical":
@@ -145,7 +145,7 @@ class SupabaseClient:
     def save_ml_features(self, features: List[Dict[str, Any]]) -> None:
         """Save calculated ML features to the database."""
         try:
-            response = self.client.table("ml_features").insert(features).execute()
+            _ = self.client.table("ml_features").insert(features).execute()
             logger.debug(f"Saved {len(features)} ML feature records")
         except Exception as e:
             # Handle duplicates like we do for price data
@@ -245,7 +245,7 @@ class SupabaseClient:
         try:
             data = {"actual_move": actual_move, "correct": correct}
 
-            response = (
+            _ = (
                 self.client.table("ml_predictions")
                 .update(data)
                 .eq("prediction_id", prediction_id)
@@ -284,7 +284,7 @@ class SupabaseClient:
                 "updated_at": datetime.now(timezone.utc).isoformat(),
             }
 
-            response = (
+            _ = (
                 self.client.table("system_config")
                 .update(data)
                 .eq("config_key", key)
@@ -300,7 +300,7 @@ class SupabaseClient:
     def save_hummingbot_trade(self, trade_data: Dict) -> None:
         """Save a Hummingbot paper trade record."""
         try:
-            response = (
+            _ = (
                 self.client.table("hummingbot_trades").insert(trade_data).execute()
             )
             logger.info(f"Saved Hummingbot trade: {trade_data['hummingbot_order_id']}")

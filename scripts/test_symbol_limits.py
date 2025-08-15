@@ -7,7 +7,7 @@ import sys
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import asyncio
+
 import websocket
 import json
 import time
@@ -20,7 +20,7 @@ settings = Settings()
 class SymbolLimitTester:
     def __init__(self):
         self.api_key = settings.polygon_api_key
-        self.ws_url = f"wss://socket.polygon.io/crypto"
+        self.ws_url = "wss://socket.polygon.io/crypto"
         self.connected = False
         self.message_count = 0
         self.start_time = None

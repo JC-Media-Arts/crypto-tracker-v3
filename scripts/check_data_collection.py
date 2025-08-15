@@ -8,14 +8,14 @@ from pathlib import Path
 from datetime import datetime, timezone, timedelta
 from rich.console import Console
 from rich.table import Table
-from rich import print as rprint
+
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from src.config import get_settings
-from supabase import create_client
+from src.config import get_settings  # noqa: E402
+from supabase import create_client  # noqa: E402
 
 console = Console()
 
@@ -100,7 +100,7 @@ def check_data_collection():
         console.print(table)
 
         # Summary
-        console.print(f"\n[bold]Summary:[/bold]")
+        console.print("\n[bold]Summary:[/bold]")
         console.print(f"Total unique symbols: {len(symbol_data)}")
         console.print(f"Total records: {sum(d['count'] for d in symbol_data.values())}")
 
@@ -126,7 +126,7 @@ def check_data_collection():
                 f"\n[yellow]Missing symbols from top 10: {', '.join(missing)}[/yellow]"
             )
         else:
-            console.print(f"\n[green]✓ All top 10 symbols are being collected![/green]")
+            console.print("\n[green]✓ All top 10 symbols are being collected![/green]")
 
     except Exception as e:
         console.print(f"[red]Error querying data: {e}[/red]")
