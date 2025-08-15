@@ -1,12 +1,13 @@
 # nixpacks.toml
 [phases.setup]
-nixPkgs = ["python311", "gcc"]
+nixPkgs = ["python311", "gcc", "python311Packages.pip"]
 
 [phases.install]
-cmds = ["pip install --upgrade pip", "pip install -r requirements.txt"]
+cmds = ["python -m pip install --upgrade pip", "python -m pip install -r requirements.txt"]
 
 [variables]
 PYTHONUNBUFFERED = "1"
+PYTHON_VERSION = "3.11"
 
 [start]
 cmd = "echo 'Starting services...'"
