@@ -3,7 +3,6 @@ Polygon.io WebSocket client for real-time crypto data.
 Handles connection, reconnection, and data streaming.
 """
 
-
 import json
 import time
 from datetime import datetime, timezone
