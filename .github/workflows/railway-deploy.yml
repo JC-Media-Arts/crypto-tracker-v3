@@ -29,13 +29,10 @@ jobs:
         # Add tests when available
         echo "Tests will be added here"
     
-    # - name: Check code quality
-    #   run: |
-    #     pip install black flake8
-    #     black --check src/ scripts/
-    #     flake8 src/ scripts/ --max-line-length=100
-    - name: Skip code quality for now
-      run: echo "Skipping code quality checks to allow Railway deployment"
+    - name: Check code formatting
+      run: |
+        pip install black
+        black --check src/ scripts/
 
   deploy:
     needs: test

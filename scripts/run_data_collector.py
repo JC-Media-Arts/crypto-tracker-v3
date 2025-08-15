@@ -35,26 +35,26 @@ def signal_handler(signum, frame):
 async def main():
     """Main function to run the data collector."""
     global collector
-    
+
     logger.info("Starting Crypto Tracker v3 - Data Collector")
-    
+
     try:
         # Get settings
         settings = get_settings()
         logger.info(f"Environment: {settings.environment}")
-        
+
         # Create and start collector
         collector = DataCollector()
-        
+
         # Set up signal handlers
         signal.signal(signal.SIGINT, signal_handler)
         signal.signal(signal.SIGTERM, signal_handler)
-        
+
         logger.info("Data collector initialized, starting collection...")
-        
+
         # Run the collector
         await collector.start()
-        
+
     except KeyboardInterrupt:
         logger.info("Keyboard interrupt received")
     except Exception as e:
@@ -70,17 +70,14 @@ if __name__ == "__main__":
     logger.add(
         sys.stderr,
         format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
-        level="INFO"
+        level="INFO",
     )
-    
+
     # Also log to file
     logger.add(
-        "logs/data_collector.log",
-        rotation="1 day",
-        retention="7 days",
-        level="DEBUG"
+        "logs/data_collector.log", rotation="1 day", retention="7 days", level="DEBUG"
     )
-    
+
     # Run the async main function
     try:
         asyncio.run(main())

@@ -2,4 +2,4 @@
 
 from .collector import DataCollector
 
-__all__ = ['DataCollector']
+__all__ = ["DataCollector"]

@@ -5,6 +5,6 @@
 # Updated: 2025-08-14 22:00 PST
 
 # Export names without importing to avoid circular dependencies
-__all__ = ['MLPredictor', 'FeatureCalculator', 'ModelTrainer']
+__all__ = ["MLPredictor", "FeatureCalculator", "ModelTrainer"]
 
 # DO NOT ADD ANY IMPORTS HERE - This causes circular import issues

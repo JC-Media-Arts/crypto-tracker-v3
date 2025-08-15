@@ -3,4 +3,4 @@
 from .connector import HummingbotConnector
 from .monitor import HummingbotMonitor
 
-__all__ = ['HummingbotConnector', 'HummingbotMonitor']
+__all__ = ["HummingbotConnector", "HummingbotMonitor"]
