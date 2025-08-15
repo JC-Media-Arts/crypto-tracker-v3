@@ -38,6 +38,7 @@ class Settings(BaseSettings):
     timezone: str = Field('America/Los_Angeles', env='TIMEZONE')
     environment: str = Field('development', env='ENVIRONMENT')
     log_level: str = Field('INFO', env='LOG_LEVEL')
+    feature_update_interval: int = Field(120, env='FEATURE_UPDATE_INTERVAL')  # seconds
     
     # Optional API keys for future use
     github_api_key: Optional[str] = Field(None, env='GITHUB_API_KEY')
