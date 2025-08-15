@@ -1,167 +1,178 @@
 """
-Feature calculator for ML predictions.
-Calculates technical indicators and features from price data.
+ML Feature Calculator
+Calculates technical indicators and features for ML model
 """
-
-from typing import Dict, List, Optional
 import pandas as pd
 import numpy as np
-from datetime import datetime, timedelta
-from loguru import logger
+from datetime import datetime, timedelta, timezone
+from typing import Dict, List, Optional
 import ta
-
+from loguru import logger
 from src.data.supabase_client import SupabaseClient
+from src.config import get_settings
 
+settings = get_settings()
 
 class FeatureCalculator:
-    """Calculates features for ML predictions."""
+    """Calculate ML features from price data"""
     
-    def __init__(self, db_client: SupabaseClient):
-        """Initialize feature calculator."""
-        self.db_client = db_client
+    def __init__(self):
+        self.supabase = SupabaseClient()
+        self.min_periods = 100  # Minimum data points needed for indicators
         
-    async def calculate_features(self, symbol: str) -> Optional[Dict]:
-        """Calculate all features for a symbol."""
+    def calculate_features_for_symbol(self, symbol: str, lookback_hours: int = 48) -> Optional[pd.DataFrame]:
+        """Calculate features for a single symbol"""
         try:
             # Get recent price data
-            price_data = await self.db_client.get_recent_prices(symbol, hours=24)
+            end_time = datetime.now(timezone.utc)
+            start_time = end_time - timedelta(hours=lookback_hours)
             
-            if len(price_data) < 20:  # Need minimum data for indicators
-                logger.warning(f"Insufficient data for {symbol}: {len(price_data)} records")
+            price_data = self.supabase.get_price_data(
+                symbol=symbol,
+                start_time=start_time,
+                end_time=end_time
+            )
+            
+            if not price_data or len(price_data) < self.min_periods:
+                logger.warning(f"Insufficient data for {symbol}: {len(price_data) if price_data else 0} records")
                 return None
-            
+                
             # Convert to DataFrame
             df = pd.DataFrame(price_data)
             df['timestamp'] = pd.to_datetime(df['timestamp'])
             df = df.sort_values('timestamp')
-            df['price'] = df['price'].astype(float)
-            df['volume'] = df['volume'].astype(float)
+            df.set_index('timestamp', inplace=True)
             
             # Calculate features
-            features = {}
+            features_df = self._calculate_technical_indicators(df)
+            features_df['symbol'] = symbol
             
-            # Price returns
-            features['returns_5m'] = self._calculate_returns(df, minutes=5)
-            features['returns_1h'] = self._calculate_returns(df, minutes=60)
-            
-            # RSI
-            features['rsi_14'] = self._calculate_rsi(df, period=14)
-            
-            # Distance from SMA
-            features['distance_from_sma20'] = self._calculate_sma_distance(df, period=20)
-            
-            # Volume ratio
-            features['volume_ratio'] = self._calculate_volume_ratio(df)
-            
-            # Support/Resistance distance
-            features['support_distance'] = self._calculate_support_distance(df)
-            
-            return features
+            return features_df
             
         except Exception as e:
-            logger.error(f"Failed to calculate features for {symbol}: {e}")
+            logger.error(f"Error calculating features for {symbol}: {e}")
             return None
-    
-    def _calculate_returns(self, df: pd.DataFrame, minutes: int) -> float:
-        """Calculate price returns over specified minutes."""
+            
+    def _calculate_technical_indicators(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Calculate all technical indicators"""
+        features = pd.DataFrame(index=df.index)
+        
+        # Price changes
+        features['price_change_5m'] = df['price'].pct_change(5).fillna(0) * 100
+        features['price_change_15m'] = df['price'].pct_change(15).fillna(0) * 100
+        features['price_change_1h'] = df['price'].pct_change(60).fillna(0) * 100
+        features['price_change_4h'] = df['price'].pct_change(240).fillna(0) * 100
+        
+        # Volume ratio (current vs average)
+        features['volume_ratio'] = df['volume'] / df['volume'].rolling(60).mean()
+        
+        # RSI
+        features['rsi_14'] = ta.momentum.RSIIndicator(df['price'], window=14).rsi()
+        features['rsi_30'] = ta.momentum.RSIIndicator(df['price'], window=30).rsi()
+        
+        # MACD
+        macd = ta.trend.MACD(df['price'])
+        features['macd'] = macd.macd()
+        features['macd_signal'] = macd.macd_signal()
+        features['macd_diff'] = macd.macd_diff()
+        
+        # Bollinger Bands
+        bb = ta.volatility.BollingerBands(df['price'], window=20, window_dev=2)
+        features['bb_high_band'] = bb.bollinger_hband()
+        features['bb_low_band'] = bb.bollinger_lband()
+        features['bb_middle_band'] = bb.bollinger_mavg()
+        features['bb_width'] = (features['bb_high_band'] - features['bb_low_band']) / features['bb_middle_band']
+        features['bb_position'] = (df['price'] - features['bb_low_band']) / (features['bb_high_band'] - features['bb_low_band'])
+        
+        # Moving Averages
+        features['sma_20'] = ta.trend.sma_indicator(df['price'], window=20)
+        features['sma_50'] = ta.trend.sma_indicator(df['price'], window=50)
+        features['ema_12'] = ta.trend.ema_indicator(df['price'], window=12)
+        features['ema_26'] = ta.trend.ema_indicator(df['price'], window=26)
+        
+        # Distance from moving averages
+        features['distance_from_sma20'] = ((df['price'] - features['sma_20']) / features['sma_20']) * 100
+        features['distance_from_sma50'] = ((df['price'] - features['sma_50']) / features['sma_50']) * 100
+        
+        # Support/Resistance
+        features['distance_from_support'] = self._calculate_support_resistance(df['price'], 'support')
+        features['distance_from_resistance'] = self._calculate_support_resistance(df['price'], 'resistance')
+        
+        # Volatility
+        features['volatility_1h'] = df['price'].pct_change().rolling(60).std() * 100
+        features['volatility_4h'] = df['price'].pct_change().rolling(240).std() * 100
+        
+        # Volume indicators
+        features['obv'] = ta.volume.OnBalanceVolumeIndicator(df['price'], df['volume']).on_balance_volume()
+        features['volume_sma_ratio'] = df['volume'] / ta.trend.sma_indicator(df['volume'], window=20)
+        
+        # Momentum indicators
+        features['roc_12'] = ta.momentum.ROCIndicator(df['price'], window=12).roc()
+        features['stoch_k'] = ta.momentum.StochasticOscillator(df['price'], df['price'], df['price']).stoch()
+        
+        # Fill NaN values
+        features = features.ffill().fillna(0)
+        
+        return features
+        
+    def _calculate_support_resistance(self, prices: pd.Series, level_type: str) -> pd.Series:
+        """Calculate distance from support/resistance levels"""
+        window = 20
+        
+        if level_type == 'support':
+            levels = prices.rolling(window).min()
+        else:  # resistance
+            levels = prices.rolling(window).max()
+            
+        distance = ((prices - levels) / levels) * 100
+        return distance.fillna(0)
+        
+    def save_features(self, features_df: pd.DataFrame) -> bool:
+        """Save calculated features to database"""
         try:
-            current_price = df.iloc[-1]['price']
+            # Prepare data for insertion
+            records = []
+            for timestamp, row in features_df.iterrows():
+                record = {
+                    'timestamp': timestamp.isoformat(),
+                    'symbol': row['symbol'],
+                    'price_change_5m': float(row['price_change_5m']),
+                    'price_change_1h': float(row['price_change_1h']),
+                    'volume_ratio': float(row['volume_ratio']),
+                    'rsi_14': float(row['rsi_14']),
+                    'distance_from_support': float(row['distance_from_support'])
+                }
+                records.append(record)
+                
+            # Insert into database
+            if records:
+                self.supabase.insert_ml_features(records)
+                logger.debug(f"Processed {len(records)} feature records")
+                return True
+                
+        except Exception as e:
+            # Don't treat duplicate key errors as failures
+            if 'duplicate key value' not in str(e):
+                logger.error(f"Error saving features: {e}")
+                return False
+            else:
+                # Duplicates are handled in supabase client
+                return True
             
-            # Find price from X minutes ago
-            target_time = df.iloc[-1]['timestamp'] - timedelta(minutes=minutes)
-            past_data = df[df['timestamp'] <= target_time]
-            
-            if past_data.empty:
-                return 0.0
-            
-            past_price = past_data.iloc[-1]['price']
-            
-            # Calculate return
-            if past_price > 0:
-                return (current_price - past_price) / past_price * 100
-            return 0.0
-            
-        except Exception:
-            return 0.0
-    
-    def _calculate_rsi(self, df: pd.DataFrame, period: int = 14) -> float:
-        """Calculate RSI (Relative Strength Index)."""
-        try:
-            rsi = ta.momentum.RSIIndicator(close=df['price'], window=period)
-            rsi_values = rsi.rsi()
-            
-            if not rsi_values.empty:
-                return float(rsi_values.iloc[-1])
-            return 50.0  # Neutral RSI
-            
-        except Exception:
-            return 50.0
-    
-    def _calculate_sma_distance(self, df: pd.DataFrame, period: int = 20) -> float:
-        """Calculate distance from Simple Moving Average."""
-        try:
-            if len(df) < period:
-                return 0.0
-            
-            sma = df['price'].rolling(window=period).mean()
-            current_price = df.iloc[-1]['price']
-            current_sma = sma.iloc[-1]
-            
-            if current_sma > 0:
-                return (current_price - current_sma) / current_sma * 100
-            return 0.0
-            
-        except Exception:
-            return 0.0
-    
-    def _calculate_volume_ratio(self, df: pd.DataFrame) -> float:
-        """Calculate current volume vs average volume ratio."""
-        try:
-            if len(df) < 20:
-                return 1.0
-            
-            current_volume = df.iloc[-1]['volume']
-            avg_volume = df['volume'].rolling(window=20).mean().iloc[-1]
-            
-            if avg_volume > 0:
-                return current_volume / avg_volume
-            return 1.0
-            
-        except Exception:
-            return 1.0
-    
-    def _calculate_support_distance(self, df: pd.DataFrame) -> float:
-        """Calculate distance from nearest support level."""
-        try:
-            current_price = df.iloc[-1]['price']
-            
-            # Find recent lows as support levels
-            recent_lows = df['price'].rolling(window=5).min()
-            support_levels = recent_lows[recent_lows < current_price * 0.98]  # At least 2% below
-            
-            if not support_levels.empty:
-                nearest_support = support_levels.iloc[-1]
-                return (current_price - nearest_support) / nearest_support * 100
-            
-            # If no support found, use 5% below current price
-            return 5.0
-            
-        except Exception:
-            return 5.0
-    
-    async def calculate_and_store_features(self, symbols: List[str]):
-        """Calculate and store features for multiple symbols."""
+    def update_all_symbols(self, symbols: List[str]) -> Dict[str, bool]:
+        """Update features for all symbols"""
+        results = {}
+        
         for symbol in symbols:
-            try:
-                features = await self.calculate_features(symbol)
-                if features:
-                    # Add metadata
-                    features['symbol'] = symbol
-                    features['timestamp'] = datetime.utcnow().isoformat()
-                    
-                    # Store in database
-                    await self.db_client.insert_ml_features([features])
-                    logger.debug(f"Stored features for {symbol}")
-                    
-            except Exception as e:
-                logger.error(f"Failed to store features for {symbol}: {e}")
+            logger.info(f"Calculating features for {symbol}")
+            features_df = self.calculate_features_for_symbol(symbol)
+            
+            if features_df is not None and not features_df.empty:
+                # Only save the most recent features
+                recent_features = features_df.tail(10)  # Last 10 time periods
+                success = self.save_features(recent_features)
+                results[symbol] = success
+            else:
+                results[symbol] = False
+                
+        return results

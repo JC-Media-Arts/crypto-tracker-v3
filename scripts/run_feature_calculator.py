@@ -18,12 +18,15 @@ from loguru import logger
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.ml.feature_calculator import FeatureCalculator
-from src.config.settings import settings
+from src.config.settings import get_settings
 
 # Configure logger
 logger.remove()
 logger.add(sys.stdout, format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {name}:{function}:{line} - {message}")
 logger.add("logs/feature_calculator.log", rotation="100 MB", retention="7 days")
+
+# Get settings
+settings = get_settings()
 
 # Global flag for graceful shutdown
 shutdown_flag = False

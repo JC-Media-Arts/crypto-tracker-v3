@@ -1,238 +1,225 @@
 """
-Data collector module for real-time crypto price data from Polygon.io.
-Handles WebSocket connections and data persistence to Supabase.
+Data collector for crypto prices.
+Manages Polygon WebSocket connection and saves data to Supabase.
 """
 
 import asyncio
-import json
+import time
 from datetime import datetime, timezone
-from typing import Dict, List, Optional, Any
-from decimal import Decimal
+from typing import Dict, List
 from loguru import logger
-from polygon import WebSocketClient
-from polygon.websocket.models import EquityAgg
+from collections import defaultdict
 
-from src.config import Settings
+from src.config import get_settings
+from src.data.polygon_client import PolygonWebSocketClient
 from src.data.supabase_client import SupabaseClient
 
 
 class DataCollector:
-    """Collects real-time crypto data from Polygon.io WebSocket."""
+    """Collects real-time crypto data and stores in Supabase."""
     
-    # Supported crypto symbols (100 coins as defined in master plan)
-    TIER_1_COINS = [
-        'BTC', 'ETH', 'SOL', 'BNB', 'XRP', 'ADA', 'AVAX', 'DOGE', 'DOT', 'POL',
-        'LINK', 'TON', 'SHIB', 'TRX', 'UNI', 'ATOM', 'BCH', 'APT', 'NEAR', 'ICP'
-    ]
-    
-    TIER_2_COINS = [
-        'ARB', 'OP', 'AAVE', 'CRV', 'MKR', 'LDO', 'SUSHI', 'COMP', 'SNX', 'BAL',
-        'INJ', 'SEI', 'PENDLE', 'BLUR', 'ENS', 'GRT', 'RENDER', 'FET', 'RPL', 'SAND'
-    ]
-    
-    TIER_3_COINS = [
-        'PEPE', 'WIF', 'BONK', 'FLOKI', 'MEME', 'POPCAT', 'MEW', 'TURBO', 'NEIRO', 'PNUT',
-        'GOAT', 'ACT', 'TRUMP', 'FARTCOIN', 'MOG', 'PONKE', 'TREMP', 'BRETT', 'GIGA', 'HIPPO'
-    ]
-    
-    TIER_4_COINS = [
-        'FIL', 'RUNE', 'IMX', 'FLOW', 'MANA', 'AXS', 'CHZ', 'GALA', 'LRC', 'OCEAN',
-        'QNT', 'ALGO', 'XLM', 'XMR', 'ZEC', 'DASH', 'HBAR', 'VET', 'THETA', 'EOS',
-        'KSM', 'STX', 'KAS', 'TIA', 'JTO', 'JUP', 'PYTH', 'DYM', 'STRK', 'ALT',
-        'PORTAL', 'BEAM', 'BLUR', 'MASK', 'API3', 'ANKR', 'CTSI', 'YFI', 'AUDIO', 'ENJ'
-    ]
-    
-    def __init__(self, settings: Settings):
+    def __init__(self):
         """Initialize the data collector."""
-        self.settings = settings
-        self.ws_client: Optional[WebSocketClient] = None
-        self.db_client: Optional[SupabaseClient] = None
-        self.running = False
-        self.price_buffer: List[Dict] = []
-        self.buffer_size = 100  # Batch insert size
-        self.last_prices: Dict[str, float] = {}
+        self.settings = get_settings()
+        self.polygon_client = PolygonWebSocketClient(on_message_callback=self._on_price_update)
+        self.db_client = SupabaseClient()
         
-        # Get all supported coins
-        self.supported_coins = (
-            self.TIER_1_COINS + self.TIER_2_COINS + 
-            self.TIER_3_COINS + self.TIER_4_COINS
-        )
+        # Batch processing
+        self.price_buffer = []
+        self.buffer_size = 100  # Insert in batches of 100
+        self.last_db_flush = time.time()
+        self.db_flush_interval = 5.0  # Flush every 5 seconds
         
-    async def initialize(self):
-        """Initialize the data collector."""
-        logger.info("Initializing data collector...")
+        # Price tracking for deduplication
+        self.last_prices = {}  # symbol -> (price, timestamp)
+        self.price_change_threshold = 0.0001  # 0.01% change threshold
         
-        try:
-            # Initialize Supabase client
-            self.db_client = SupabaseClient(self.settings)
-            await self.db_client.initialize()
-            
-            # Initialize Polygon WebSocket client
-            self.ws_client = WebSocketClient(
-                api_key=self.settings.polygon_api_key,
-                feed='delayed',  # Use delayed feed for free tier
-                market='crypto'
-            )
-            
-            # Subscribe to crypto pairs
-            await self._subscribe_to_symbols()
-            
-            logger.success("Data collector initialized")
-            
-        except Exception as e:
-            logger.error(f"Failed to initialize data collector: {e}")
-            raise
+        # Stats
+        self.stats = defaultdict(int)
+        self.start_time = None
     
-    async def _subscribe_to_symbols(self):
-        """Subscribe to WebSocket feeds for all supported symbols."""
-        # Convert crypto symbols to Polygon format (e.g., BTC -> X:BTCUSD)
-        subscriptions = []
-        for symbol in self.supported_coins:
-            # Subscribe to USD pairs
-            subscriptions.append(f"XA.{symbol}-USD")  # Aggregate bars
-            subscriptions.append(f"XT.{symbol}-USD")  # Trades
+    def _on_price_update(self, data: Dict):
+        """Handle incoming price updates from Polygon."""
+        symbol = data['symbol']
+        price = data['price']
+        timestamp = data['timestamp']
         
-        logger.info(f"Subscribing to {len(subscriptions)} crypto pairs")
-        
-        # Note: Actual subscription will happen when WebSocket connects
-        self.subscriptions = subscriptions
-    
-    async def start(self):
-        """Start collecting data."""
-        logger.info("Starting data collection...")
-        self.running = True
-        
-        # Start WebSocket connection
-        asyncio.create_task(self._run_websocket())
-        
-        # Start buffer flush task
-        asyncio.create_task(self._flush_buffer_periodically())
-        
-        # Start data health check
-        asyncio.create_task(self._check_data_health())
-        
-        logger.success("Data collection started")
-    
-    async def _run_websocket(self):
-        """Run the WebSocket connection."""
-        while self.running:
-            try:
-                logger.info("Connecting to Polygon WebSocket...")
-                
-                # Define message handler
-                async def handle_msg(messages):
-                    for message in messages:
-                        await self._process_message(message)
-                
-                # Connect and subscribe
-                self.ws_client.subscribe(*self.subscriptions)
-                await self.ws_client.connect(handle_msg)
-                
-            except Exception as e:
-                logger.error(f"WebSocket error: {e}")
-                await asyncio.sleep(5)  # Reconnect after 5 seconds
-    
-    async def _process_message(self, message: Any):
-        """Process incoming WebSocket message."""
-        try:
-            # Parse message based on type
-            if hasattr(message, 'event_type'):
-                if message.event_type == 'XA':  # Aggregate bar
-                    await self._process_aggregate(message)
-                elif message.event_type == 'XT':  # Trade
-                    await self._process_trade(message)
-            
-        except Exception as e:
-            logger.error(f"Error processing message: {e}")
-    
-    async def _process_aggregate(self, agg: Any):
-        """Process aggregate bar data."""
-        try:
-            # Extract symbol from pair (e.g., X:BTCUSD -> BTC)
-            symbol = agg.pair.replace('X:', '').replace('USD', '')
-            
-            # Create price record
-            price_record = {
-                'timestamp': datetime.fromtimestamp(agg.start_timestamp / 1000, tz=timezone.utc).isoformat(),
+        # Check if price changed significantly
+        if self._should_store_price(symbol, price, timestamp):
+            # Add to buffer
+            self.price_buffer.append({
+                'timestamp': timestamp.isoformat(),
                 'symbol': symbol,
-                'price': float(agg.close),
-                'volume': float(agg.volume) if hasattr(agg, 'volume') else 0
-            }
+                'price': price,
+                'volume': data.get('volume', 0)
+            })
             
             # Update last price
-            self.last_prices[symbol] = float(agg.close)
+            self.last_prices[symbol] = (price, timestamp)
+            self.stats['prices_buffered'] += 1
             
-            # Add to buffer
-            self.price_buffer.append(price_record)
-            
-            # Flush if buffer is full
+            # Check if we should flush
             if len(self.price_buffer) >= self.buffer_size:
-                await self._flush_buffer()
-            
-        except Exception as e:
-            logger.error(f"Error processing aggregate: {e}")
+                self._flush_to_database()
     
-    async def _process_trade(self, trade: Any):
-        """Process trade data."""
-        # For now, we'll focus on aggregates
-        # Trades can be used for more granular analysis in Phase 2
-        pass
+    def _should_store_price(self, symbol: str, price: float, timestamp: datetime) -> bool:
+        """Determine if price should be stored (avoid storing unchanged prices)."""
+        if symbol not in self.last_prices:
+            return True
+        
+        last_price, last_time = self.last_prices[symbol]
+        
+        # Always store if more than 1 minute has passed
+        if (timestamp - last_time).total_seconds() > 60:
+            return True
+        
+        # Store if price changed significantly
+        price_change = abs(price - last_price) / last_price
+        return price_change > self.price_change_threshold
     
-    async def _flush_buffer(self):
+    def _flush_to_database(self):
         """Flush price buffer to database."""
         if not self.price_buffer:
             return
         
         try:
-            # Batch insert to Supabase
-            await self.db_client.insert_price_data(self.price_buffer)
+            # Insert batch to Supabase
+            num_records = len(self.price_buffer)
+            self.db_client.insert_price_data(self.price_buffer)
             
-            logger.debug(f"Flushed {len(self.price_buffer)} price records to database")
+            self.stats['prices_saved'] += num_records
+            self.stats['db_flushes'] += 1
+            
+            logger.info(f"Saved {num_records} price records to database")
+            
+            # Clear buffer
             self.price_buffer.clear()
+            self.last_db_flush = time.time()
             
         except Exception as e:
-            logger.error(f"Failed to flush buffer: {e}")
-    
-    async def _flush_buffer_periodically(self):
-        """Periodically flush the buffer."""
-        while self.running:
-            await asyncio.sleep(10)  # Flush every 10 seconds
-            await self._flush_buffer()
-    
-    async def _check_data_health(self):
-        """Check data flow health."""
-        while self.running:
-            await asyncio.sleep(60)  # Check every minute
-            
-            # Check if we're receiving data
-            if not self.last_prices:
-                logger.warning("No data received in the last minute")
+            # Only count as error if it's not a duplicate key issue
+            if 'duplicate key value' not in str(e):
+                logger.error(f"Failed to save prices to database: {e}")
+                self.stats['db_errors'] += 1
+                
+                # Keep data in buffer to retry later
+                if len(self.price_buffer) > 1000:
+                    # Prevent memory issues - keep only recent data
+                    self.price_buffer = self.price_buffer[-500:]
             else:
-                active_symbols = len(self.last_prices)
-                logger.info(f"Receiving data for {active_symbols} symbols")
+                # Duplicates are normal, just clear the buffer
+                self.price_buffer.clear()
+                self.last_db_flush = time.time()
     
-    async def stop(self):
-        """Stop data collection."""
-        logger.info("Stopping data collection...")
-        self.running = False
-        
-        # Flush remaining buffer
-        await self._flush_buffer()
-        
-        # Close WebSocket connection
-        if self.ws_client:
-            await self.ws_client.close()
-        
-        # Close database connection
-        if self.db_client:
-            await self.db_client.close()
-        
-        logger.info("Data collection stopped")
+    async def _periodic_flush(self):
+        """Periodically flush data to database."""
+        while True:
+            await asyncio.sleep(self.db_flush_interval)
+            
+            # Flush if enough time has passed
+            if time.time() - self.last_db_flush > self.db_flush_interval:
+                self._flush_to_database()
+            
+            # Also get any buffered data from Polygon client
+            buffered_data = self.polygon_client.get_buffer_data()
+            for data in buffered_data:
+                self._on_price_update(data)
     
-    def get_last_price(self, symbol: str) -> Optional[float]:
-        """Get the last known price for a symbol."""
-        return self.last_prices.get(symbol)
+    async def _periodic_stats(self):
+        """Log statistics periodically."""
+        while True:
+            await asyncio.sleep(60)  # Every minute
+            
+            if self.start_time:
+                runtime = (datetime.now(timezone.utc) - self.start_time).total_seconds()
+                
+                polygon_stats = self.polygon_client.get_stats()
+                
+                logger.info(
+                    f"Data Collector Stats - "
+                    f"Runtime: {runtime/60:.1f}m, "
+                    f"Prices Buffered: {self.stats['prices_buffered']}, "
+                    f"Prices Saved: {self.stats['prices_saved']}, "
+                    f"DB Flushes: {self.stats['db_flushes']}, "
+                    f"DB Errors: {self.stats['db_errors']}, "
+                    f"Polygon Connected: {polygon_stats['is_connected']}, "
+                    f"Polygon Messages: {polygon_stats['messages_received']}"
+                )
     
-    def get_active_symbols(self) -> List[str]:
-        """Get list of symbols with recent data."""
-        return list(self.last_prices.keys())
+    async def _health_check(self):
+        """Monitor system health and save to database."""
+        while True:
+            await asyncio.sleep(30)  # Every 30 seconds
+            
+            try:
+                polygon_stats = self.polygon_client.get_stats()
+                
+                # Check if we're receiving data
+                if polygon_stats['last_message_time']:
+                    seconds_since_last = (
+                        datetime.now(timezone.utc) - polygon_stats['last_message_time']
+                    ).total_seconds()
+                    
+                    if seconds_since_last > 60:
+                        # No data for 1 minute - warning
+                        await self.db_client.save_health_metric(
+                            'data_flow',
+                            'warning' if seconds_since_last < 300 else 'critical',
+                            seconds_since_last,
+                            {'issue': 'No data received', 'seconds': seconds_since_last}
+                        )
+                    else:
+                        # Data flowing normally
+                        await self.db_client.save_health_metric(
+                            'data_flow',
+                            'healthy',
+                            seconds_since_last,
+                            {'status': 'Data flowing normally'}
+                        )
+                
+            except Exception as e:
+                logger.error(f"Health check failed: {e}")
+    
+    async def start(self):
+        """Start data collection."""
+        logger.info("Starting data collector")
+        self.start_time = datetime.now(timezone.utc)
+        
+        # Start Polygon WebSocket
+        self.polygon_client.start()
+        
+        # Wait a bit for connection
+        await asyncio.sleep(2)
+        
+        # Start background tasks
+        tasks = [
+            asyncio.create_task(self._periodic_flush()),
+            asyncio.create_task(self._periodic_stats()),
+            asyncio.create_task(self._health_check())
+        ]
+        
+        try:
+            # Run until cancelled
+            await asyncio.gather(*tasks)
+        except asyncio.CancelledError:
+            logger.info("Data collector shutting down")
+            # Final flush
+            self._flush_to_database()
+            # Stop Polygon client
+            self.polygon_client.stop()
+            raise
+    
+    def get_stats(self) -> Dict:
+        """Get collector statistics."""
+        polygon_stats = self.polygon_client.get_stats()
+        
+        return {
+            'collector': dict(self.stats),
+            'polygon': polygon_stats,
+            'buffer_size': len(self.price_buffer),
+            'symbols_tracked': len(self.last_prices),
+            'uptime_seconds': (
+                (datetime.now(timezone.utc) - self.start_time).total_seconds()
+                if self.start_time else 0
+            )
+        }

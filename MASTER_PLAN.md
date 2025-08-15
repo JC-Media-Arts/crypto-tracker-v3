@@ -4,6 +4,7 @@
 *Phase 1 MVP - Proving ML Can Predict Crypto Movements*
 *Created: January 2025*
 *Location: Los Angeles, CA*
+*Updated: Added Hummingbot for paper trading*
 
 ---
 
@@ -15,7 +16,7 @@
 4. [Database Schema](#database-schema)
 5. [ML Pipeline](#ml-pipeline)
 6. [Trading Logic](#trading-logic)
-7. [Paper Trading System](#paper-trading-system)
+7. [Paper Trading System (Hummingbot)](#paper-trading-system-hummingbot)
 8. [Risk Management](#risk-management)
 9. [Slack Integration](#slack-integration)
 10. [Data Health Monitoring](#data-health-monitoring)
@@ -40,21 +41,25 @@ A streamlined crypto trading system designed to prove whether machine learning c
 - **Data:** Polygon.io WebSocket ($49/month)
 - **Database:** Supabase (PostgreSQL)
 - **ML:** Python + XGBoost
+- **Paper Trading:** Hummingbot (open-source)
 - **Interface:** Slack
-- **Execution:** Kraken API
+- **Execution:** Kraken (via Hummingbot)
 - **Development:** Cursor + GitHub
 
 ---
 
 ## Phase 1 Architecture
 
-### Data Flow
+### Updated Data Flow with Hummingbot
 ```
 Polygon WebSocket → Real-time Prices → Feature Calculation → ML Model
                            ↓                                    ↓
-                      Supabase Storage                   Predictions
+                      Supabase Storage                   ML Predictions
                                                               ↓
-                                                        Paper Trading
+                                                    Hummingbot Strategy
+                                                              ↓
+                                                 Hummingbot Paper Trading
+                                                    (Kraken Order Book)
                                                               ↓
                                                      Performance Tracking
                                                               ↓
@@ -74,11 +79,13 @@ Polygon WebSocket → Real-time Prices → Feature Calculation → ML Model
   - Unlimited API calls
   - All crypto tickers
 
-### Exchange Data
-- **Kraken API** (Free)
-  - Order validation
-  - Paper trading validation
-  - Order book depth (Phase 2)
+### Exchange Data (via Hummingbot)
+- **Kraken Real-Time Data** (Through Hummingbot)
+  - Live order book depth
+  - Real-time trades
+  - Bid/ask spreads
+  - Market microstructure
+  - Paper trading simulation with real order books
 
 ### Supported Coins (100 Total)
 
@@ -135,18 +142,23 @@ CREATE TABLE ml_predictions (
     correct BOOLEAN
 );
 
--- 4. Paper Trades
-CREATE TABLE paper_trades (
+-- 4. Hummingbot Paper Trades (UPDATED)
+CREATE TABLE hummingbot_trades (
     trade_id SERIAL PRIMARY KEY,
+    hummingbot_order_id VARCHAR(100),
     symbol VARCHAR(10),
-    entry_time TIMESTAMPTZ,
-    entry_price DECIMAL(20,8),
-    exit_time TIMESTAMPTZ,
-    exit_price DECIMAL(20,8),
-    exit_reason VARCHAR(20), -- 'stop_loss', 'take_profit', 'time_exit'
-    pnl DECIMAL(10,2),
+    side VARCHAR(10),
+    order_type VARCHAR(20),
+    price DECIMAL(20,8),
+    amount DECIMAL(20,8),
+    status VARCHAR(20),
+    created_at TIMESTAMPTZ,
+    filled_at TIMESTAMPTZ,
+    ml_prediction_id INTEGER REFERENCES ml_predictions(prediction_id),
     ml_confidence DECIMAL(3,2),
-    kraken_validated BOOLEAN DEFAULT FALSE
+    fees DECIMAL(10,4),
+    slippage DECIMAL(10,4),
+    pnl DECIMAL(10,2)
 );
 
 -- 5. Daily Performance
@@ -244,41 +256,101 @@ TRADING_RULES = {
 
 ---
 
-## Paper Trading System
+## Paper Trading System (Hummingbot)
 
-### Validation Modes
+### Hummingbot Integration Architecture
 
 ```python
-PAPER_TRADING_MODES = {
-    'development': {
-        'kraken_validation': 0.0,  # No validation
-        'purpose': 'Fast iteration',
-        'slippage_simulation': 0.002  # 0.2%
+HUMMINGBOT_CONFIG = {
+    'installation': {
+        'method': 'Docker',  # Recommended for isolation
+        'alternative': 'Source installation'
     },
-    'testing': {
-        'kraken_validation': 0.10,  # Validate 10% of trades
-        'purpose': 'Balance speed and realism'
+    
+    'configuration': {
+        'exchange': 'kraken',
+        'trading_mode': 'paper_trade',
+        'initial_balances': {
+            'USD': 10000,
+            'BTC': 0,
+            'ETH': 0
+        }
     },
-    'production': {
-        'kraken_validation': 1.0,  # Validate all trades
-        'purpose': 'Pre-live verification'
+    
+    'custom_strategy': {
+        'name': 'ml_signal_strategy',
+        'location': 'hummingbot/strategy/ml_signal_strategy.py',
+        'inputs': 'ML predictions from database',
+        'outputs': 'Trade execution and logging'
     }
 }
 ```
 
-### Kraken Validation
+### Custom ML Strategy for Hummingbot
 
 ```python
-def validate_with_kraken(symbol, side, amount):
-    """Validate order would execute on Kraken"""
-    result = kraken_api.add_order(
-        pair=symbol,
-        type=side,
-        ordertype='market',
-        volume=amount,
-        validate=True  # Don't actually execute
-    )
-    return result['error'] == []
+# Location: hummingbot/strategy/ml_signal_strategy.py
+
+class MLSignalStrategy(StrategyBase):
+    """
+    Custom Hummingbot strategy that executes trades based on ML signals
+    """
+    
+    def __init__(self):
+        super().__init__()
+        self.signal_check_interval = 60  # Check for signals every minute
+        self.position_size_usd = 100
+        self.stop_loss_pct = 0.05
+        self.take_profit_pct = 0.10
+        
+    def check_ml_signals(self):
+        """Check database for new ML predictions"""
+        # Query Supabase for latest predictions
+        # Return signal if confidence >= 0.60
+        
+    def execute_ml_trade(self, signal):
+        """Execute trade based on ML signal"""
+        if signal['prediction'] == 'UP':
+            self.buy(
+                trading_pair=signal['symbol'],
+                amount=self.calculate_amount(self.position_size_usd),
+                order_type=OrderType.MARKET
+            )
+            # Set stop loss and take profit
+            
+        elif signal['prediction'] == 'DOWN' and self.has_position(signal['symbol']):
+            self.sell(
+                trading_pair=signal['symbol'],
+                amount=self.get_position_amount(signal['symbol']),
+                order_type=OrderType.MARKET
+            )
+```
+
+### Hummingbot Paper Trading Features
+
+```python
+PAPER_TRADING_FEATURES = {
+    'realistic_simulation': {
+        'real_order_books': 'Uses live Kraken order book',
+        'slippage_modeling': 'Simulates market impact',
+        'fee_calculation': 'Exact Kraken fees (0.26%)',
+        'partial_fills': 'Simulates realistic fills'
+    },
+    
+    'risk_management': {
+        'position_limits': 'Max 5 positions',
+        'stop_losses': 'Automatic -5% stops',
+        'take_profits': 'Automatic +10% targets',
+        'time_exits': '24-hour maximum hold'
+    },
+    
+    'performance_tracking': {
+        'real_time_pnl': 'Live P&L updates',
+        'trade_history': 'Complete trade log',
+        'performance_metrics': 'Sharpe, win rate, etc.',
+        'export_data': 'CSV export for analysis'
+    }
+}
 ```
 
 ---
@@ -419,15 +491,27 @@ crypto-tracker-v3/
 │   ├── data/                  # Data pipeline
 │   ├── ml/                    # ML models
 │   ├── trading/               # Trading logic
+│   │   ├── signals/           # ML signal generation
+│   │   └── hummingbot/        # Hummingbot integration (NEW)
+│   │       ├── connector.py   # Connect to Hummingbot
+│   │       ├── monitor.py     # Monitor Hummingbot status
+│   │       └── performance.py # Track Hummingbot results
 │   ├── monitoring/            # Health monitoring
 │   ├── notifications/         # Slack integration
 │   └── utils/                 # Utilities
+├── hummingbot/                # Hummingbot installation (NEW)
+│   ├── conf/                  # Hummingbot configs
+│   ├── logs/                  # Hummingbot logs
+│   ├── data/                  # Hummingbot data
+│   └── scripts/               # Custom strategies
+│       └── ml_signal_strategy.py
 ├── scripts/                   # Setup and maintenance
 ├── migrations/                # Database migrations
 ├── tests/                     # Test suite
 ├── configs/                   # YAML configurations
 ├── docs/                      # Documentation
-├── requirements.txt           # Dependencies
+├── requirements.txt           # Python dependencies
+├── docker-compose.yml         # Docker setup (includes Hummingbot)
 ├── .env.example              # Environment template
 ├── Makefile                  # Common commands
 └── README.md                 # Project overview
@@ -514,9 +598,15 @@ POLYGON_API_KEY=your_polygon_api_key
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_KEY=your_supabase_anon_key
 
-# Kraken
+# Kraken (for Hummingbot)
 KRAKEN_API_KEY=your_kraken_api_key
 KRAKEN_API_SECRET=your_kraken_api_secret
+
+# Hummingbot Configuration
+HUMMINGBOT_MODE=paper_trade
+HUMMINGBOT_EXCHANGE=kraken
+HUMMINGBOT_STRATEGY=ml_signal_strategy
+HUMMINGBOT_LOG_LEVEL=INFO
 
 # Slack
 SLACK_WEBHOOK_URL=https://hooks.slack.com/services/YOUR/WEBHOOK/URL
@@ -729,6 +819,12 @@ MIT License - See LICENSE file for details
 ---
 
 ## Changelog
+
+### Version 1.1.0 (January 2025)
+- Added Hummingbot integration for realistic paper trading
+- Updated architecture to use Hummingbot for order execution
+- Added order book simulation and slippage modeling
+- Enhanced monitoring for Hummingbot status
 
 ### Version 1.0.0 (January 2025)
 - Initial Phase 1 MVP implementation
