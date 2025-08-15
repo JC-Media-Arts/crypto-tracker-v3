@@ -7,3 +7,6 @@ cmds = ["pip install --upgrade pip", "pip install -r requirements.txt"]
 
 [variables]
 PYTHONUNBUFFERED = "1"
+
+[start]
+cmd = "echo 'Starting services...'"
