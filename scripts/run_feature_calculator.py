@@ -8,7 +8,7 @@ Designed for production deployment on Railway or other cloud platforms.
 
 import asyncio
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import sys
 import os
 import signal
@@ -18,6 +18,7 @@ from loguru import logger
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.ml.feature_calculator import FeatureCalculator
+from src.data.supabase_client import SupabaseClient
 from src.config.settings import get_settings
 
 # Configure logger
@@ -27,6 +28,24 @@ logger.add("logs/feature_calculator.log", rotation="100 MB", retention="7 days")
 
 # Get settings
 settings = get_settings()
+
+# Define symbols to track (same as in polygon_client.py)
+SYMBOLS = [
+    # Tier 1: Core (20 coins)
+    'BTC', 'ETH', 'SOL', 'BNB', 'XRP', 'ADA', 'AVAX', 'DOGE', 'DOT', 'POL',
+    'LINK', 'TON', 'SHIB', 'TRX', 'UNI', 'ATOM', 'BCH', 'APT', 'NEAR', 'ICP',
+    # Tier 2: DeFi/Layer 2 (20 coins)
+    'ARB', 'OP', 'AAVE', 'CRV', 'MKR', 'LDO', 'SUSHI', 'COMP', 'SNX', 'BAL',
+    'INJ', 'SEI', 'PENDLE', 'BLUR', 'ENS', 'GRT', 'RENDER', 'FET', 'RPL', 'SAND',
+    # Tier 3: Trending/Memecoins (20 coins)
+    'PEPE', 'WIF', 'BONK', 'FLOKI', 'MEME', 'POPCAT', 'MEW', 'TURBO', 'NEIRO', 'PNUT',
+    'GOAT', 'ACT', 'TRUMP', 'FARTCOIN', 'MOG', 'PONKE', 'TREMP', 'BRETT', 'GIGA', 'HIPPO',
+    # Tier 4: Solid Mid-Caps (40 coins)
+    'FIL', 'RUNE', 'IMX', 'FLOW', 'MANA', 'AXS', 'CHZ', 'GALA', 'LRC', 'OCEAN',
+    'QNT', 'ALGO', 'XLM', 'XMR', 'ZEC', 'DASH', 'HBAR', 'VET', 'THETA', 'EOS',
+    'KSM', 'STX', 'KAS', 'TIA', 'JTO', 'JUP', 'PYTH', 'DYM', 'STRK', 'ALT',
+    'PORTAL', 'BEAM', 'BLUR', 'MASK', 'API3', 'ANKR', 'CTSI', 'YFI', 'AUDIO', 'ENJ'
+]
 
 # Global flag for graceful shutdown
 shutdown_flag = False
@@ -48,6 +67,7 @@ async def main():
     logger.info(f"Update interval: {settings.feature_update_interval} seconds")
     
     calculator = FeatureCalculator()
+    supabase = SupabaseClient()
     iteration = 0
     
     while not shutdown_flag:
@@ -57,17 +77,23 @@ async def main():
             
             start_time = time.time()
             
-            # Get symbols with enough data
-            ready_symbols = await calculator.get_symbols_with_enough_data()
+            # Check which symbols have enough data
+            ready_symbols = []
+            for symbol in SYMBOLS:
+                end_time = datetime.now(timezone.utc)
+                start_time_check = end_time - timedelta(hours=48)  # Need 48 hours of data
+                price_data = supabase.get_price_data(symbol, start_time_check, end_time)
+                if price_data and len(price_data) >= calculator.min_periods:
+                    ready_symbols.append(symbol)
             
             if ready_symbols:
                 logger.info(f"Symbols ready for feature calculation: {ready_symbols}")
                 
-                # Calculate features for all ready symbols
-                results = await calculator.update_all_symbols(ready_symbols)
+                # Update features for ready symbols
+                results = calculator.update_all_symbols(ready_symbols)
                 
                 # Count successes and failures
-                successful = sum(1 for r in results if r)
+                successful = sum(1 for success in results.values() if success)
                 failed = len(results) - successful
                 
                 elapsed = time.time() - start_time
