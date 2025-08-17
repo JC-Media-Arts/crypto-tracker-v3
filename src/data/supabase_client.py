@@ -22,51 +22,77 @@ class SupabaseClient:
         )
         logger.info("Supabase client initialized")
 
-    def insert_price_data(self, data: List[Dict[str, Any]]) -> None:
-        """Insert price data into the database, skipping duplicates."""
+    def insert_price_data(self, data: List[Dict[str, Any]]) -> int:
+        """Insert price data into the database, skipping duplicates.
+        
+        Returns:
+            Number of records successfully inserted
+        """
         if not data:
-            return
+            return 0
 
-        try:
-            # Try batch insert first
-            _ = self.client.table("price_data").insert(data).execute()
-            logger.debug(f"Inserted {len(data)} price records")
-        except Exception as e:
-            # If batch fails due to duplicates, insert one by one
-            if "duplicate key value" in str(e):
-                successful = 0
-                failed = 0
+        # For large datasets, batch into smaller chunks to avoid 502 errors and timeouts
+        # Supabase has an 8-second timeout by default, so smaller batches are more reliable
+        BATCH_SIZE = 1000  # Conservative batch size to avoid timeouts
+        total_inserted = 0
+        
+        # Process data in chunks
+        for i in range(0, len(data), BATCH_SIZE):
+            chunk = data[i:i + BATCH_SIZE]
+            chunk_num = i // BATCH_SIZE + 1
+            total_chunks = (len(data) + BATCH_SIZE - 1) // BATCH_SIZE
+            
+            if total_chunks > 1:
+                logger.debug(f"Processing batch {chunk_num}/{total_chunks} ({len(chunk)} records)")
+            
+            try:
+                # Try batch insert for this chunk
+                _ = self.client.table("price_data").insert(chunk).execute()
+                logger.debug(f"Inserted batch {chunk_num}: {len(chunk)} price records")
+                total_inserted += len(chunk)
+            except Exception as e:
+                # If batch fails due to duplicates or gateway errors, insert one by one
+                if "duplicate key value" in str(e) or "502" in str(e) or "Bad Gateway" in str(e):
+                    successful = 0
+                    failed = 0
 
-                for record in data:
-                    try:
-                        # Try to insert individual record
-                        self.client.table("price_data").insert(record).execute()
-                        successful += 1
-                    except Exception as single_error:
-                        if "duplicate key value" in str(single_error):
-                            # This is expected for duplicates, just skip
-                            failed += 1
-                        else:
-                            # Log unexpected errors
-                            logger.warning(
-                                f"Unexpected error inserting {record['symbol']}: {single_error}"
-                            )
-                            failed += 1
+                    for record in chunk:
+                        try:
+                            # Try to insert individual record
+                            self.client.table("price_data").insert(record).execute()
+                            successful += 1
+                        except Exception as single_error:
+                            if "duplicate key value" in str(single_error):
+                                # This is expected for duplicates, just skip
+                                failed += 1
+                            else:
+                                # Log unexpected errors
+                                logger.warning(
+                                    f"Unexpected error inserting {record['symbol']}: {single_error}"
+                                )
+                                failed += 1
 
-                if successful > 0:
-                    logger.debug(
-                        f"Inserted {successful} new records, skipped {failed} duplicates"
-                    )
+                    if successful > 0:
+                        logger.debug(
+                            f"Batch {chunk_num}: Inserted {successful} new records, skipped {failed} duplicates"
+                        )
 
-                # Don't raise error for duplicates - this is normal operation
-                if successful == 0 and failed == len(data):
-                    logger.debug(
-                        f"All {failed} records were duplicates (this is normal)"
-                    )
-            else:
-                # Re-raise if it's not a duplicate key error
-                logger.error(f"Failed to insert price data: {e}")
-                raise
+                    # Don't raise error for duplicates - this is normal operation
+                    if successful == 0 and failed == len(chunk):
+                        logger.debug(
+                            f"Batch {chunk_num}: All {failed} records were duplicates (this is normal)"
+                        )
+                    
+                    total_inserted += successful
+                else:
+                    # Re-raise if it's not a duplicate key error or gateway error
+                    logger.error(f"Failed to insert price data batch {chunk_num}: {e}")
+                    raise
+        
+        if len(data) > BATCH_SIZE:
+            logger.info(f"Total inserted across all batches: {total_inserted}/{len(data)} records")
+        
+        return total_inserted
 
     async def save_health_metric(
         self,

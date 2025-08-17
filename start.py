@@ -39,6 +39,12 @@ elif service == 'ml_trainer':
     # Direct execution instead of subprocess
     exec(open('scripts/run_ml_trainer.py').read())
     
+elif service == 'data_scheduler' or service == 'scheduler':
+    print("Starting Data Scheduler Service...")
+    # Import and run the scheduler
+    from src.services.data_scheduler import main
+    main()
+    
 else:
     print(f"Unknown service type: {service}")
     sys.exit(1)
