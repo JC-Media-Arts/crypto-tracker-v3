@@ -3,4 +3,4 @@
 from .detector import DCADetector
 from .grid import GridCalculator
 
-__all__ = ['DCADetector', 'GridCalculator']
+__all__ = ["DCADetector", "GridCalculator"]

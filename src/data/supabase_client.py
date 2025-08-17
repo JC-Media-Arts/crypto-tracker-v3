@@ -24,7 +24,7 @@ class SupabaseClient:
 
     def insert_price_data(self, data: List[Dict[str, Any]]) -> int:
         """Insert price data into the database, skipping duplicates.
-        
+
         Returns:
             Number of records successfully inserted
         """
@@ -35,16 +35,18 @@ class SupabaseClient:
         # Supabase has an 8-second timeout by default, so smaller batches are more reliable
         BATCH_SIZE = 1000  # Conservative batch size to avoid timeouts
         total_inserted = 0
-        
+
         # Process data in chunks
         for i in range(0, len(data), BATCH_SIZE):
-            chunk = data[i:i + BATCH_SIZE]
+            chunk = data[i : i + BATCH_SIZE]
             chunk_num = i // BATCH_SIZE + 1
             total_chunks = (len(data) + BATCH_SIZE - 1) // BATCH_SIZE
-            
+
             if total_chunks > 1:
-                logger.debug(f"Processing batch {chunk_num}/{total_chunks} ({len(chunk)} records)")
-            
+                logger.debug(
+                    f"Processing batch {chunk_num}/{total_chunks} ({len(chunk)} records)"
+                )
+
             try:
                 # Try batch insert for this chunk
                 _ = self.client.table("price_data").insert(chunk).execute()
@@ -52,7 +54,11 @@ class SupabaseClient:
                 total_inserted += len(chunk)
             except Exception as e:
                 # If batch fails due to duplicates or gateway errors, insert one by one
-                if "duplicate key value" in str(e) or "502" in str(e) or "Bad Gateway" in str(e):
+                if (
+                    "duplicate key value" in str(e)
+                    or "502" in str(e)
+                    or "Bad Gateway" in str(e)
+                ):
                     successful = 0
                     failed = 0
 
@@ -82,16 +88,18 @@ class SupabaseClient:
                         logger.debug(
                             f"Batch {chunk_num}: All {failed} records were duplicates (this is normal)"
                         )
-                    
+
                     total_inserted += successful
                 else:
                     # Re-raise if it's not a duplicate key error or gateway error
                     logger.error(f"Failed to insert price data batch {chunk_num}: {e}")
                     raise
-        
+
         if len(data) > BATCH_SIZE:
-            logger.info(f"Total inserted across all batches: {total_inserted}/{len(data)} records")
-        
+            logger.info(
+                f"Total inserted across all batches: {total_inserted}/{len(data)} records"
+            )
+
         return total_inserted
 
     async def save_health_metric(
