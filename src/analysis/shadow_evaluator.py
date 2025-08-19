@@ -88,15 +88,35 @@ class ShadowEvaluator:
             # Fallback to direct query
             cutoff_time = (datetime.utcnow() - timedelta(minutes=5)).isoformat()
 
+            # Get shadow variations that need evaluation
+            # First get all variations that would take trades
             result = (
                 self.supabase.table("shadow_variations")
                 .select("*, scan_history!inner(*)")
                 .eq("would_take_trade", True)
-                .is_("shadow_outcomes.outcome_id", "null")
                 .lt("created_at", cutoff_time)
                 .limit(100)
                 .execute()
             )
+            
+            if not result.data:
+                return []
+            
+            # Now filter out ones that already have outcomes
+            shadow_ids = [s["shadow_id"] for s in result.data]
+            if shadow_ids:
+                # Check which ones already have outcomes
+                outcomes_result = (
+                    self.supabase.table("shadow_outcomes")
+                    .select("shadow_id")
+                    .in_("shadow_id", shadow_ids)
+                    .execute()
+                )
+                
+                evaluated_ids = {o["shadow_id"] for o in outcomes_result.data} if outcomes_result.data else set()
+                
+                # Filter to only unevaluated shadows
+                result.data = [s for s in result.data if s["shadow_id"] not in evaluated_ids]
 
             return result.data if result.data else []
 
