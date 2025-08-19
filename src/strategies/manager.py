@@ -22,6 +22,7 @@ from src.strategies.channel.detector import ChannelDetector
 from src.strategies.channel.executor import ChannelExecutor
 from src.strategies.regime_detector import RegimeDetector, MarketRegime
 from src.strategies.scan_logger import ScanLogger
+from src.analysis.shadow_logger import ShadowLogger
 from src.ml.predictor import MLPredictor
 from src.trading.position_sizer import AdaptivePositionSizer
 from src.config.settings import Settings
@@ -99,6 +100,9 @@ class StrategyManager:
 
         # Initialize scan logger for ML learning
         self.scan_logger = ScanLogger(supabase_client) if supabase_client else None
+        
+        # Initialize shadow logger for parallel testing
+        self.shadow_logger = ShadowLogger(supabase_client) if supabase_client else None
 
         # Initialize strategy components
         self.dca_detector = DCADetector(config.get("dca_config", {}))
