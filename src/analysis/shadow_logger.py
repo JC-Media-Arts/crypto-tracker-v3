@@ -224,6 +224,9 @@ class ShadowLogger:
 
         # Champion uses exact production thresholds
         confidence_threshold = base_parameters.get("min_confidence", 0.60)
+        # Ensure ml_confidence is not None
+        if ml_confidence is None:
+            ml_confidence = 0.0
         would_take = ml_confidence >= confidence_threshold
 
         return ShadowDecision(

@@ -99,13 +99,18 @@ class ShadowScanMonitor:
             }
 
             # Log shadow decisions
+            # Ensure ml_confidence is never None
+            ml_confidence = scan.get("ml_confidence")
+            if ml_confidence is None:
+                ml_confidence = 0.0
+            
             await self.shadow_logger.log_shadow_decisions(
                 scan_id=scan["scan_id"],
                 symbol=scan["symbol"],
                 strategy_name=scan["strategy_name"],
                 features=features,
                 ml_predictions=ml_predictions,
-                ml_confidence=scan.get("ml_confidence", 0),
+                ml_confidence=float(ml_confidence),
                 current_price=current_price,
                 base_parameters=base_parameters,
             )
