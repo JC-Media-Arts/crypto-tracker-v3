@@ -98,10 +98,10 @@ class ShadowEvaluator:
                 .limit(100)
                 .execute()
             )
-            
+
             if not result.data:
                 return []
-            
+
             # Now filter out ones that already have outcomes
             shadow_ids = [s["shadow_id"] for s in result.data]
             if shadow_ids:
@@ -112,11 +112,17 @@ class ShadowEvaluator:
                     .in_("shadow_id", shadow_ids)
                     .execute()
                 )
-                
-                evaluated_ids = {o["shadow_id"] for o in outcomes_result.data} if outcomes_result.data else set()
-                
+
+                evaluated_ids = (
+                    {o["shadow_id"] for o in outcomes_result.data}
+                    if outcomes_result.data
+                    else set()
+                )
+
                 # Filter to only unevaluated shadows
-                result.data = [s for s in result.data if s["shadow_id"] not in evaluated_ids]
+                result.data = [
+                    s for s in result.data if s["shadow_id"] not in evaluated_ids
+                ]
 
             return result.data if result.data else []
 

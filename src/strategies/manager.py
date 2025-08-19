@@ -100,7 +100,7 @@ class StrategyManager:
 
         # Initialize scan logger for ML learning
         self.scan_logger = ScanLogger(supabase_client) if supabase_client else None
-        
+
         # Initialize shadow logger for parallel testing
         self.shadow_logger = ShadowLogger(supabase_client) if supabase_client else None
 

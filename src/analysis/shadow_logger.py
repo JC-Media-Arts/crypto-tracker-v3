@@ -461,7 +461,9 @@ class ShadowLogger:
 
         try:
             result = (
-                self.supabase.client.table("shadow_variations").insert(self.batch).execute()
+                self.supabase.client.table("shadow_variations")
+                .insert(self.batch)
+                .execute()
             )
             logger.debug(f"Flushed {len(self.batch)} shadow variations to database")
             self.batch = []

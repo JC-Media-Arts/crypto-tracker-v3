@@ -162,7 +162,7 @@ class ShadowAnalyzer:
                 .gte("evaluated_at", cutoff_time.isoformat())
             )
             result = query.execute()
-            
+
             # If we need to filter by strategy, do it in Python after fetching
             if strategy_name != "OVERALL" and result.data:
                 # Would need to fetch scan_history separately if strategy filtering is needed
