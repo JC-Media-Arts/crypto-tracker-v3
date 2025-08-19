@@ -1,0 +1,146 @@
+2025-08-17 19:48:38.269 | INFO     | __main__:main:366 - ================================================================================
+2025-08-17 19:48:38.269 | INFO     | __main__:main:367 - DCA MULTI-OUTPUT MODEL TRAINING
+2025-08-17 19:48:38.269 | INFO     | __main__:main:368 - ================================================================================
+2025-08-17 19:48:38.269 | INFO     | __main__:load_and_prepare_data:47 - Loading data from data/dca_labels_enriched.csv
+2025-08-17 19:48:38.282 | INFO     | __main__:load_and_prepare_data:51 - Creating target variables...
+2025-08-17 19:48:38.290 | INFO     | __main__:load_and_prepare_data:85 - Features: 22
+2025-08-17 19:48:38.290 | INFO     | __main__:load_and_prepare_data:86 - Targets: ['target_position_mult', 'target_take_profit', 'target_stop_loss', 'target_hold_hours', 'target_win_prob']
+2025-08-17 19:48:38.290 | INFO     | __main__:load_and_prepare_data:87 - Samples: 7575
+2025-08-17 19:48:38.290 | INFO     | __main__:train_model:197 - 
+================================================================================
+2025-08-17 19:48:38.290 | INFO     | __main__:train_model:198 - TRAINING MULTI-OUTPUT XGBOOST MODEL
+2025-08-17 19:48:38.291 | INFO     | __main__:train_model:199 - ================================================================================
+2025-08-17 19:48:38.298 | INFO     | __main__:train_model:229 - Training samples: 6060
+2025-08-17 19:48:38.298 | INFO     | __main__:train_model:230 - Test samples: 1515
+2025-08-17 19:48:38.300 | INFO     | __main__:train_model:251 - Training model...
+2025-08-17 19:48:38.982 | INFO     | __main__:train_model:259 - 
+================================================================================
+2025-08-17 19:48:38.982 | INFO     | __main__:train_model:260 - MODEL PERFORMANCE
+2025-08-17 19:48:38.982 | INFO     | __main__:train_model:261 - ================================================================================
+2025-08-17 19:48:38.982 | INFO     | __main__:train_model:264 - 
+target_position_mult:
+2025-08-17 19:48:38.983 | INFO     | __main__:train_model:276 -   Train - MSE: 0.0021, MAE: 0.0334, R²: 0.9914
+2025-08-17 19:48:38.983 | INFO     | __main__:train_model:277 -   Test  - MSE: 0.0045, MAE: 0.0457, R²: 0.9813
+2025-08-17 19:48:38.983 | INFO     | __main__:train_model:264 - 
+target_take_profit:
+2025-08-17 19:48:38.984 | INFO     | __main__:train_model:276 -   Train - MSE: 0.0000, MAE: 0.0009, R²: 0.6667
+2025-08-17 19:48:38.984 | INFO     | __main__:train_model:277 -   Test  - MSE: 0.0000, MAE: 0.0012, R²: 0.3581
+2025-08-17 19:48:38.984 | INFO     | __main__:train_model:264 - 
+target_stop_loss:
+2025-08-17 19:48:38.985 | INFO     | __main__:train_model:276 -   Train - MSE: 0.0000, MAE: 0.0000, R²: 1.0000
+2025-08-17 19:48:38.985 | INFO     | __main__:train_model:277 -   Test  - MSE: 0.0000, MAE: 0.0000, R²: 1.0000
+2025-08-17 19:48:38.985 | INFO     | __main__:train_model:264 - 
+target_hold_hours:
+2025-08-17 19:48:38.986 | INFO     | __main__:train_model:276 -   Train - MSE: 0.0000, MAE: 0.0000, R²: 1.0000
+2025-08-17 19:48:38.986 | INFO     | __main__:train_model:277 -   Test  - MSE: 0.0000, MAE: 0.0000, R²: 1.0000
+2025-08-17 19:48:38.986 | INFO     | __main__:train_model:264 - 
+target_win_prob:
+2025-08-17 19:48:38.986 | INFO     | __main__:train_model:276 -   Train - MSE: 0.0014, MAE: 0.0302, R²: 0.7892
+2025-08-17 19:48:38.986 | INFO     | __main__:train_model:277 -   Test  - MSE: 0.0025, MAE: 0.0405, R²: 0.6178
+2025-08-17 19:48:38.986 | INFO     | __main__:train_model:289 - 
+================================================================================
+2025-08-17 19:48:38.986 | INFO     | __main__:train_model:290 - TOP 15 FEATURE IMPORTANCES (Averaged)
+2025-08-17 19:48:38.986 | INFO     | __main__:train_model:291 - ================================================================================
+2025-08-17 19:48:38.987 | INFO     | __main__:train_model:302 -   btc_regime                    : 0.3108
+2025-08-17 19:48:38.987 | INFO     | __main__:train_model:302 -   btc_sma200                    : 0.1897
+2025-08-17 19:48:38.987 | INFO     | __main__:train_model:302 -   btc_sma50_distance            : 0.0388
+2025-08-17 19:48:38.987 | INFO     | __main__:train_model:302 -   btc_sma200_distance           : 0.0326
+2025-08-17 19:48:38.987 | INFO     | __main__:train_model:302 -   btc_price                     : 0.0294
+2025-08-17 19:48:38.987 | INFO     | __main__:train_model:302 -   btc_sma50                     : 0.0253
+2025-08-17 19:48:38.987 | INFO     | __main__:train_model:302 -   symbol_vs_btc_7d              : 0.0252
+2025-08-17 19:48:38.987 | INFO     | __main__:train_model:302 -   btc_high_low_range_7d         : 0.0186
+2025-08-17 19:48:38.987 | INFO     | __main__:train_model:302 -   day_of_week                   : 0.0140
+2025-08-17 19:48:38.987 | INFO     | __main__:train_model:302 -   btc_volatility_7d             : 0.0132
+2025-08-17 19:48:38.987 | INFO     | __main__:train_model:302 -   btc_trend_strength            : 0.0126
+2025-08-17 19:48:38.987 | INFO     | __main__:train_model:302 -   btc_volatility_30d            : 0.0120
+2025-08-17 19:48:38.987 | INFO     | __main__:train_model:302 -   is_overbought                 : 0.0095
+2025-08-17 19:48:38.987 | INFO     | __main__:train_model:302 -   market_cap_tier               : 0.0094
+2025-08-17 19:48:38.987 | INFO     | __main__:train_model:302 -   threshold                     : 0.0092
+2025-08-17 19:48:38.992 | INFO     | __main__:save_model:313 - Model saved to models/dca/xgboost_multi_output.pkl
+2025-08-17 19:48:38.993 | INFO     | __main__:save_model:318 - Scaler saved to models/dca/scaler.pkl
+2025-08-17 19:48:38.993 | INFO     | __main__:save_model:327 - Features saved to models/dca/features.json
+2025-08-17 19:48:38.993 | INFO     | __main__:save_model:333 - Results saved to models/dca/training_results.json
+2025-08-17 19:48:38.993 | INFO     | __main__:demonstrate_predictions:337 - 
+================================================================================
+2025-08-17 19:48:38.993 | INFO     | __main__:demonstrate_predictions:338 - EXAMPLE PREDICTIONS
+2025-08-17 19:48:38.993 | INFO     | __main__:demonstrate_predictions:339 - ================================================================================
+2025-08-17 19:48:38.993 | INFO     | __main__:demonstrate_predictions:345 - 
+Example 1292:
+2025-08-17 19:48:38.993 | INFO     | __main__:demonstrate_predictions:346 -   Features:
+2025-08-17 19:48:38.993 | INFO     | __main__:demonstrate_predictions:347 -     BTC Regime: 0.0
+2025-08-17 19:48:38.993 | INFO     | __main__:demonstrate_predictions:348 -     Volatility: 8583.26%
+2025-08-17 19:48:38.993 | INFO     | __main__:demonstrate_predictions:349 -     vs BTC: -4.0%
+2025-08-17 19:48:38.993 | INFO     | __main__:demonstrate_predictions:351 -   Predictions vs Actual:
+2025-08-17 19:48:38.993 | INFO     | __main__:demonstrate_predictions:357 -     target_position_mult     : 1.11x (actual: 1.08x)
+2025-08-17 19:48:38.993 | INFO     | __main__:demonstrate_predictions:359 -     target_take_profit       : 12.1% (actual: 12.0%)
+2025-08-17 19:48:38.993 | INFO     | __main__:demonstrate_predictions:359 -     target_stop_loss         : -9.6% (actual: -9.6%)
+2025-08-17 19:48:38.993 | INFO     | __main__:demonstrate_predictions:361 -     target_hold_hours        : 12.0h (actual: 12.0h)
+2025-08-17 19:48:38.993 | INFO     | __main__:demonstrate_predictions:357 -     target_win_prob          : 0.29x (actual: 0.22x)
+2025-08-17 19:48:38.993 | INFO     | __main__:demonstrate_predictions:345 - 
+Example 1219:
+2025-08-17 19:48:38.993 | INFO     | __main__:demonstrate_predictions:346 -   Features:
+2025-08-17 19:48:38.993 | INFO     | __main__:demonstrate_predictions:347 -     BTC Regime: 1.0
+2025-08-17 19:48:38.993 | INFO     | __main__:demonstrate_predictions:348 -     Volatility: 4198.77%
+2025-08-17 19:48:38.993 | INFO     | __main__:demonstrate_predictions:349 -     vs BTC: -20.2%
+2025-08-17 19:48:38.993 | INFO     | __main__:demonstrate_predictions:351 -   Predictions vs Actual:
+2025-08-17 19:48:38.993 | INFO     | __main__:demonstrate_predictions:357 -     target_position_mult     : 0.77x (actual: 0.78x)
+2025-08-17 19:48:38.993 | INFO     | __main__:demonstrate_predictions:359 -     target_take_profit       : 12.0% (actual: 12.0%)
+2025-08-17 19:48:38.994 | INFO     | __main__:demonstrate_predictions:359 -     target_stop_loss         : -6.0% (actual: -6.0%)
+2025-08-17 19:48:38.994 | INFO     | __main__:demonstrate_predictions:361 -     target_hold_hours        : 12.0h (actual: 12.0h)
+2025-08-17 19:48:38.994 | INFO     | __main__:demonstrate_predictions:357 -     target_win_prob          : 0.25x (actual: 0.20x)
+2025-08-17 19:48:38.994 | INFO     | __main__:demonstrate_predictions:345 - 
+Example 1198:
+2025-08-17 19:48:38.994 | INFO     | __main__:demonstrate_predictions:346 -   Features:
+2025-08-17 19:48:38.994 | INFO     | __main__:demonstrate_predictions:347 -     BTC Regime: 1.0
+2025-08-17 19:48:38.994 | INFO     | __main__:demonstrate_predictions:348 -     Volatility: 1534.15%
+2025-08-17 19:48:38.994 | INFO     | __main__:demonstrate_predictions:349 -     vs BTC: 3.2%
+2025-08-17 19:48:38.994 | INFO     | __main__:demonstrate_predictions:351 -   Predictions vs Actual:
+2025-08-17 19:48:38.994 | INFO     | __main__:demonstrate_predictions:357 -     target_position_mult     : 0.59x (actual: 0.60x)
+2025-08-17 19:48:38.994 | INFO     | __main__:demonstrate_predictions:359 -     target_take_profit       : 12.0% (actual: 12.0%)
+2025-08-17 19:48:38.994 | INFO     | __main__:demonstrate_predictions:359 -     target_stop_loss         : -6.0% (actual: -6.0%)
+2025-08-17 19:48:38.994 | INFO     | __main__:demonstrate_predictions:361 -     target_hold_hours        : 12.0h (actual: 12.0h)
+2025-08-17 19:48:38.994 | INFO     | __main__:demonstrate_predictions:357 -     target_win_prob          : 0.20x (actual: 0.13x)
+2025-08-17 19:48:38.994 | INFO     | __main__:demonstrate_predictions:345 - 
+Example 152:
+2025-08-17 19:48:38.994 | INFO     | __main__:demonstrate_predictions:346 -   Features:
+2025-08-17 19:48:38.994 | INFO     | __main__:demonstrate_predictions:347 -     BTC Regime: 0.0
+2025-08-17 19:48:38.994 | INFO     | __main__:demonstrate_predictions:348 -     Volatility: 5008.94%
+2025-08-17 19:48:38.994 | INFO     | __main__:demonstrate_predictions:349 -     vs BTC: 10.9%
+2025-08-17 19:48:38.994 | INFO     | __main__:demonstrate_predictions:351 -   Predictions vs Actual:
+2025-08-17 19:48:38.994 | INFO     | __main__:demonstrate_predictions:357 -     target_position_mult     : 0.84x (actual: 0.76x)
+2025-08-17 19:48:38.994 | INFO     | __main__:demonstrate_predictions:359 -     target_take_profit       : 12.1% (actual: 12.0%)
+2025-08-17 19:48:38.994 | INFO     | __main__:demonstrate_predictions:359 -     target_stop_loss         : -9.6% (actual: -9.6%)
+2025-08-17 19:48:38.994 | INFO     | __main__:demonstrate_predictions:361 -     target_hold_hours        : 12.0h (actual: 12.0h)
+2025-08-17 19:48:38.994 | INFO     | __main__:demonstrate_predictions:357 -     target_win_prob          : 0.21x (actual: 0.16x)
+2025-08-17 19:48:38.994 | INFO     | __main__:demonstrate_predictions:345 - 
+Example 1043:
+2025-08-17 19:48:38.994 | INFO     | __main__:demonstrate_predictions:346 -   Features:
+2025-08-17 19:48:38.994 | INFO     | __main__:demonstrate_predictions:347 -     BTC Regime: 1.0
+2025-08-17 19:48:38.994 | INFO     | __main__:demonstrate_predictions:348 -     Volatility: 2114.25%
+2025-08-17 19:48:38.994 | INFO     | __main__:demonstrate_predictions:349 -     vs BTC: 31.8%
+2025-08-17 19:48:38.994 | INFO     | __main__:demonstrate_predictions:351 -   Predictions vs Actual:
+2025-08-17 19:48:38.994 | INFO     | __main__:demonstrate_predictions:357 -     target_position_mult     : 0.43x (actual: 0.46x)
+2025-08-17 19:48:38.994 | INFO     | __main__:demonstrate_predictions:359 -     target_take_profit       : 12.2% (actual: 12.5%)
+2025-08-17 19:48:38.994 | INFO     | __main__:demonstrate_predictions:359 -     target_stop_loss         : -6.0% (actual: -6.0%)
+2025-08-17 19:48:38.994 | INFO     | __main__:demonstrate_predictions:361 -     target_hold_hours        : 12.0h (actual: 12.0h)
+2025-08-17 19:48:38.994 | INFO     | __main__:demonstrate_predictions:357 -     target_win_prob          : 0.17x (actual: 0.10x)
+2025-08-17 19:48:38.994 | INFO     | __main__:main:385 - 
+================================================================================
+2025-08-17 19:48:38.994 | INFO     | __main__:main:386 - TRAINING SUMMARY
+2025-08-17 19:48:38.994 | INFO     | __main__:main:387 - ================================================================================
+2025-08-17 19:48:38.994 | INFO     | __main__:main:393 - 
+Average Test R²: 0.791
+2025-08-17 19:48:38.994 | INFO     | __main__:main:394 - Average Test MAE: 0.017
+2025-08-17 19:48:38.994 | INFO     | __main__:main:396 - 
+================================================================================
+2025-08-17 19:48:38.994 | INFO     | __main__:main:397 - KEY INSIGHTS
+2025-08-17 19:48:38.994 | INFO     | __main__:main:398 - ================================================================================
+2025-08-17 19:48:38.994 | INFO     | __main__:main:400 - 
+1. The model can now predict MULTIPLE trading parameters simultaneously
+2025-08-17 19:48:38.994 | INFO     | __main__:main:401 - 2. Position sizing adapts to market conditions (2x in BEAR, 0.5x in BULL)
+2025-08-17 19:48:38.994 | INFO     | __main__:main:402 - 3. Take profit targets adjust by market cap (5% for BTC, 12% for small caps)
+2025-08-17 19:48:38.994 | INFO     | __main__:main:403 - 4. Stop losses tighten in BULL markets, widen in BEAR markets
+2025-08-17 19:48:38.994 | INFO     | __main__:main:404 - 5. Hold time predictions help with position management
+2025-08-17 19:48:38.994 | SUCCESS  | __main__:main:406 - 
+✅ Multi-Output XGBoost Model Training Complete!
+2025-08-17 19:48:38.994 | INFO     | __main__:main:407 - Ready for production use in adaptive trading system

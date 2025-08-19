@@ -1,0 +1,115 @@
+2025-08-17 19:33:50.230 | INFO     | __main__:main:449 - ================================================================================
+2025-08-17 19:33:50.230 | INFO     | __main__:main:450 - DCA STRATEGY BACKTESTING FRAMEWORK
+2025-08-17 19:33:50.230 | INFO     | __main__:main:451 - ================================================================================
+2025-08-17 19:33:50.278 | INFO     | src.data.supabase_client:__init__:23 - Supabase client initialized
+2025-08-17 19:33:50.278 | INFO     | __main__:load_enriched_labels:79 - Loading enriched labels from data/dca_labels_enriched.csv
+2025-08-17 19:33:50.295 | INFO     | __main__:main:468 - Loaded 7575 historical setups
+2025-08-17 19:33:50.297 | INFO     | __main__:main:473 - Using 7575 setups from last 6 months for testing
+2025-08-17 19:33:50.297 | INFO     | __main__:compare_strategies:396 - 
+================================================================================
+2025-08-17 19:33:50.297 | INFO     | __main__:compare_strategies:397 - BASELINE STRATEGY (Fixed Position Size)
+2025-08-17 19:33:50.297 | INFO     | __main__:compare_strategies:398 - ================================================================================
+2025-08-17 19:33:50.297 | INFO     | __main__:backtest_rule_based:139 - 
+================================================================================
+2025-08-17 19:33:50.297 | INFO     | __main__:backtest_rule_based:140 - RULE-BASED BACKTEST
+2025-08-17 19:33:50.297 | INFO     | __main__:backtest_rule_based:141 - ================================================================================
+2025-08-17 19:33:50.408 | INFO     | __main__:_calculate_metrics:355 - 
+Rule-Based Results:
+2025-08-17 19:33:50.408 | INFO     | __main__:_calculate_metrics:356 - ==================================================
+2025-08-17 19:33:50.408 | INFO     | __main__:_calculate_metrics:357 - Initial Capital:     $10,000.00
+2025-08-17 19:33:50.408 | INFO     | __main__:_calculate_metrics:358 - Final Capital:       $6,212.03
+2025-08-17 19:33:50.408 | INFO     | __main__:_calculate_metrics:359 - Total Return:        -37.88%
+2025-08-17 19:33:50.408 | INFO     | __main__:_calculate_metrics:360 - Max Drawdown:        -39.85%
+2025-08-17 19:33:50.408 | INFO     | __main__:_calculate_metrics:361 - Sharpe Ratio:        -0.62
+2025-08-17 19:33:50.408 | INFO     | __main__:_calculate_metrics:362 - Profit Factor:       0.81
+2025-08-17 19:33:50.409 | INFO     | __main__:_calculate_metrics:363 - 
+2025-08-17 19:33:50.409 | INFO     | __main__:_calculate_metrics:364 - Total Trades:        4993
+2025-08-17 19:33:50.409 | INFO     | __main__:_calculate_metrics:365 - Trades Skipped:      2582
+2025-08-17 19:33:50.409 | INFO     | __main__:_calculate_metrics:366 - Win Rate:            25.9%
+2025-08-17 19:33:50.409 | INFO     | __main__:_calculate_metrics:367 - Wins/Losses:         1295/1995
+2025-08-17 19:33:50.409 | INFO     | __main__:_calculate_metrics:368 - Avg Win:             $7.50
+2025-08-17 19:33:50.409 | INFO     | __main__:_calculate_metrics:369 - Avg Loss:            $-7.38
+2025-08-17 19:33:50.409 | INFO     | __main__:_calculate_metrics:372 - 
+Performance by Market Regime:
+2025-08-17 19:33:50.409 | INFO     | __main__:_calculate_metrics:378 -   BEAR    : 434 trades, 44.2% win rate, $+2011.03 P&L
+2025-08-17 19:33:50.409 | INFO     | __main__:_calculate_metrics:378 -   NEUTRAL : 4005 trades, 26.7% win rate, $-3740.99 P&L
+2025-08-17 19:33:50.410 | INFO     | __main__:_calculate_metrics:378 -   BULL    : 554 trades, 6.1% win rate, $-2058.01 P&L
+2025-08-17 19:33:50.411 | INFO     | __main__:backtest_rule_based:139 - 
+================================================================================
+2025-08-17 19:33:50.411 | INFO     | __main__:backtest_rule_based:140 - RULE-BASED BACKTEST
+2025-08-17 19:33:50.411 | INFO     | __main__:backtest_rule_based:141 - ================================================================================
+2025-08-17 19:33:50.521 | INFO     | __main__:_calculate_metrics:355 - 
+Rule-Based Results:
+2025-08-17 19:33:50.521 | INFO     | __main__:_calculate_metrics:356 - ==================================================
+2025-08-17 19:33:50.521 | INFO     | __main__:_calculate_metrics:357 - Initial Capital:     $10,000.00
+2025-08-17 19:33:50.521 | INFO     | __main__:_calculate_metrics:358 - Final Capital:       $9,252.07
+2025-08-17 19:33:50.521 | INFO     | __main__:_calculate_metrics:359 - Total Return:        -7.48%
+2025-08-17 19:33:50.521 | INFO     | __main__:_calculate_metrics:360 - Max Drawdown:        -11.80%
+2025-08-17 19:33:50.521 | INFO     | __main__:_calculate_metrics:361 - Sharpe Ratio:        -0.62
+2025-08-17 19:33:50.521 | INFO     | __main__:_calculate_metrics:362 - Profit Factor:       0.96
+2025-08-17 19:33:50.521 | INFO     | __main__:_calculate_metrics:363 - 
+2025-08-17 19:33:50.521 | INFO     | __main__:_calculate_metrics:364 - Total Trades:        4993
+2025-08-17 19:33:50.521 | INFO     | __main__:_calculate_metrics:365 - Trades Skipped:      2582
+2025-08-17 19:33:50.521 | INFO     | __main__:_calculate_metrics:366 - Win Rate:            25.9%
+2025-08-17 19:33:50.521 | INFO     | __main__:_calculate_metrics:367 - Wins/Losses:         1295/1995
+2025-08-17 19:33:50.521 | INFO     | __main__:_calculate_metrics:368 - Avg Win:             $8.68
+2025-08-17 19:33:50.521 | INFO     | __main__:_calculate_metrics:369 - Avg Loss:            $-7.22
+2025-08-17 19:33:50.521 | INFO     | __main__:_calculate_metrics:372 - 
+Performance by Market Regime:
+2025-08-17 19:33:50.521 | INFO     | __main__:_calculate_metrics:378 -   BEAR    : 434 trades, 44.2% win rate, $+4022.07 P&L
+2025-08-17 19:33:50.522 | INFO     | __main__:_calculate_metrics:378 -   NEUTRAL : 4005 trades, 26.7% win rate, $-3740.99 P&L
+2025-08-17 19:33:50.522 | INFO     | __main__:_calculate_metrics:378 -   BULL    : 554 trades, 6.1% win rate, $-1029.00 P&L
+2025-08-17 19:33:50.523 | INFO     | __main__:backtest_ml_enhanced:210 - 
+================================================================================
+2025-08-17 19:33:50.523 | INFO     | __main__:backtest_ml_enhanced:211 - ML-ENHANCED BACKTEST (Simulated)
+2025-08-17 19:33:50.523 | INFO     | __main__:backtest_ml_enhanced:212 - ================================================================================
+2025-08-17 19:33:50.523 | INFO     | __main__:backtest_ml_enhanced:224 - Simulating ML confidence scores based on feature importance...
+2025-08-17 19:33:50.613 | INFO     | __main__:_calculate_metrics:355 - 
+ML-Enhanced Results:
+2025-08-17 19:33:50.613 | INFO     | __main__:_calculate_metrics:356 - ==================================================
+2025-08-17 19:33:50.613 | INFO     | __main__:_calculate_metrics:357 - Initial Capital:     $10,000.00
+2025-08-17 19:33:50.613 | INFO     | __main__:_calculate_metrics:358 - Final Capital:       $10,832.15
+2025-08-17 19:33:50.613 | INFO     | __main__:_calculate_metrics:359 - Total Return:        +8.32%
+2025-08-17 19:33:50.613 | INFO     | __main__:_calculate_metrics:360 - Max Drawdown:        -4.36%
+2025-08-17 19:33:50.613 | INFO     | __main__:_calculate_metrics:361 - Sharpe Ratio:        -0.93
+2025-08-17 19:33:50.613 | INFO     | __main__:_calculate_metrics:362 - Profit Factor:       1.06
+2025-08-17 19:33:50.613 | INFO     | __main__:_calculate_metrics:363 - 
+2025-08-17 19:33:50.613 | INFO     | __main__:_calculate_metrics:364 - Total Trades:        2114
+2025-08-17 19:33:50.613 | INFO     | __main__:_calculate_metrics:365 - Trades Skipped:      5461
+2025-08-17 19:33:50.613 | INFO     | __main__:_calculate_metrics:366 - Win Rate:            21.4%
+2025-08-17 19:33:50.613 | INFO     | __main__:_calculate_metrics:367 - Wins/Losses:         452/959
+2025-08-17 19:33:50.613 | INFO     | __main__:_calculate_metrics:368 - Avg Win:             $16.42
+2025-08-17 19:33:50.613 | INFO     | __main__:_calculate_metrics:369 - Avg Loss:            $-10.94
+2025-08-17 19:33:50.613 | INFO     | __main__:_calculate_metrics:372 - 
+Performance by Market Regime:
+2025-08-17 19:33:50.614 | INFO     | __main__:_calculate_metrics:378 -   BEAR    : 392 trades, 45.4% win rate, $+5622.47 P&L
+2025-08-17 19:33:50.614 | INFO     | __main__:_calculate_metrics:378 -   NEUTRAL : 1722 trades, 15.9% win rate, $-4790.32 P&L
+2025-08-17 19:33:50.615 | INFO     | __main__:compare_strategies:429 - 
+================================================================================
+2025-08-17 19:33:50.615 | INFO     | __main__:compare_strategies:430 - STRATEGY COMPARISON
+2025-08-17 19:33:50.615 | INFO     | __main__:compare_strategies:431 - ================================================================================
+2025-08-17 19:33:50.617 | INFO     | __main__:compare_strategies:432 - 
+      strategy  total_return  max_drawdown  sharpe_ratio  profit_factor   win_rate  total_trades  final_capital
+0   Rule-Based    -37.879686    -39.852755     -0.621775       0.814297  25.936311          4993    6212.031423
+1   Rule-Based     -7.479315    -11.798174     -0.621775       0.962540  25.936311          4993    9252.068477
+2  ML-Enhanced      8.321486     -4.358666     -0.926029       1.061572  21.381268          2114   10832.148603
+2025-08-17 19:33:50.617 | INFO     | __main__:compare_strategies:439 - 
+================================================================================
+2025-08-17 19:33:50.618 | INFO     | __main__:compare_strategies:440 - IMPROVEMENTS OVER BASELINE
+2025-08-17 19:33:50.618 | INFO     | __main__:compare_strategies:441 - ================================================================================
+2025-08-17 19:33:50.618 | INFO     | __main__:compare_strategies:442 - Rule-Based Adaptive:  +80.3% improvement
+2025-08-17 19:33:50.618 | INFO     | __main__:compare_strategies:443 - ML-Enhanced:          +122.0% improvement
+2025-08-17 19:33:50.619 | INFO     | __main__:main:480 - 
+Results saved to data/backtest_results.csv
+2025-08-17 19:33:50.619 | INFO     | __main__:main:482 - 
+================================================================================
+2025-08-17 19:33:50.619 | INFO     | __main__:main:483 - 💡 KEY FINDINGS
+2025-08-17 19:33:50.619 | INFO     | __main__:main:484 - ================================================================================
+2025-08-17 19:33:50.619 | INFO     | __main__:main:485 - 
+1. Adaptive position sizing significantly improves returns
+2025-08-17 19:33:50.619 | INFO     | __main__:main:486 - 2. Market regime awareness is crucial for risk management
+2025-08-17 19:33:50.619 | INFO     | __main__:main:487 - 3. ML can further enhance performance through better trade selection
+2025-08-17 19:33:50.619 | INFO     | __main__:main:488 - 4. The strategy works best in BEAR/NEUTRAL markets
+2025-08-17 19:33:50.619 | INFO     | __main__:main:489 - 5. Position sizing based on relative performance (vs BTC) is highly effective
+2025-08-17 19:33:50.619 | SUCCESS  | __main__:main:491 - 
+✅ Backtesting complete!

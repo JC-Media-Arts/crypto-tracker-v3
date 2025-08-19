@@ -23,6 +23,10 @@ class Settings(BaseSettings):
 
     # Slack
     slack_webhook_url: Optional[str] = Field(None, env="SLACK_WEBHOOK_URL")
+    slack_webhook_trades: Optional[str] = Field(None, env="SLACK_WEBHOOK_TRADES")
+    slack_webhook_signals: Optional[str] = Field(None, env="SLACK_WEBHOOK_SIGNALS")
+    slack_webhook_reports: Optional[str] = Field(None, env="SLACK_WEBHOOK_REPORTS")
+    slack_webhook_alerts: Optional[str] = Field(None, env="SLACK_WEBHOOK_ALERTS")
     slack_bot_token: Optional[str] = Field(None, env="SLACK_BOT_TOKEN")
     slack_app_token: Optional[str] = Field(None, env="SLACK_APP_TOKEN")
     slack_signing_secret: Optional[str] = Field(None, env="SLACK_SIGNING_SECRET")
@@ -39,6 +43,13 @@ class Settings(BaseSettings):
     environment: str = Field("development", env="ENVIRONMENT")
     log_level: str = Field("INFO", env="LOG_LEVEL")
     feature_update_interval: int = Field(120, env="FEATURE_UPDATE_INTERVAL")  # seconds
+    
+    # Shadow Testing Configuration
+    enable_shadow_testing: bool = Field(True, env="ENABLE_SHADOW_TESTING")
+    shadow_evaluation_interval: int = Field(300, env="SHADOW_EVALUATION_INTERVAL")  # 5 minutes
+    shadow_max_variations: int = Field(10, env="SHADOW_MAX_VARIATIONS")
+    shadow_min_trades_for_adjustment: int = Field(30, env="SHADOW_MIN_TRADES")
+    shadow_adjustment_hour: int = Field(2, env="SHADOW_ADJUSTMENT_HOUR")  # 2 AM PST
 
     # Optional API keys for future use
     github_api_key: Optional[str] = Field(None, env="GITHUB_API_KEY")

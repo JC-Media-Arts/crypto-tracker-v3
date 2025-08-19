@@ -1,0 +1,44 @@
+{
+  "accuracy": 0.9215686274509803,
+  "precision": 1.0,
+  "recall": 0.5,
+  "f1_score": 0.6666666666666666,
+  "confidence_threshold": 0.3,
+  "tp_mae": 0.55539691012013,
+  "sl_mae": 0.4001678026436328,
+  "hold_mae": 5.728116989135742,
+  "feature_importance": [
+    {
+      "feature": "range_width",
+      "importance": 0.22260671854019165
+    },
+    {
+      "feature": "total_touches",
+      "importance": 0.19273468852043152
+    },
+    {
+      "feature": "risk_reward",
+      "importance": 0.14359936118125916
+    },
+    {
+      "feature": "volatility",
+      "importance": 0.10030753165483475
+    },
+    {
+      "feature": "resistance_touches",
+      "importance": 0.08299776166677475
+    },
+    {
+      "feature": "volume_trend",
+      "importance": 0.06809388846158981
+    },
+    {
+      "feature": "position_in_range",
+      "importance": 0.0
+    },
+    {
+      "feature": "support_touches",
+      "importance": 0.0
+    }
+  ]
+}

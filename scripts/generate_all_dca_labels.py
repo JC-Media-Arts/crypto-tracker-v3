@@ -44,26 +44,28 @@ class DCALabelGenerator:
 
     def get_all_symbols(self) -> List[str]:
         """Get all symbols with sufficient data from database."""
-        try:
-            # Get symbols with at least 1000 data points
-            result = self.supabase.client.rpc(
-                "get_symbols_with_data_count", {"min_count": 1000}
-            ).execute()
-
-            if result.data:
-                symbols = [row["symbol"] for row in result.data]
-                logger.info(f"Found {len(symbols)} symbols with sufficient data")
-                return symbols
-        except:
-            # Fallback: query directly
-            result = self.supabase.client.table("price_data").select("symbol").execute()
-            if result.data:
-                # Get unique symbols
-                symbols = list(set([row["symbol"] for row in result.data]))
-                logger.info(f"Found {len(symbols)} unique symbols")
-                return sorted(symbols)
-
-        return []
+        # Hardcode the list of symbols we're tracking
+        symbols = [
+            # Tier 1: Core (20 coins)
+            'BTC', 'ETH', 'SOL', 'BNB', 'XRP', 'ADA', 'AVAX', 'DOGE', 'DOT', 'POL',
+            'LINK', 'TON', 'SHIB', 'TRX', 'UNI', 'ATOM', 'BCH', 'APT', 'NEAR', 'ICP',
+            
+            # Tier 2: DeFi/Layer 2 (20 coins)
+            'ARB', 'OP', 'AAVE', 'CRV', 'MKR', 'LDO', 'SUSHI', 'COMP', 'SNX', 'BAL',
+            'INJ', 'SEI', 'PENDLE', 'BLUR', 'ENS', 'GRT', 'RENDER', 'FET', 'RPL', 'SAND',
+            
+            # Tier 3: Trending/Memecoins (20 coins)
+            'PEPE', 'WIF', 'BONK', 'FLOKI', 'MEME', 'POPCAT', 'MEW', 'TURBO', 'NEIRO', 'PNUT',
+            'GOAT', 'ACT', 'TRUMP', 'FARTCOIN', 'MOG', 'PONKE', 'TREMP', 'BRETT', 'GIGA', 'HIPPO',
+            
+            # Tier 4: Solid Mid-Caps (40 coins)
+            'FIL', 'RUNE', 'IMX', 'FLOW', 'MANA', 'AXS', 'CHZ', 'GALA', 'LRC', 'OCEAN',
+            'QNT', 'ALGO', 'XLM', 'XMR', 'ZEC', 'DASH', 'HBAR', 'VET', 'THETA', 'EOS',
+            'KSM', 'STX', 'KAS', 'TIA', 'JTO', 'JUP', 'PYTH', 'DYM', 'STRK', 'ALT',
+            'PORTAL', 'BEAM', 'MASK', 'API3', 'ANKR', 'CTSI', 'YFI', 'AUDIO', 'ENJ'
+        ]
+        logger.info(f"Using {len(symbols)} predefined symbols")
+        return symbols
 
     def find_historical_setups(self, symbol: str, lookback_days: int) -> List[Dict]:
         """
@@ -84,9 +86,10 @@ class DCALabelGenerator:
 
             # Fetch chunk
             result = (
-                self.supabase.client.table("price_data")
+                self.supabase.client.table("ohlc_data")
                 .select("timestamp,symbol,close,high,low,volume")
                 .eq("symbol", symbol)
+                .eq("timeframe", "15m")
                 .gte("timestamp", current_start.isoformat())
                 .lt("timestamp", current_end.isoformat())
                 .order("timestamp")
@@ -119,7 +122,7 @@ class DCALabelGenerator:
         df["high_4h"] = df["high"].rolling(window=48, min_periods=1).max()
 
         # Look for setups (5% drops from 4h high)
-        drop_threshold = self.config["setup_detection"]["price_drop_threshold"]
+        drop_threshold = self.config.get("price_drop_threshold", -5.0)
 
         i = 48  # Start after we have enough history
         while i < len(df):
@@ -295,9 +298,10 @@ class DCALabelGenerator:
             current_end = min(current_start + timedelta(hours=chunk_hours), end_time)
 
             result = (
-                self.supabase.client.table("price_data")
+                self.supabase.client.table("ohlc_data")
                 .select("timestamp,close,high,low,volume")
                 .eq("symbol", symbol)
+                .eq("timeframe", "15m")
                 .gte("timestamp", current_start.isoformat())
                 .lt("timestamp", current_end.isoformat())
                 .order("timestamp")
@@ -488,9 +492,9 @@ def main():
     print("-" * 40)
 
     # For initial testing, just do top 20 symbols
-    # Remove this limit when ready for full run
-    symbols = symbols[:20]  # Start with top 20 for testing
-    print(f"Processing first {len(symbols)} symbols for testing...")
+    # Process all symbols
+    # symbols = symbols[:20]  # Uncomment to limit for testing
+    print(f"Processing all {len(symbols)} symbols...")
 
     # Generate labels
     df = generator.generate_labels(symbols, lookback_days=180)

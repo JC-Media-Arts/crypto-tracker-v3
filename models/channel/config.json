@@ -1,0 +1,14 @@
+{
+  "confidence_threshold": 0.3,
+  "feature_columns": [
+    "range_width",
+    "position_in_range",
+    "resistance_touches",
+    "support_touches",
+    "total_touches",
+    "volatility",
+    "volume_trend",
+    "risk_reward"
+  ],
+  "trained_at": "2025-08-18T11:34:08.550739"
+}

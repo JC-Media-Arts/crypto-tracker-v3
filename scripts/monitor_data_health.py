@@ -72,7 +72,23 @@ class DataHealthMonitor:
 
     def get_priority_symbols(self) -> List[str]:
         """Get list of priority symbols to monitor closely"""
-        return ["BTC", "ETH", "SOL", "BNB", "XRP"]
+        # All 99 symbols we track (from MASTER_PLAN.md)
+        return [
+            # Tier 1: Core (20 coins)
+            'BTC', 'ETH', 'SOL', 'BNB', 'XRP', 'ADA', 'AVAX', 'DOGE', 'DOT', 'POL',
+            'LINK', 'TON', 'SHIB', 'TRX', 'UNI', 'ATOM', 'BCH', 'APT', 'NEAR', 'ICP',
+            # Tier 2: DeFi/Layer 2 (20 coins)
+            'ARB', 'OP', 'AAVE', 'CRV', 'MKR', 'LDO', 'SUSHI', 'COMP', 'SNX', 'BAL',
+            'INJ', 'SEI', 'PENDLE', 'BLUR', 'ENS', 'GRT', 'RENDER', 'FET', 'RPL', 'SAND',
+            # Tier 3: Trending/Memecoins (20 coins)
+            'PEPE', 'WIF', 'BONK', 'FLOKI', 'MEME', 'POPCAT', 'MEW', 'TURBO', 'NEIRO', 'PNUT',
+            'GOAT', 'ACT', 'TRUMP', 'FARTCOIN', 'MOG', 'PONKE', 'TREMP', 'BRETT', 'GIGA', 'HIPPO',
+            # Tier 4: Solid Mid-Caps (39 coins)
+            'FIL', 'RUNE', 'IMX', 'FLOW', 'MANA', 'AXS', 'CHZ', 'GALA', 'LRC', 'OCEAN',
+            'QNT', 'ALGO', 'XLM', 'XMR', 'ZEC', 'DASH', 'HBAR', 'VET', 'THETA', 'EOS',
+            'KSM', 'STX', 'KAS', 'TIA', 'JTO', 'JUP', 'PYTH', 'DYM', 'STRK', 'ALT',
+            'PORTAL', 'BEAM', 'MASK', 'API3', 'ANKR', 'CTSI', 'YFI', 'AUDIO', 'ENJ'
+        ]
 
     def check_data_freshness(self) -> Dict:
         """Check if data is up to date"""

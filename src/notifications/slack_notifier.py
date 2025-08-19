@@ -1,253 +1,209 @@
 """
-Slack notification module for alerts and reports.
-Handles all Slack communications including trades, alerts, and daily summaries.
+Slack notification system for crypto trading bot
+Sends alerts, trade updates, and performance reports
 """
 
 import asyncio
-from datetime import datetime
-from typing import Dict, Optional
-from loguru import logger
-from slack_sdk import WebClient
-from slack_sdk.errors import SlackApiError
 import aiohttp
+import json
+import os
+from typing import Dict, Optional, List, Any
+from datetime import datetime, timedelta
+from loguru import logger
+from enum import Enum
 
-from src.config import Settings
+
+class NotificationType(Enum):
+    """Types of notifications"""
+    TRADE_OPENED = "trade_opened"
+    TRADE_CLOSED = "trade_closed"
+    SIGNAL_DETECTED = "signal_detected"
+    DAILY_REPORT = "daily_report"
+    SYSTEM_ALERT = "system_alert"
+    REGIME_CHANGE = "regime_change"
+    ERROR = "error"
+    INFO = "info"
+    SHADOW_PERFORMANCE = "shadow_performance"
+    THRESHOLD_ADJUSTMENT = "threshold_adjustment"
+    ROLLBACK_ALERT = "rollback_alert"
 
 
 class SlackNotifier:
-    """Handles Slack notifications and alerts."""
-
-    # Channel configuration from master plan
-    CHANNELS = {
-        "ml-signals": "Real-time predictions and trades",
-        "daily-reports": "7 AM and 7 PM summaries",
-        "system-alerts": "Critical issues only",
-    }
-
-    # Notification templates
-    TEMPLATES = {
-        "trade_opened": """💰 *Trade Opened*
-• Coin: `{symbol}`
-• Entry: ${price:.2f}
-• Confidence: {confidence:.0%}
-• Stop Loss: ${stop_loss:.2f} (-5%)
-• Take Profit: ${take_profit:.2f} (+10%)""",
-        "trade_closed": """{emoji} *Trade Closed*
-• Coin: `{symbol}`
-• P&L: ${pnl:.2f} ({pnl_pct:+.1f}%)
-• Reason: {exit_reason}
-• Duration: {hours}h {minutes}m""",
-        "daily_summary": """📊 *Daily Summary - {date}*
-• Total Trades: {trades_count}
-• Wins: {wins} | Losses: {losses}
-• Net P&L: ${net_pnl:.2f}
-• Win Rate: {win_rate:.1%}
-• ML Accuracy: {ml_accuracy:.1%}""",
-        "system_alert": """🚨 *System Alert*
-• Type: {alert_type}
-• Message: {message}
-• Time: {timestamp}""",
-        "big_win": """🎉 @channel *Big WIN!*
-• Coin: {symbol}
-• Profit: +${profit:.2f}
-• Return: +{return_pct:.1%}""",
-        "big_loss": """⚠️ @channel *Loss Alert*
-• Coin: {symbol}
-• Loss: -${loss:.2f}
-• Return: -{return_pct:.1%}""",
-    }
-
-    def __init__(self, settings: Settings):
-        """Initialize Slack notifier."""
-        self.settings = settings
-        self.webhook_url = settings.slack_webhook_url
-        self.bot_token = settings.slack_bot_token
-        self.client: Optional[WebClient] = None
-        self.running = False
-
-    async def initialize(self):
-        """Initialize Slack client."""
-        logger.info("Initializing Slack notifier...")
-
-        try:
-            # Initialize Slack Web API client
-            self.client = WebClient(token=self.bot_token)
-
-            # Test connection
-            response = self.client.auth_test()
-            logger.info(f"Connected to Slack as {response['user']}")
-
-            logger.success("Slack notifier initialized")
-
-        except SlackApiError as e:
-            logger.error(f"Failed to initialize Slack client: {e}")
-            # Continue without Slack if it fails
-        except Exception as e:
-            logger.error(f"Unexpected error initializing Slack: {e}")
-
-    async def send_message(self, message: str, channel: str = "system-alerts"):
-        """Send a message to Slack channel."""
-        try:
-            # Map channel name to actual channel ID if needed
-            channel_id = f"#{channel}"
-
-            if self.client:
-                response = self.client.chat_postMessage(
-                    channel=channel_id, text=message, mrkdwn=True
-                )
-                logger.debug(f"Sent message to {channel}")
-            else:
-                # Fallback to webhook if client not available
-                await self._send_via_webhook(message)
-
-        except SlackApiError as e:
-            logger.error(f"Failed to send Slack message: {e}")
-        except Exception as e:
-            logger.error(f"Unexpected error sending message: {e}")
-
-    async def _send_via_webhook(self, message: str):
-        """Send message via webhook as fallback."""
+    """Handles all Slack notifications for the trading system"""
+    
+    def __init__(self, webhook_url: Optional[str] = None):
+        """
+        Initialize Slack notifier
+        
+        Args:
+            webhook_url: Slack webhook URL (can be set via env var)
+        """
+        # Load webhook URLs from environment
+        self.webhook_urls = {
+            'trades': os.getenv('SLACK_WEBHOOK_TRADES'),
+            'signals': os.getenv('SLACK_WEBHOOK_SIGNALS'),
+            'reports': os.getenv('SLACK_WEBHOOK_REPORTS'),
+            'alerts': os.getenv('SLACK_WEBHOOK_ALERTS'),
+            'default': webhook_url or os.getenv('SLACK_WEBHOOK_URL')
+        }
+        
+        # Map notification types to webhook categories
+        self.webhook_mapping = {
+            NotificationType.TRADE_OPENED: 'trades',
+            NotificationType.TRADE_CLOSED: 'trades',
+            NotificationType.SIGNAL_DETECTED: 'signals',
+            NotificationType.DAILY_REPORT: 'reports',
+            NotificationType.SYSTEM_ALERT: 'alerts',
+            NotificationType.REGIME_CHANGE: 'trades',  # Market regime changes go to trades
+            NotificationType.ERROR: 'alerts',
+            NotificationType.INFO: 'signals',
+            NotificationType.SHADOW_PERFORMANCE: 'reports',
+            NotificationType.THRESHOLD_ADJUSTMENT: 'alerts',
+            NotificationType.ROLLBACK_ALERT: 'alerts'
+        }
+        
+        # Channel mapping (for reference, actual routing is via webhooks)
+        self.channels = {
+            NotificationType.TRADE_OPENED: "#trades",
+            NotificationType.TRADE_CLOSED: "#trades",
+            NotificationType.SIGNAL_DETECTED: "#ml-signals",
+            NotificationType.DAILY_REPORT: "#reports",
+            NotificationType.SYSTEM_ALERT: "#system-alerts",
+            NotificationType.REGIME_CHANGE: "#trades",
+            NotificationType.ERROR: "#system-alerts",
+            NotificationType.INFO: "#ml-signals"
+        }
+        
+        # Check if any webhooks are configured
+        self.enabled = any(self.webhook_urls.values())
+        
+        if self.enabled:
+            configured = [k for k, v in self.webhook_urls.items() if v]
+            logger.info(f"Slack notifier initialized with webhooks: {configured}")
+        else:
+            logger.warning("Slack notifier disabled - no webhook URLs configured")
+    
+    async def send_notification(self, 
+                               notification_type: NotificationType,
+                               title: str,
+                               message: str,
+                               details: Optional[Dict] = None,
+                               color: Optional[str] = None):
+        """
+        Send a notification to Slack
+        
+        Args:
+            notification_type: Type of notification
+            title: Notification title
+            message: Main message text
+            details: Optional details dictionary
+            color: Slack attachment color (good, warning, danger, or hex)
+        """
+        if not self.enabled:
+            logger.debug(f"Slack disabled - would send: {title}")
+            return False
+        
+        # Get the appropriate webhook URL for this notification type
+        webhook_category = self.webhook_mapping.get(notification_type, 'default')
+        webhook_url = self.webhook_urls.get(webhook_category)
+        
+        # Fallback to default webhook if specific one not configured
+        if not webhook_url:
+            webhook_url = self.webhook_urls.get('default')
+        
+        if not webhook_url:
+            logger.warning(f"No webhook configured for {notification_type.value}")
+            return False
+        
+        # Determine color based on type if not specified
+        if color is None:
+            color = self._get_color_for_type(notification_type)
+        
+        # Build the Slack message
+        slack_message = self._build_slack_message(
+            notification_type, title, message, details, color
+        )
+        
+        # Send to Slack
         try:
             async with aiohttp.ClientSession() as session:
-                payload = {"text": message}
-                async with session.post(self.webhook_url, json=payload) as response:
-                    if response.status != 200:
-                        logger.error(f"Webhook failed: {response.status}")
+                async with session.post(
+                    webhook_url,
+                    json=slack_message,
+                    headers={'Content-Type': 'application/json'}
+                ) as response:
+                    if response.status == 200:
+                        channel = self.channels.get(notification_type, "unknown")
+                        logger.debug(f"Slack notification sent to {channel}: {title}")
+                        return True
+                    else:
+                        logger.error(f"Failed to send Slack notification: {response.status}")
+                        return False
+                        
         except Exception as e:
-            logger.error(f"Failed to send via webhook: {e}")
-
-    async def notify_trade_opened(self, trade: Dict):
-        """Notify when a trade is opened."""
-        message = self.TEMPLATES["trade_opened"].format(
-            symbol=trade["symbol"],
-            price=trade["entry_price"],
-            confidence=trade["ml_confidence"],
-            stop_loss=trade["stop_loss"],
-            take_profit=trade["take_profit"],
-        )
-
-        await self.send_message(message, "ml-signals")
-
-    async def notify_trade_closed(self, trade: Dict):
-        """Notify when a trade is closed."""
-        # Calculate duration
-        entry_time = datetime.fromisoformat(trade["entry_time"].replace("Z", "+00:00"))
-        exit_time = datetime.fromisoformat(trade["exit_time"].replace("Z", "+00:00"))
-        duration = exit_time - entry_time
-        hours = int(duration.total_seconds() // 3600)
-        minutes = int((duration.total_seconds() % 3600) // 60)
-
-        # Choose emoji based on P&L
-        emoji = "✅" if trade["pnl"] > 0 else "❌"
-
-        message = self.TEMPLATES["trade_closed"].format(
-            emoji=emoji,
-            symbol=trade["symbol"],
-            pnl=trade["pnl"],
-            pnl_pct=(trade["exit_price"] - trade["entry_price"])
-            / trade["entry_price"]
-            * 100,
-            exit_reason=trade["exit_reason"],
-            hours=hours,
-            minutes=minutes,
-        )
-
-        await self.send_message(message, "ml-signals")
-
-        # Check for big wins/losses
-        if trade["pnl"] > 50:  # Big win > $50
-            await self.notify_big_win(trade)
-        elif trade["pnl"] < -25:  # Big loss > $25
-            await self.notify_big_loss(trade)
-
-    async def notify_big_win(self, trade: Dict):
-        """Notify channel about big win."""
-        return_pct = (trade["exit_price"] - trade["entry_price"]) / trade["entry_price"]
-
-        message = self.TEMPLATES["big_win"].format(
-            symbol=trade["symbol"], profit=trade["pnl"], return_pct=return_pct
-        )
-
-        await self.send_message(message, "ml-signals")
-
-    async def notify_big_loss(self, trade: Dict):
-        """Notify channel about big loss."""
-        return_pct = abs(
-            (trade["exit_price"] - trade["entry_price"]) / trade["entry_price"]
-        )
-
-        message = self.TEMPLATES["big_loss"].format(
-            symbol=trade["symbol"], loss=abs(trade["pnl"]), return_pct=return_pct
-        )
-
-        await self.send_message(message, "ml-signals")
-
-    async def send_daily_summary(self, summary: Dict):
-        """Send daily performance summary."""
-        message = self.TEMPLATES["daily_summary"].format(
-            date=summary["date"],
-            trades_count=summary["trades_count"],
-            wins=summary["wins"],
-            losses=summary["losses"],
-            net_pnl=summary["net_pnl"],
-            win_rate=summary["wins"] / max(summary["trades_count"], 1),
-            ml_accuracy=summary["ml_accuracy"],
-        )
-
-        await self.send_message(message, "daily-reports")
-
-    async def send_system_alert(self, alert_type: str, message: str):
-        """Send system alert."""
-        alert_message = self.TEMPLATES["system_alert"].format(
-            alert_type=alert_type,
-            message=message,
-            timestamp=datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC"),
-        )
-
-        await self.send_message(alert_message, "system-alerts")
-
-    async def start_scheduled_reports(self):
-        """Start scheduled report tasks."""
-        self.running = True
-
-        # Schedule morning and evening reports
-        asyncio.create_task(self._schedule_reports())
-
-    async def _schedule_reports(self):
-        """Schedule daily reports."""
-        while self.running:
-            try:
-                now = datetime.utcnow()
-
-                # Check if it's time for morning report (7 AM)
-                if now.hour == 14 and now.minute == 0:  # 14:00 UTC = 7 AM LA time
-                    await self._send_morning_report()
-                    await asyncio.sleep(60)  # Wait a minute to avoid duplicate
-
-                # Check if it's time for evening report (7 PM)
-                elif now.hour == 2 and now.minute == 0:  # 02:00 UTC = 7 PM LA time
-                    await self._send_evening_report()
-                    await asyncio.sleep(60)
-
-                await asyncio.sleep(30)  # Check every 30 seconds
-
-            except Exception as e:
-                logger.error(f"Error in scheduled reports: {e}")
-                await asyncio.sleep(60)
-
-    async def _send_morning_report(self):
-        """Send morning report."""
-        # TODO: Implement morning report logic
-        message = "☀️ *Good Morning!*\nCrypto Tracker v3 is operational.\nLast 12 hours summary coming soon..."
-        await self.send_message(message, "daily-reports")
-
-    async def _send_evening_report(self):
-        """Send evening report."""
-        # TODO: Implement evening report logic
-        message = "🌙 *Good Evening!*\nDaily trading summary coming soon..."
-        await self.send_message(message, "daily-reports")
-
-    async def shutdown(self):
-        """Shutdown Slack notifier."""
-        self.running = False
-        logger.info("Slack notifier shut down")
+            logger.error(f"Error sending Slack notification: {e}")
+            return False
+    
+    def _get_color_for_type(self, notification_type: NotificationType) -> str:
+        """Get appropriate color for notification type"""
+        color_map = {
+            NotificationType.TRADE_OPENED: "#36a64f",  # Green
+            NotificationType.TRADE_CLOSED: "#3AA3E3",  # Blue
+            NotificationType.SIGNAL_DETECTED: "#FFA500",  # Orange
+            NotificationType.DAILY_REPORT: "#9C27B0",  # Purple
+            NotificationType.SYSTEM_ALERT: "#FF9800",  # Dark Orange
+            NotificationType.REGIME_CHANGE: "#E91E63",  # Pink
+            NotificationType.ERROR: "#FF0000",  # Red
+            NotificationType.INFO: "#808080"  # Gray
+        }
+        return color_map.get(notification_type, "#808080")
+    
+    def _build_slack_message(self,
+                            notification_type: NotificationType,
+                            title: str,
+                            message: str,
+                            details: Optional[Dict],
+                            color: str) -> Dict:
+        """Build Slack message payload"""
+        
+        # Base message
+        slack_message = {
+            "text": title,
+            "attachments": [
+                {
+                    "color": color,
+                    "title": title,
+                    "text": message,
+                    "footer": "Crypto ML Trading Bot",
+                    "ts": int(datetime.now().timestamp())
+                }
+            ]
+        }
+        
+        # Add fields if details provided
+        if details:
+            fields = []
+            for key, value in details.items():
+                # Format the key nicely
+                formatted_key = key.replace('_', ' ').title()
+                
+                # Format the value
+                if isinstance(value, float):
+                    if 'pct' in key or 'rate' in key or 'confidence' in key:
+                        formatted_value = f"{value:.1f}%"
+                    elif 'price' in key or 'pnl' in key:
+                        formatted_value = f"${value:.2f}"
+                    else:
+                        formatted_value = f"{value:.2f}"
+                else:
+                    formatted_value = str(value)
+                
+                fields.append({
+                    "title": formatted_key,
+                    "value": formatted_value,
+                    "short": True
+                })
+            
+            slack_message["attachments"][0]["fields"] = fields
+        
+        return slack_message

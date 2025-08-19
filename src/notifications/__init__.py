@@ -1,5 +1,5 @@
-"""Notification module for Slack integration."""
+"""Notification system for crypto trading bot"""
 
-from .slack_notifier import SlackNotifier
+from .slack_notifier import SlackNotifier, NotificationType
 
-__all__ = ["SlackNotifier"]
+__all__ = ['SlackNotifier', 'NotificationType']

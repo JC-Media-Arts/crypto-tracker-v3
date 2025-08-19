@@ -1,0 +1,33 @@
+{
+  "feature_cols": [
+    "volume",
+    "volume_ratio",
+    "threshold",
+    "market_cap_tier",
+    "btc_regime",
+    "btc_price",
+    "btc_sma50",
+    "btc_sma200",
+    "btc_sma50_distance",
+    "btc_sma200_distance",
+    "btc_trend_strength",
+    "btc_volatility_7d",
+    "btc_volatility_30d",
+    "btc_high_low_range_7d",
+    "symbol_vs_btc_7d",
+    "symbol_vs_btc_30d",
+    "symbol_correlation_30d",
+    "is_high_volatility",
+    "is_oversold",
+    "is_overbought",
+    "day_of_week",
+    "hour"
+  ],
+  "target_cols": [
+    "target_position_mult",
+    "target_take_profit",
+    "target_stop_loss",
+    "target_hold_hours",
+    "target_win_prob"
+  ]
+}

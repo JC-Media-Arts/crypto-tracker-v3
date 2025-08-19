@@ -1,37 +1,58 @@
-version: '3.9'
+version: '3.8'
 
 services:
   hummingbot:
-    container_name: hummingbot
     image: hummingbot/hummingbot:latest
+    container_name: crypto-tracker-hummingbot
     volumes:
       - ./hummingbot/conf:/conf
       - ./hummingbot/logs:/logs
       - ./hummingbot/data:/data
       - ./hummingbot/scripts:/scripts
+      - ./hummingbot/certs:/certs
     environment:
-      - CONFIG_PASSWORD=${CONFIG_PASSWORD}
-      - CONFIG_FILE_NAME=${CONFIG_FILE_NAME}
+      - HUMMINGBOT_MODE=${HUMMINGBOT_MODE:-paper_trade}
+      - EXCHANGE=${HUMMINGBOT_EXCHANGE:-kraken}
+      - STRATEGY=${HUMMINGBOT_STRATEGY:-ml_signal_strategy}
+      - CONFIG_PASSWORD=${CONFIG_PASSWORD:-password}
+    networks:
+      - crypto-network
+    stdin_open: true
+    tty: true
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
-        max-file: "5"
-    tty: true
-    stdin_open: true
-    network_mode: host
+        max-file: "3"
+    restart: unless-stopped
 
-  # Future: Add our ML service here
-  # ml-service:
-  #   build: .
-  #   command: python src/main.py
-  #   volumes:
-  #     - ./src:/app/src
-  #     - ./logs:/app/logs
-  #   environment:
-  #     - POLYGON_API_KEY=${POLYGON_API_KEY}
-  #     - SUPABASE_URL=${SUPABASE_URL}
-  #     - SUPABASE_KEY=${SUPABASE_KEY}
-  #   depends_on:
-  #     - hummingbot
-  #   restart: unless-stopped
+  postgres:
+    image: postgres:14
+    container_name: crypto-tracker-postgres
+    environment:
+      POSTGRES_DB: hummingbot_db
+      POSTGRES_USER: hummingbot
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-hummingbot_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - crypto-network
+    ports:
+      - "5433:5432"  # Different port to avoid conflicts
+    restart: unless-stopped
+
+  redis:
+    image: redis:alpine
+    container_name: crypto-tracker-redis
+    networks:
+      - crypto-network
+    ports:
+      - "6380:6379"  # Different port to avoid conflicts
+    restart: unless-stopped
+
+networks:
+  crypto-network:
+    driver: bridge
+
+volumes:
+  postgres_data:

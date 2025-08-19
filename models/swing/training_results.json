@@ -1,0 +1,21 @@
+{
+  "timestamp": "2025-08-18T10:31:30.704289",
+  "total_samples": 429,
+  "train_samples": 257,
+  "val_samples": 86,
+  "test_samples": 86,
+  "accuracy": 1.0,
+  "precision": 1.0,
+  "recall": 1.0,
+  "f1_score": 1.0,
+  "confidence_threshold": 0.65,
+  "feature_importance": {
+    "breakout_strength": 0.4753510057926178,
+    "volume_profile": 0.0,
+    "resistance_cleared": 0.0,
+    "trend_alignment": 0.0,
+    "momentum_score": 0.5246489644050598,
+    "market_regime": 0.0
+  },
+  "meets_requirements": true
+}

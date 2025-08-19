@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  hummingbot-api:
+    image: hummingbot/hummingbot:latest
+    container_name: hummingbot-api
+    command: ["/bin/bash", "-c", "pip install pandas tabulate aiohttp && cd /home/hummingbot && python bin/hummingbot_quickstart.py --is-quickstart --is-api-enabled"]
+    volumes:
+      - ./hummingbot-api/conf:/home/hummingbot/conf
+      - ./hummingbot-api/logs:/home/hummingbot/logs
+      - ./hummingbot-api/data:/home/hummingbot/data
+      - ./hummingbot-api/scripts:/home/hummingbot/scripts
+      - ./hummingbot-api/certs:/home/hummingbot/certs
+    environment:
+      - CONFIG_PASSWORD=password
+      - API_ENABLED=true
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - API_USERNAME=admin
+      - API_PASSWORD=admin
+    ports:
+      - "8000:8000"  # API port
+      - "8080:8080"  # Dashboard port (if enabled)
+    networks:
+      - hummingbot-network
+    restart: unless-stopped
+
+networks:
+  hummingbot-network:
+    driver: bridge
