@@ -8,7 +8,7 @@ import sys
 import asyncio
 import os
 from datetime import datetime, time
-from typing import Optional
+from typing import Optional, Dict
 from loguru import logger
 import signal
 
