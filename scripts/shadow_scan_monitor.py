@@ -103,7 +103,7 @@ class ShadowScanMonitor:
             ml_confidence = scan.get("ml_confidence")
             if ml_confidence is None:
                 ml_confidence = 0.0
-            
+
             await self.shadow_logger.log_shadow_decisions(
                 scan_id=scan["scan_id"],
                 symbol=scan["symbol"],
