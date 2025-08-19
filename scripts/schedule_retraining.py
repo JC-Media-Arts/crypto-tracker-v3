@@ -11,7 +11,7 @@ import time
 from datetime import datetime
 from loguru import logger
 
-sys.path.append('.')
+sys.path.append(".")
 
 from scripts.run_daily_retraining import run_daily_retraining
 
@@ -27,17 +27,15 @@ async def scheduled_retrain():
 
 def run_scheduler():
     """Run the scheduler continuously"""
-    
+
     # Schedule daily retraining at 2 AM
-    schedule.every().day.at("02:00").do(
-        lambda: asyncio.run(scheduled_retrain())
-    )
-    
-    logger.info("="*60)
+    schedule.every().day.at("02:00").do(lambda: asyncio.run(scheduled_retrain()))
+
+    logger.info("=" * 60)
     logger.info("MODEL RETRAINING SCHEDULER STARTED")
     logger.info("Scheduled for daily execution at 2:00 AM")
-    logger.info("="*60)
-    
+    logger.info("=" * 60)
+
     # Keep running
     while True:
         schedule.run_pending()
@@ -51,15 +49,17 @@ def run_once():
 
 if __name__ == "__main__":
     import argparse
-    
-    parser = argparse.ArgumentParser(description='Schedule Model Retraining')
-    parser.add_argument('--once', action='store_true', 
-                       help='Run once and exit (for cron jobs)')
-    parser.add_argument('--continuous', action='store_true',
-                       help='Run continuously as a scheduler')
-    
+
+    parser = argparse.ArgumentParser(description="Schedule Model Retraining")
+    parser.add_argument(
+        "--once", action="store_true", help="Run once and exit (for cron jobs)"
+    )
+    parser.add_argument(
+        "--continuous", action="store_true", help="Run continuously as a scheduler"
+    )
+
     args = parser.parse_args()
-    
+
     if args.once:
         run_once()
     elif args.continuous:

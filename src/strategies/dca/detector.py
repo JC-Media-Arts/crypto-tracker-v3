@@ -52,15 +52,16 @@ class DCADetector:
             "time_exit_hours": 72,
             "ml_confidence_threshold": 0.60,
         }
-        
+
         if not self.supabase:
             # Return default configuration if no database client
             return default_config
-            
+
         try:
             # Try to load from database
             from supabase import Client
-            if hasattr(self.supabase, 'table'):
+
+            if hasattr(self.supabase, "table"):
                 # It's a supabase client
                 result = (
                     self.supabase.table("strategy_configs")
@@ -374,78 +375,80 @@ class DCADetector:
     def detect_setup(self, symbol: str, data: List[Dict]) -> Optional[Dict]:
         """
         Detect DCA setup for a single symbol.
-        
+
         Args:
             symbol: Symbol to check
             data: OHLC data for the symbol
-            
+
         Returns:
             Setup dictionary if detected, None otherwise
         """
         if not data or len(data) < 20:
             return None
-            
+
         # Get latest price and calculate metrics
         latest = data[-1]
-        current_price = latest.get('close', 0)
-        
+        current_price = latest.get("close", 0)
+
         # Calculate 4-hour high
         lookback_bars = min(16, len(data))  # 16 bars of 15min = 4 hours
         recent_data = data[-lookback_bars:]
-        high_4h = max(bar.get('high', 0) for bar in recent_data)
-        
+        high_4h = max(bar.get("high", 0) for bar in recent_data)
+
         # Calculate drop percentage
         if high_4h > 0:
             drop_pct = ((current_price - high_4h) / high_4h) * 100
         else:
             return None
-            
+
         # Check if this meets DCA criteria
-        drop_threshold = self.config.get('drop_threshold', -5.0)
+        drop_threshold = self.config.get("drop_threshold", -5.0)
         if drop_pct > drop_threshold:
             return None
-            
+
         # Calculate RSI
-        prices = [bar.get('close', 0) for bar in data[-14:]]
+        prices = [bar.get("close", 0) for bar in data[-14:]]
         rsi = self._calculate_rsi(prices) if len(prices) >= 14 else 50
-        
+
         # Volume check
-        recent_volume = sum(bar.get('volume', 0) for bar in recent_data) / len(recent_data)
-        avg_volume = sum(bar.get('volume', 0) for bar in data) / len(data)
+        recent_volume = sum(bar.get("volume", 0) for bar in recent_data) / len(
+            recent_data
+        )
+        avg_volume = sum(bar.get("volume", 0) for bar in data) / len(data)
         volume_ratio = recent_volume / avg_volume if avg_volume > 0 else 1
-        
+
         # Create setup
         setup = {
-            'symbol': symbol,
-            'detected_at': latest.get('timestamp'),
-            'price': current_price,
-            'drop_pct': drop_pct,
-            'high_4h': high_4h,
-            'rsi': rsi,
-            'volume_ratio': volume_ratio,
-            'confidence': 0.5  # Base confidence, ML will adjust
+            "symbol": symbol,
+            "detected_at": latest.get("timestamp"),
+            "price": current_price,
+            "drop_pct": drop_pct,
+            "high_4h": high_4h,
+            "rsi": rsi,
+            "volume_ratio": volume_ratio,
+            "confidence": 0.5,  # Base confidence, ML will adjust
         }
-        
+
         return setup
-    
+
     def _calculate_rsi(self, prices: List[float], period: int = 14) -> float:
         """Calculate RSI from price list"""
         if len(prices) < period:
             return 50.0
-            
-        deltas = [prices[i] - prices[i-1] for i in range(1, len(prices))]
+
+        deltas = [prices[i] - prices[i - 1] for i in range(1, len(prices))]
         gains = [d if d > 0 else 0 for d in deltas]
         losses = [-d if d < 0 else 0 for d in deltas]
-        
+
         avg_gain = sum(gains[-period:]) / period
         avg_loss = sum(losses[-period:]) / period
-        
+
         if avg_loss == 0:
             return 100.0
-            
+
         rs = avg_gain / avg_loss
         rsi = 100 - (100 / (1 + rs))
-        
+
         return rsi
 
     def save_setup(self, setup: Dict) -> Optional[int]:

@@ -2,4 +2,4 @@
 
 from .slack_notifier import SlackNotifier, NotificationType
 
-__all__ = ['SlackNotifier', 'NotificationType']
+__all__ = ["SlackNotifier", "NotificationType"]

@@ -43,10 +43,12 @@ class Settings(BaseSettings):
     environment: str = Field("development", env="ENVIRONMENT")
     log_level: str = Field("INFO", env="LOG_LEVEL")
     feature_update_interval: int = Field(120, env="FEATURE_UPDATE_INTERVAL")  # seconds
-    
+
     # Shadow Testing Configuration
     enable_shadow_testing: bool = Field(True, env="ENABLE_SHADOW_TESTING")
-    shadow_evaluation_interval: int = Field(300, env="SHADOW_EVALUATION_INTERVAL")  # 5 minutes
+    shadow_evaluation_interval: int = Field(
+        300, env="SHADOW_EVALUATION_INTERVAL"
+    )  # 5 minutes
     shadow_max_variations: int = Field(10, env="SHADOW_MAX_VARIATIONS")
     shadow_min_trades_for_adjustment: int = Field(30, env="SHADOW_MIN_TRADES")
     shadow_adjustment_hour: int = Field(2, env="SHADOW_ADJUSTMENT_HOUR")  # 2 AM PST
