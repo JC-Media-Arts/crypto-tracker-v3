@@ -55,7 +55,7 @@ class ShadowLogger:
         try:
             # Get variations from database config table
             result = (
-                self.supabase.table("shadow_configuration")
+                self.supabase.client.table("shadow_configuration")
                 .select("*")
                 .eq("is_active", True)
                 .order("priority_order")
@@ -461,7 +461,7 @@ class ShadowLogger:
 
         try:
             result = (
-                self.supabase.table("shadow_variations").insert(self.batch).execute()
+                self.supabase.client.table("shadow_variations").insert(self.batch).execute()
             )
             logger.debug(f"Flushed {len(self.batch)} shadow variations to database")
             self.batch = []
