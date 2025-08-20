@@ -47,13 +47,13 @@ class MLPredictor:
         self.running = False
         self.last_predictions: Dict[str, Dict] = {}
         self.model_accuracy = 0.0
-        
+
         # Strategy-specific models
         self.dca_model = None
         self.swing_model = None
         self.channel_model = None
         self.models_loaded = False
-        
+
         # Load models on initialization
         self._load_strategy_models()
 
@@ -247,11 +247,11 @@ class MLPredictor:
             "active_predictions": len(self.last_predictions),
             "last_update": datetime.utcnow().isoformat(),
         }
-    
+
     def _load_strategy_models(self):
         """Load strategy-specific ML models."""
         models_dir = Path(self.settings.models_dir)
-        
+
         # Load DCA model
         dca_model_path = models_dir / "dca" / "xgboost_multi_output.pkl"
         if dca_model_path.exists():
@@ -260,7 +260,7 @@ class MLPredictor:
                 logger.info(f"Loaded DCA model from {dca_model_path}")
             except Exception as e:
                 logger.error(f"Failed to load DCA model: {e}")
-                
+
         # Load Swing model
         swing_model_path = models_dir / "swing" / "swing_classifier.pkl"
         if swing_model_path.exists():
@@ -269,7 +269,7 @@ class MLPredictor:
                 logger.info(f"Loaded Swing model from {swing_model_path}")
             except Exception as e:
                 logger.error(f"Failed to load Swing model: {e}")
-                
+
         # Load Channel model
         channel_model_path = models_dir / "channel" / "classifier.pkl"
         if channel_model_path.exists():
@@ -278,9 +278,9 @@ class MLPredictor:
                 logger.info(f"Loaded Channel model from {channel_model_path}")
             except Exception as e:
                 logger.error(f"Failed to load Channel model: {e}")
-                
+
         self.models_loaded = True
-    
+
     def predict_dca(self, features: Dict) -> Dict:
         """
         Predict DCA trading opportunity.
@@ -301,16 +301,16 @@ class MLPredictor:
                     "optimal_take_profit": 10.0,
                     "optimal_stop_loss": 5.0,
                 }
-            
+
             # Prepare features for prediction
             feature_array = self._prepare_dca_features(features)
-            
+
             # Get prediction from model
             prediction = self.dca_model.predict(feature_array)
-            
+
             # DCA model is a MultiOutputRegressor, calculate confidence from predictions
             # prediction[0] contains [position_mult, take_profit, stop_loss, hold_hours, win_prob]
-            if hasattr(prediction[0], '__len__') and len(prediction[0]) >= 5:
+            if hasattr(prediction[0], "__len__") and len(prediction[0]) >= 5:
                 # Use win_prob as confidence
                 confidence = float(prediction[0][4])  # win_prob is the 5th output
                 take_profit = float(prediction[0][1]) if prediction[0][1] > 0 else 10.0
@@ -322,10 +322,10 @@ class MLPredictor:
                 take_profit = 10.0
                 stop_loss = 5.0
                 hold_hours = 24
-            
+
             # Ensure confidence is between 0 and 1
             confidence = max(0.0, min(1.0, confidence))
-            
+
             return {
                 "confidence": confidence,
                 "predicted_return": take_profit - stop_loss,
@@ -338,7 +338,7 @@ class MLPredictor:
                 "optimal_take_profit": take_profit,
                 "optimal_stop_loss": stop_loss,
             }
-            
+
         except Exception as e:
             logger.error(f"Error in DCA prediction: {e}")
             return {
@@ -353,7 +353,7 @@ class MLPredictor:
                 "optimal_take_profit": 10.0,
                 "optimal_stop_loss": 5.0,
             }
-    
+
     def predict_swing(self, features: Dict) -> Dict:
         """
         Predict Swing trading opportunity.
@@ -369,22 +369,22 @@ class MLPredictor:
                     "stop_loss_pct": 7.0,
                     "hold_hours": 48,
                 }
-            
+
             # Prepare features for prediction
             feature_array = self._prepare_swing_features(features)
-            
+
             # Get prediction from model
             prediction = self.swing_model.predict(feature_array)
             confidence = self.swing_model.predict_proba(feature_array)[0].max()
-            
+
             return {
                 "confidence": float(confidence),
                 "predicted_direction": "UP" if prediction[0] > 0 else "DOWN",
                 "take_profit_pct": 15.0,  # Can be adjusted based on model
-                "stop_loss_pct": 7.0,     # Can be adjusted based on model
+                "stop_loss_pct": 7.0,  # Can be adjusted based on model
                 "hold_hours": 48,
             }
-            
+
         except Exception as e:
             logger.error(f"Error in Swing prediction: {e}")
             return {
@@ -394,7 +394,7 @@ class MLPredictor:
                 "stop_loss_pct": 7.0,
                 "hold_hours": 48,
             }
-    
+
     def predict_channel(self, features: Dict) -> Dict:
         """
         Predict Channel trading opportunity.
@@ -410,22 +410,22 @@ class MLPredictor:
                     "stop_loss_pct": 4.0,
                     "hold_hours": 12,
                 }
-            
+
             # Prepare features for prediction
             feature_array = self._prepare_channel_features(features)
-            
+
             # Get prediction from model
             prediction = self.channel_model.predict(feature_array)
             confidence = self.channel_model.predict_proba(feature_array)[0].max()
-            
+
             return {
                 "confidence": float(confidence),
                 "predicted_bounce": bool(prediction[0] > 0),
-                "take_profit_pct": 8.0,   # Can be adjusted based on model
-                "stop_loss_pct": 4.0,     # Can be adjusted based on model
+                "take_profit_pct": 8.0,  # Can be adjusted based on model
+                "stop_loss_pct": 4.0,  # Can be adjusted based on model
                 "hold_hours": 12,
             }
-            
+
         except Exception as e:
             logger.error(f"Error in Channel prediction: {e}")
             return {
@@ -435,7 +435,7 @@ class MLPredictor:
                 "stop_loss_pct": 4.0,
                 "hold_hours": 12,
             }
-    
+
     def _prepare_dca_features(self, features: Dict) -> np.ndarray:
         """Prepare features for DCA model."""
         # DCA model expects 22 features based on features.json
@@ -464,7 +464,7 @@ class MLPredictor:
             features.get("hour", 12),
         ]
         return np.array([feature_list])
-    
+
     def _prepare_swing_features(self, features: Dict) -> np.ndarray:
         """Prepare features for Swing model."""
         # Swing model expects 6 features (based on error message)
@@ -477,7 +477,7 @@ class MLPredictor:
             features.get("volatility", 0.02),  # Added 6th feature
         ]
         return np.array([feature_list])
-    
+
     def _prepare_channel_features(self, features: Dict) -> np.ndarray:
         """Prepare features for Channel model."""
         # Channel model expects 8 features based on config.json
@@ -494,8 +494,10 @@ class MLPredictor:
         ]
         # Note: Model expects 10 but config shows 8, adding 2 more
         if len(feature_list) < 10:
-            feature_list.extend([
-                features.get("rsi", 50),
-                features.get("volume_ratio", 1.0),
-            ])
+            feature_list.extend(
+                [
+                    features.get("rsi", 50),
+                    features.get("volume_ratio", 1.0),
+                ]
+            )
         return np.array([feature_list])
