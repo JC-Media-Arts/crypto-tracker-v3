@@ -296,6 +296,10 @@ class MLPredictor:
                     "stop_loss_pct": 5.0,
                     "hold_hours": 24,
                     "grid_levels": 5,
+                    # Fields expected by StrategyManager
+                    "win_probability": 0.0,
+                    "optimal_take_profit": 10.0,
+                    "optimal_stop_loss": 5.0,
                 }
             
             # Prepare features for prediction
@@ -329,6 +333,10 @@ class MLPredictor:
                 "stop_loss_pct": stop_loss,
                 "hold_hours": hold_hours,
                 "grid_levels": 5,
+                # Fields expected by StrategyManager
+                "win_probability": confidence,  # Use confidence as win probability
+                "optimal_take_profit": take_profit,
+                "optimal_stop_loss": stop_loss,
             }
             
         except Exception as e:
@@ -340,6 +348,10 @@ class MLPredictor:
                 "stop_loss_pct": 5.0,
                 "hold_hours": 24,
                 "grid_levels": 5,
+                # Fields expected by StrategyManager
+                "win_probability": 0.0,
+                "optimal_take_profit": 10.0,
+                "optimal_stop_loss": 5.0,
             }
     
     def predict_swing(self, features: Dict) -> Dict:
