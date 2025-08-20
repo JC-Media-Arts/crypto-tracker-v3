@@ -11,11 +11,17 @@
   "services": {
     "Paper Trading": {
       "startCommand": "python scripts/run_paper_trading.py",
-      "healthcheckPath": "/",
+      "healthcheckPath": "/health",
       "healthcheckTimeout": 30
     },
     "Data Collector": {
       "startCommand": "python scripts/run_data_collector.py",
+      "healthcheckPath": "/health",
+      "healthcheckTimeout": 30
+    },
+    "Feature Calculator": {
+      "startCommand": "python scripts/run_feature_calculator.py",
+      "healthcheckPath": "/health",
       "healthcheckTimeout": 30
     },
     "ML Retrainer Cron": {

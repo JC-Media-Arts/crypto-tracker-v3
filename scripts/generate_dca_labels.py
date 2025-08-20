@@ -411,38 +411,55 @@ def main():
     if len(df) > 0:
         generator.save_labels(df)
 
-        # Save to database for later use
-        print("\nSaving setups to database...")
+        # Save to database for ML training
+        print("\nSaving labels to strategy_dca_labels table...")
         saved_count = 0
+        skipped_count = 0
+        
         for _, row in df.iterrows():
-            if row["label"] in ["WIN", "LOSS"]:
-                setup_data = {
-                    "strategy_name": "DCA",
+            if row["label"] in ["WIN", "LOSS", "BREAKEVEN", "TIMEOUT"]:
+                # Prepare data for strategy_dca_labels table
+                label_data = {
                     "symbol": row["symbol"],
-                    "detected_at": row["setup_time"].isoformat(),
-                    "setup_price": float(row["setup_price"]),
-                    "setup_data": {
-                        "drop_pct": float(row["drop_pct"]),
-                        "rsi": float(row["rsi"]),
-                        "volume_ratio": float(row["volume_ratio"]),
-                        "high_4h": float(row["high_4h"]),
-                    },
+                    "timestamp": row["setup_time"].isoformat(),
+                    "setup_detected": True,
+                    "drop_percentage": float(row["drop_pct"]),
+                    "rsi": float(row["rsi"]),
+                    "volume_ratio": float(row["volume_ratio"]),
+                    "btc_regime": row.get("btc_regime", "NEUTRAL"),
                     "outcome": row["label"],
-                    "pnl": float(row["pnl_pct"]),
+                    "optimal_take_profit": float(row.get("take_profit_target", 10.0)),
+                    "optimal_stop_loss": float(row.get("stop_loss_target", -8.0)),
+                    "actual_return": float(row["pnl_pct"]),
+                    "hold_time_hours": int(row.get("hold_hours", 24)),
+                    "features": {
+                        "high_4h": float(row["high_4h"]),
+                        "setup_price": float(row["setup_price"]),
+                        "exit_price": float(row.get("exit_price", row["setup_price"])),
+                        "volume": float(row.get("volume", 0)),
+                        "macd": float(row.get("macd", 0)),
+                        "bb_position": float(row.get("bb_position", 0.5)),
+                    }
                 }
 
                 try:
+                    # Use upsert to handle duplicates gracefully
                     result = (
-                        supabase.client.table("strategy_setups")
-                        .insert(setup_data)
+                        supabase.client.table("strategy_dca_labels")
+                        .upsert(label_data, on_conflict="symbol,timestamp")
                         .execute()
                     )
                     if result.data:
                         saved_count += 1
                 except Exception as e:
-                    logger.error(f"Error saving setup: {e}")
+                    if "duplicate" in str(e).lower():
+                        skipped_count += 1
+                    else:
+                        logger.error(f"Error saving label for {row['symbol']} at {row['setup_time']}: {e}")
 
-        print(f"Saved {saved_count} setups to database")
+        print(f"Saved {saved_count} labels to strategy_dca_labels table")
+        if skipped_count > 0:
+            print(f"Skipped {skipped_count} duplicate labels")
     else:
         print("No setups found!")
 
