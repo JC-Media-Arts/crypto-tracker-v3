@@ -14,6 +14,8 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 from loguru import logger
 from src.data.supabase_client import SupabaseClient
+from src.data.hybrid_fetcher import HybridDataFetcher
+import asyncio
 
 
 class DCADetector:
@@ -35,6 +37,9 @@ class DCADetector:
             # It's a supabase client
             self.supabase = config_or_client
             self.config = self._load_strategy_config()
+
+        # Initialize the hybrid fetcher for fast OHLC data access
+        self.fetcher = HybridDataFetcher()
 
     def _load_strategy_config(self) -> Dict:
         """Load DCA strategy configuration from database."""
@@ -133,9 +138,7 @@ class DCADetector:
 
             # Calculate metrics
             current_price = price_data["price"].iloc[-1]
-            high_4h = (
-                price_data["price"].rolling(window=240).max().iloc[-1]
-            )  # 4 hours of minutes
+            high_4h = price_data["price"].rolling(window=240).max().iloc[-1]  # 4 hours of minutes
             drop_pct = ((current_price - high_4h) / high_4h) * 100
 
             # Check if drop meets threshold
@@ -163,9 +166,7 @@ class DCADetector:
                     },
                 }
 
-                logger.info(
-                    f"DCA setup detected for {symbol}: {drop_pct:.2f}% drop from {high_4h:.2f}"
-                )
+                logger.info(f"DCA setup detected for {symbol}: {drop_pct:.2f}% drop from {high_4h:.2f}")
                 return setup
 
         except Exception as e:
@@ -173,26 +174,33 @@ class DCADetector:
 
         return None
 
-    def _get_price_data(
-        self, symbol: str, start_time: datetime, end_time: datetime
-    ) -> Optional[pd.DataFrame]:
-        """Get price data for a symbol."""
+    async def _get_price_data(self, symbol: str, start_time: datetime, end_time: datetime) -> Optional[pd.DataFrame]:
+        """Get price data for a symbol using HybridDataFetcher."""
         try:
-            result = (
-                self.supabase.client.table("price_data")
-                .select("timestamp, price, volume")
-                .eq("symbol", symbol)
-                .gte("timestamp", start_time.isoformat())
-                .lte("timestamp", end_time.isoformat())
-                .order("timestamp")
-                .execute()
-            )
+            # Calculate hours for the fetcher
+            hours = int((end_time - start_time).total_seconds() / 3600)
 
-            if result.data:
-                df = pd.DataFrame(result.data)
-                df["timestamp"] = pd.to_datetime(df["timestamp"])
-                df = df.set_index("timestamp")
-                return df
+            # Use HybridDataFetcher for fast access
+            result_data = await self.fetcher.get_recent_data(symbol, hours, "15m")
+
+            if result_data:
+                # Convert OHLC to price format
+                price_data = []
+                for record in result_data:
+                    if record["timestamp"] >= start_time.isoformat() and record["timestamp"] <= end_time.isoformat():
+                        price_data.append(
+                            {
+                                "timestamp": record["timestamp"],
+                                "price": record["close"],
+                                "volume": record.get("volume", 0),
+                            }
+                        )
+
+                if price_data:
+                    df = pd.DataFrame(price_data)
+                    df["timestamp"] = pd.to_datetime(df["timestamp"])
+                    df = df.set_index("timestamp")
+                    return df
 
         except Exception as e:
             logger.error(f"Error fetching price data for {symbol}: {e}")
@@ -284,16 +292,12 @@ class DCADetector:
 
             # Calculate SMAs only if we have enough data
             if len(btc_data) >= 1200:
-                sma_20h = (
-                    btc_data["price"].rolling(window=1200).mean().iloc[-1]
-                )  # 20 hours
+                sma_20h = btc_data["price"].rolling(window=1200).mean().iloc[-1]  # 20 hours
             else:
                 sma_20h = btc_data["price"].mean()
 
             if len(btc_data) >= 3000:
-                sma_50h = (
-                    btc_data["price"].rolling(window=3000).mean().iloc[-1]
-                )  # 50 hours
+                sma_50h = btc_data["price"].rolling(window=3000).mean().iloc[-1]  # 50 hours
             else:
                 sma_50h = btc_data["price"].mean()
 
@@ -302,9 +306,7 @@ class DCADetector:
                 regime = "BULL"
             elif current_price < sma_20h < sma_50h:
                 regime = "BEAR"
-            elif (
-                current_price / btc_data["price"].iloc[-1440]
-            ) < 0.9:  # 10% drop in 24h
+            elif (current_price / btc_data["price"].iloc[-1440]) < 0.9:  # 10% drop in 24h
                 regime = "CRASH"
             else:
                 regime = "NEUTRAL"
@@ -342,12 +344,7 @@ class DCADetector:
             one_hour_ago = (datetime.now() - timedelta(hours=1)).isoformat()
 
             # Query for symbols with recent data
-            result = (
-                self.supabase.client.table("price_data")
-                .select("symbol")
-                .gte("timestamp", one_hour_ago)
-                .execute()
-            )
+            result = self.supabase.client.table("price_data").select("symbol").gte("timestamp", one_hour_ago).execute()
 
             if result.data:
                 # Get unique symbols
@@ -411,9 +408,7 @@ class DCADetector:
         rsi = self._calculate_rsi(prices) if len(prices) >= 14 else 50
 
         # Volume check
-        recent_volume = sum(bar.get("volume", 0) for bar in recent_data) / len(
-            recent_data
-        )
+        recent_volume = sum(bar.get("volume", 0) for bar in recent_data) / len(recent_data)
         avg_volume = sum(bar.get("volume", 0) for bar in data) / len(data)
         volume_ratio = recent_volume / avg_volume if avg_volume > 0 else 1
 
@@ -462,9 +457,7 @@ class DCADetector:
             Setup ID if saved successfully
         """
         try:
-            result = (
-                self.supabase.client.table("strategy_setups").insert(setup).execute()
-            )
+            result = self.supabase.client.table("strategy_setups").insert(setup).execute()
 
             if result.data:
                 setup_id = result.data[0]["setup_id"]

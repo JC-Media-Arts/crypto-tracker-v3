@@ -34,6 +34,8 @@
 21. [Phase 2 Preview](#phase-2-preview)
 22. [Deployment Architecture](#deployment-architecture)
 23. [Technical Challenges & Solutions](#technical-challenges--solutions)
+24. [Database Performance Optimization](#database-performance-optimization)
+25. [Shadow Testing System](#shadow-testing-system-implementation)
 
 ---
 
@@ -141,14 +143,14 @@ DCA_STRATEGY = {
         'volume_filter': 'above_average',  # Ensure liquidity
         'btc_regime': 'not_crashing'  # Don't buy in bear markets
     },
-    
+
     'grid_configuration': {
         'levels': 5,  # Number of buy orders
         'spacing': 1.0,  # 1% between levels
         'size_distribution': 'equal',  # Equal size per level
         'base_size': 100,  # $100 per grid level
     },
-    
+
     'ml_enhancement': {
         'model_type': 'XGBoost',
         'features': ['rsi', 'volume_profile', 'support_distance', 'btc_correlation'],
@@ -158,13 +160,13 @@ DCA_STRATEGY = {
             'low_confidence': 'wider_spacing'
         }
     },
-    
+
     'exit_rules': {
         'take_profit': 10.0,  # Default - ML will optimize per coin
         'stop_loss': -8.0,  # Default - ML will optimize per setup
         'time_exit': 72,  # Exit after 72 hours
     },
-    
+
     'adaptive_targets': {  # NEW: Dynamic by market cap
         'BTC_ETH': {'take_profit': [3, 5], 'stop_loss': [-5, -7]},
         'MID_CAP': {'take_profit': [5, 7, 10], 'stop_loss': [-7, -10]},
@@ -185,20 +187,20 @@ SWING_STRATEGY = {
         'momentum_confirmation': 'rsi > 60',
         'trend_alignment': 'uptrend_on_4h'
     },
-    
+
     'entry_rules': {
         'position_size': 200,  # $200 per swing trade
         'entry_type': 'market',  # Quick entry on signal
         'max_slippage': 0.5,  # Max 0.5% slippage
     },
-    
+
     'ml_enhancement': {
         'model_type': 'XGBoost',
         'features': ['breakout_strength', 'volume_profile', 'trend_score', 'volatility'],
         'confidence_threshold': 0.65,
         'filter_false_breakouts': True
     },
-    
+
     'exit_rules': {
         'take_profit': 15.0,  # 15% target
         'stop_loss': -5.0,  # 5% stop
@@ -217,14 +219,14 @@ STRATEGY_MANAGER = {
         'capital_limit': 'pause_lower_priority',
         'opposing_signals': 'skip_both'
     },
-    
+
     'capital_allocation': {
         'total_capital': 1000,  # $1000 paper trading capital
         'dca_allocation': 0.6,  # 60% for DCA
         'swing_allocation': 0.4,  # 40% for Swing
         'reserve': 0.2  # Keep 20% in reserve
     },
-    
+
     'priority_rules': [
         'ml_confidence',  # Higher confidence first
         'strategy_performance',  # Better performing strategy
@@ -248,7 +250,7 @@ COMPLETE_DATA_STRATEGY = {
         'source': 'WebSocket (real-time) + REST (historical)',
         'critical_for': 'Exact backtest reproduction'
     },
-    
+
     '15_minute_OHLC': {
         'purpose': 'Primary strategy signals, ML features, pattern detection',
         'retention': 'FOREVER - All historical data',
@@ -256,7 +258,7 @@ COMPLETE_DATA_STRATEGY = {
         'source': 'Polygon REST API',
         'critical_for': 'Strategy trigger detection, ML training'
     },
-    
+
     '1_hour_OHLC': {
         'purpose': 'Trend confirmation, higher timeframe context',
         'retention': 'FOREVER - All historical data',
@@ -264,7 +266,7 @@ COMPLETE_DATA_STRATEGY = {
         'source': 'Polygon REST API',
         'critical_for': 'Multi-timeframe analysis'
     },
-    
+
     '1_day_OHLC': {
         'purpose': 'Market regime, major support/resistance',
         'retention': 'FOREVER - All historical data',
@@ -287,19 +289,19 @@ BACKFILL_TIMELINE = {
         ],
         'duration': '2-3 hours for daily, 4-5 hours for hourly'
     },
-    
+
     'Saturday_Morning': {
         'action': 'Start 15-minute backfill (critical for strategies)',
         'command': 'python fetch_all_historical_ohlc.py --timeframe=15m --all-symbols',
         'duration': '6-8 hours'
     },
-    
+
     'Saturday_Evening': {
         'action': 'Start minute data backfill (will run overnight)',
         'command': 'python fetch_all_historical_ohlc.py --timeframe=1m --all-symbols',
         'duration': '12-16 hours'
     },
-    
+
     'Sunday': {
         'action': 'Validate and set up incremental updates',
         'commands': [
@@ -344,7 +346,7 @@ UPDATE_CONFIG = {
 ```
 Per Symbol:
 - 1 minute: 365 days × 1440 bars × 100 bytes = ~52 MB
-- 15 minute: 730 days × 96 bars × 100 bytes = ~7 MB  
+- 15 minute: 730 days × 96 bars × 100 bytes = ~7 MB
 - 1 hour: 1095 days × 24 bars × 100 bytes = ~2.6 MB
 - 1 day: 3650 days × 1 bar × 100 bytes = ~365 KB
 
@@ -588,7 +590,7 @@ ML_CONFIG = {
             'test_split': 0.2
         }
     },
-    
+
     'swing_model': {
         'model_type': 'XGBoost',
         'prediction_target': 'breakout_success',  # Will this breakout continue?
@@ -608,7 +610,7 @@ ML_CONFIG = {
             'test_split': 0.2
         }
     },
-    
+
     'thresholds': {
         'minimum_confidence': 0.60,
         'minimum_accuracy': 0.55,
@@ -627,14 +629,14 @@ TRAINING_PIPELINE = {
         'extract_features': 'Get feature values at setup time',
         'create_dataset': 'Build training dataset'
     },
-    
+
     'step_2_model_training': {
         'feature_engineering': 'Create derived features',
         'train_test_split': '60/20/20 split',
         'hyperparameter_tuning': 'GridSearch for best params',
         'model_evaluation': 'Accuracy, precision, recall'
     },
-    
+
     'step_3_backtesting': {
         'historical_simulation': 'Run on last 3 months',
         'calculate_pnl': 'What would we have made?',
@@ -659,14 +661,14 @@ TRADING_RULES = {
         'position_size': 100,  # $100 fixed
         'no_new_trades_if_daily_loss': -10.0  # Stop at -10% day
     },
-    
+
     'exit_conditions': {
         'stop_loss': -5.0,  # -5% fixed
-        'take_profit': 10.0,  # +10% fixed  
+        'take_profit': 10.0,  # +10% fixed
         'time_exit': 24,  # Exit after 24 hours
         'priority': 'stop_loss > take_profit > time_exit'
     },
-    
+
     'risk_limits': {
         'max_daily_loss': -10.0,  # Percent
         'max_open_risk': 500,  # $500 total (5 x $100)
@@ -686,7 +688,7 @@ HUMMINGBOT_CONFIG = {
         'method': 'Docker',  # Recommended for isolation
         'alternative': 'Source installation'
     },
-    
+
     'configuration': {
         'exchange': 'kraken',
         'trading_mode': 'paper_trade',
@@ -696,7 +698,7 @@ HUMMINGBOT_CONFIG = {
             'ETH': 0
         }
     },
-    
+
     'custom_strategy': {
         'name': 'ml_signal_strategy',
         'location': 'hummingbot/strategy/ml_signal_strategy.py',
@@ -715,19 +717,19 @@ class MLSignalStrategy(StrategyBase):
     """
     Custom Hummingbot strategy that executes trades based on ML signals
     """
-    
+
     def __init__(self):
         super().__init__()
         self.signal_check_interval = 60  # Check for signals every minute
         self.position_size_usd = 100
         self.stop_loss_pct = 0.05
         self.take_profit_pct = 0.10
-        
+
     def check_ml_signals(self):
         """Check database for new ML predictions"""
         # Query Supabase for latest predictions
         # Return signal if confidence >= 0.60
-        
+
     def execute_ml_trade(self, signal):
         """Execute trade based on ML signal"""
         if signal['prediction'] == 'UP':
@@ -737,7 +739,7 @@ class MLSignalStrategy(StrategyBase):
                 order_type=OrderType.MARKET
             )
             # Set stop loss and take profit
-            
+
         elif signal['prediction'] == 'DOWN' and self.has_position(signal['symbol']):
             self.sell(
                 trading_pair=signal['symbol'],
@@ -756,14 +758,14 @@ PAPER_TRADING_FEATURES = {
         'fee_calculation': 'Exact Kraken fees (0.26%)',
         'partial_fills': 'Simulates realistic fills'
     },
-    
+
     'risk_management': {
         'position_limits': 'Max 5 positions',
         'stop_losses': 'Automatic -5% stops',
         'take_profits': 'Automatic +10% targets',
         'time_exits': '24-hour maximum hold'
     },
-    
+
     'performance_tracking': {
         'real_time_pnl': 'Live P&L updates',
         'trade_history': 'Complete trade log',
@@ -786,13 +788,13 @@ RISK_MANAGEMENT = {
         'amount': 100,  # $100 per trade
         'adjust_for_confidence': False  # Keep it simple
     },
-    
+
     'portfolio_limits': {
         'max_positions': 5,
         'max_exposure': 500,  # $500 total
         'stop_if_down': -50,  # Stop if -$50 for day
     },
-    
+
     'emergency_stops': {
         'ml_accuracy_below': 0.45,  # Stop if worse than random
         'consecutive_losses': 5,  # Stop after 5 losses
@@ -810,7 +812,7 @@ RISK_MANAGEMENT = {
 ```python
 SLACK_CHANNELS = {
     '#ml-signals': 'Real-time predictions and trades',
-    '#daily-reports': '7 AM and 7 PM summaries',  
+    '#daily-reports': '7 AM and 7 PM summaries',
     '#system-alerts': 'Critical issues only'
 }
 ```
@@ -827,7 +829,7 @@ NOTIFICATIONS = {
         Stop: ${stop_loss:.2f} (-5%)
         Target: ${take_profit:.2f} (+10%)
     """,
-    
+
     'trade_closed': """
         {emoji} Trade Closed
         Coin: {symbol}
@@ -835,7 +837,7 @@ NOTIFICATIONS = {
         Reason: {exit_reason}
         Duration: {hours}h {minutes}m
     """,
-    
+
     'big_events': {
         'big_win': '@channel Big WIN! {symbol} +${profit:.2f}',
         'big_loss': '@channel Loss Alert: {symbol} -${loss:.2f}',
@@ -884,13 +886,13 @@ HEALTH_MONITORING = {
         'alert_if': 'no_data_for_10_min',
         'action': 'Slack alert @channel'
     },
-    
+
     'price_sanity': {
         'check_frequency': 'every_1_min',
         'alert_if': 'price_change > 50% in 1 min',
         'action': 'Flag as bad data'
     },
-    
+
     'ml_health': {
         'check_frequency': 'every_30_min',
         'alert_if': 'no_predictions_for_30_min',
@@ -983,7 +985,7 @@ crypto-tracker-v3/
 - [x] Test detection on historical data ✅ DONE
 - [x] Verify detection accuracy ✅ DONE
 
-**Tuesday (Aug 20): Multi-Output ML Model Training**  
+**Tuesday (Aug 20): Multi-Output ML Model Training**
 - [x] Generate enhanced features (volatility, market cap tier) ✅ DONE
 - [x] Create multi-output training dataset with optimal targets ✅ DONE
 - [x] Train XGBoost multi-output model (5 predictions) ✅ DONE
@@ -1239,7 +1241,7 @@ python scripts/setup/verify_setup.py
 ```bash
 # Start individual components
 make run-data      # Start data collection
-make run-ml        # Start ML predictions  
+make run-ml        # Start ML predictions
 make run-trading   # Start paper trading
 
 # Or run everything
@@ -1277,14 +1279,14 @@ SUCCESS_METRICS = {
         'setup_quality': '>60%',  # Setups ML approves that win
         'false_positive_rate': '<30%',  # Bad setups ML approves
     },
-    
+
     'ml_performance': {
         'dca_accuracy': '>55%',  # Correctly identify good DCA setups
         'swing_accuracy': '>55%',  # Correctly identify good breakouts
         'confidence_correlation': 'Positive',  # Higher conf = better results
         'minimum_setups': 100,  # Statistical significance
     },
-    
+
     'trading_performance': {
         'overall_win_rate': '>52%',
         'profit_factor': '>1.2',  # Wins > Losses by 20%
@@ -1292,7 +1294,7 @@ SUCCESS_METRICS = {
         'max_drawdown': '<10%',
         'sharpe_ratio': '>1.0'
     },
-    
+
     'system_reliability': {
         'uptime': '>95%',
         'data_quality': '>99%',
@@ -1540,7 +1542,7 @@ The continuous learning loop is now complete with automatic model retraining.
 class SimpleRetrainer:
     min_new_samples = 20
     retrain_frequency = "daily"
-    
+
     # Checks for enough new data
     # Combines old + new training data
     # Trains with same XGBoost parameters
@@ -1621,16 +1623,16 @@ railway run python scripts/run_daily_retraining.py --check
 1. **Fixed "Error in trading loop: 0"**
    - Added `detect_setup` methods to DCA/Swing detectors
    - Methods properly return setup dictionaries or None
-   
+
 2. **Fixed BTC price data handling**
    - Strategy Manager handles both list and dict formats
    - Properly extracts latest price from market data
-   
+
 3. **Fixed DCA config loading**
    - DCADetector handles both config dict and DB client
    - Gracefully falls back to default config
    - Suppresses non-critical error logging
-   
+
 4. **Enhanced error handling**
    - Added detailed traceback logging
    - Better exception catching and recovery
@@ -1742,7 +1744,7 @@ railway run python scripts/run_daily_retraining.py --check
 - Trained 4-model ensemble for Channel optimization:
   - Binary classifier: 92.2% accuracy (identifies profitable setups)
   - Take profit optimizer: 0.56% MAE
-  - Stop loss optimizer: 0.40% MAE  
+  - Stop loss optimizer: 0.40% MAE
   - Hold time predictor: 5.7 bars MAE
 - Key insights from feature importance:
   - Range width (22.3%) - Most important feature
@@ -1777,7 +1779,7 @@ railway run python scripts/run_daily_retraining.py --check
 
 **OHLC Data Pipeline COMPLETE:**
 - ✅ Daily data: 100% complete (10 years for all symbols)
-- ✅ Hourly data: 100% complete (3 years for all symbols)  
+- ✅ Hourly data: 100% complete (3 years for all symbols)
 - ✅ 15-minute data: 100% complete (2 years for all symbols)
 - ✅ 1-minute data: 100% complete (1 year for 87/91 symbols)
   - 4 symbols have no 1m data on Polygon: ALGO, ALT, ANKR, API3
@@ -1830,7 +1832,7 @@ railway run python scripts/run_daily_retraining.py --check
 - ML can optimize what already works
 - More actionable signals for trading
 
-**Impact on Timeline**: 
+**Impact on Timeline**:
 - Refocusing next 2 weeks on strategy implementation
 - Same end goal: Profitable paper trading by Aug 30
 - Better foundation for long-term success
@@ -2001,14 +2003,14 @@ services:
       POLYGON_API_KEY: ${{POLYGON_API_KEY}}
       SUPABASE_URL: ${{SUPABASE_URL}}
       SUPABASE_KEY: ${{SUPABASE_KEY}}
-    
+
   feature_calculator:
     name: "Feature Calculator"
     env:
       SERVICE_TYPE: "feature_calculator"
       FEATURE_UPDATE_INTERVAL: "120"
       # Inherits same API keys
-    
+
   ml_trainer:
     name: "ML Trainer"
     env:
@@ -2054,7 +2056,7 @@ services:
 
 **Root Cause**: Polygon free tier allows only 1 concurrent WebSocket connection
 
-**Solution**: 
+**Solution**:
 - Killed all duplicate processes
 - Implemented single connection with all 99 symbols in one subscription
 - Added specific error logging for connection limit issues
@@ -2371,7 +2373,7 @@ ORCHESTRATOR_CONFIG = {
         'lookback_days': 30,
         'min_trades_for_profile': 10
     },
-    
+
     'thresholds': {
         'update_frequency_hours': 24,
         'adjustment_factor': 0.3,  # 30% new, 70% old
@@ -2383,7 +2385,7 @@ ORCHESTRATOR_CONFIG = {
             'stop_loss': (2.0, 15.0)
         }
     },
-    
+
     'confidence': {
         'component_weights': {
             'ml_confidence': 0.3,
@@ -2396,7 +2398,7 @@ ORCHESTRATOR_CONFIG = {
         'minimum_confidence': 0.5,
         'strong_signal_threshold': 0.75
     },
-    
+
     'learning': {
         'learning_rate': 0.1,
         'batch_size': 20,
@@ -2404,7 +2406,7 @@ ORCHESTRATOR_CONFIG = {
         'min_new_samples': 50,
         'performance_window_days': 30
     },
-    
+
     'risk_management': {
         'max_correlation': 0.7,
         'max_concentration': 0.2,  # 20% in one symbol
@@ -2423,19 +2425,19 @@ SUCCESS_METRICS = {
         'threshold_optimization': '>10% improvement',  # vs static
         'data_pipeline': '100% automated'
     },
-    
+
     'phase_2b_targets': {  # Weeks 3-4
         'strategy_selection_accuracy': '>65%',  # Picks winning strategy
         'confidence_correlation': '>0.6',  # Confidence correlates with success
         'ev_accuracy': 'Within 20% of actual'
     },
-    
+
     'phase_2c_targets': {  # Weeks 5-6
         'overall_performance_improvement': '>25%',  # vs Phase 1
         'adaptation_speed': '<24 hours',  # To respond to market changes
         'system_stability': '>95% uptime'
     },
-    
+
     'long_term_goals': {
         'win_rate': '>60%',
         'sharpe_ratio': '>2.0',
@@ -2453,17 +2455,17 @@ ORCHESTRATOR_RISKS = {
         'risk': 'System overfits to recent data',
         'mitigation': 'Minimum sample sizes, gradual adjustments, constraints'
     },
-    
+
     'regime_change': {
         'risk': 'Sudden market regime change breaks models',
         'mitigation': 'Fast adaptation, regime detection, emergency stops'
     },
-    
+
     'complexity_explosion': {
         'risk': 'System becomes too complex to debug',
         'mitigation': 'Modular design, comprehensive logging, fallback modes'
     },
-    
+
     'feedback_loops': {
         'risk': 'System creates negative feedback loops',
         'mitigation': 'Dampening factors, stability checks, manual overrides'
@@ -2530,23 +2532,23 @@ MIT License - See LICENSE file for details
 
 ### Version 2.0.0 (August 2025) - Phase 1 Implementation
 - **Infrastructure**: Complete project setup with GitHub, CI/CD, and cloud deployment
-- **Data Pipeline**: 
+- **Data Pipeline**:
   - Polygon WebSocket integration streaming 99 cryptocurrencies
   - Historical backfill system processing 12 months of minute-level data
   - Robust error handling and duplicate management
-- **Database**: 
+- **Database**:
   - Full Supabase PostgreSQL implementation with 9 tables
   - Optimized indexes and views for reporting
   - 250GB storage provisioned
-- **ML Features**: 
+- **ML Features**:
   - 29 technical indicators implemented
   - Continuous feature calculation every 2 minutes
   - Smart data readiness detection
-- **Deployment**: 
+- **Deployment**:
   - Railway.app with 3 microservices architecture
   - Heroku buildpack configuration
   - Environment-based service routing
-- **Monitoring**: 
+- **Monitoring**:
   - Comprehensive logging with loguru
   - Error tracking and recovery systems
   - Progress monitoring tools
@@ -2574,6 +2576,74 @@ As of August 16, 2025, 9:45 AM PST:
 - **Records Processed**: ~3.5 billion data points
 - **Estimated Completion**: ~10 hours remaining
 - **Error Rate**: <0.001% (4 errors in millions of operations)
+
+---
+
+## 📊 **Database Performance Optimization** (January 20, 2025)
+
+### **Overview**
+Successfully resolved critical database performance issues on a 50M+ row OHLC table through a dual-layer optimization strategy combining materialized views and full table indexes.
+
+### **Problem**
+- OHLC table with 50M+ rows causing query timeouts
+- Supabase SQL Editor limitations preventing index creation
+- Unable to use `CREATE INDEX CONCURRENTLY` due to transaction blocks
+- 8+ second queries making the system unusable
+
+### **Solution Architecture**
+
+#### **Layer 1: Materialized Views (Primary)**
+Created two materialized views for recent data:
+- `ohlc_today`: Last 24 hours (98K rows)
+- `ohlc_recent`: Last 7 days (661K rows)
+
+Benefits:
+- Instant query performance (0.1-0.2s)
+- Small enough to index immediately
+- Automatically refreshed daily via LaunchAgent
+
+#### **Layer 2: Full Table Indexes (Backup)**
+Successfully created indexes on main table:
+- `idx_ohlc_symbol_time`: 1.2 GB composite index
+- `idx_ohlc_timestamp_brin`: 168 KB BRIN index
+- `idx_ohlc_recent_90d`: 929 MB partial index
+
+Challenges overcome:
+- Worked around Supabase SQL Editor transaction block
+- Used direct psql connection with Session pooler
+- Auto-retry logic when CONCURRENTLY times out
+
+### **Implementation Components**
+
+#### **HybridDataFetcher** (`src/data/hybrid_fetcher.py`)
+Intelligent query routing:
+```python
+- Recent queries (< 7 days) → Materialized views
+- Historical queries (> 7 days) → Main table with indexes
+- Automatic fallback handling
+- Seamless integration with existing code
+```
+
+#### **Updated Components**
+- `src/ml/feature_calculator.py`: Uses HybridDataFetcher
+- `src/strategies/dca/detector.py`: Optimized data fetching
+- `src/strategies/swing/detector.py`: Fast OHLC queries
+- `src/strategies/signal_generator.py`: ML feature preparation
+- `scripts/run_paper_trading.py`: Market data fetching
+
+### **Performance Results**
+- **Before:** 8+ second queries, frequent timeouts
+- **After:** 0.12 second queries, 62-80x improvement
+- **Reliability:** 100% query success rate
+- **Scalability:** Handles 50M+ rows efficiently
+
+### **Key Files Created**
+- `migrations/014_index_materialized_views.sql`
+- `migrations/016_create_indexes_concurrently.sql`
+- `scripts/create_indexes_with_connection.py`
+- `scripts/refresh_materialized_views.py`
+- `scripts/setup_view_refresh.sh`
+- `INTEGRATION_GUIDE.md`
 
 ---
 

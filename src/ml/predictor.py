@@ -1,503 +1,305 @@
 """
-ML Predictor module for crypto price direction predictions.
-Uses XGBoost to predict if price will go UP or DOWN in 2 hours.
+ML Predictor module for making predictions with trained models.
+Provides a unified interface for all strategy predictions.
 """
 
-import asyncio
 import joblib
-from pathlib import Path
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional
+import pickle
 import numpy as np
-
-# import pandas as pd  # noqa: F401 - will be used
+import pandas as pd
+from typing import Dict, Optional, Tuple, Any
+import os
+from datetime import datetime, timezone
+from pathlib import Path
 from loguru import logger
-import xgboost as xgb
-
-from src.config import Settings
-from src.data.supabase_client import SupabaseClient
-from src.ml.feature_calculator import FeatureCalculator
 
 
 class MLPredictor:
-    """Handles ML predictions for crypto price movements."""
+    """ML prediction interface for all strategies"""
 
-    # ML Configuration (from master plan)
-    ML_CONFIG = {
-        "prediction_target": "price_direction_2h",  # UP or DOWN in 2 hours
-        "features": [
-            "returns_5m",
-            "returns_1h",
-            "rsi_14",
-            "distance_from_sma20",
-            "volume_ratio",
-            "support_distance",
-        ],
-        "minimum_confidence": 0.60,
-        "minimum_accuracy": 0.55,
-    }
+    def __init__(self):
+        """Initialize the predictor and load models"""
+        self.models = {}
+        self.scalers = {}
+        self.feature_configs = {}
+        self.model_paths = {
+            "dca": {
+                "model": "models/dca/xgboost_multi_output.pkl",
+                "scaler": "models/dca/scaler.pkl",
+                "features": "models/dca/features.json",
+            },
+            "swing": {
+                "model": "models/swing/swing_classifier.pkl",
+                "scaler": "models/swing/swing_scaler.pkl",
+                "features": "models/swing/training_results.json",
+            },
+            "channel": {
+                "model": "models/channel/classifier.pkl",
+                "scaler": "models/channel/scaler.pkl",
+                "features": "models/channel/config.json",
+            },
+        }
+        self.load_models()
 
-    def __init__(self, settings: Settings):
-        """Initialize ML predictor."""
-        self.settings = settings
-        self.db_client: Optional[SupabaseClient] = None
-        self.feature_calculator: Optional[FeatureCalculator] = None
-        self.model: Optional[xgb.XGBClassifier] = None
-        self.model_path = Path(settings.models_dir) / "xgboost_model.pkl"
-        self.running = False
-        self.last_predictions: Dict[str, Dict] = {}
-        self.model_accuracy = 0.0
+    def load_models(self):
+        """Load all trained models and their configurations"""
+        project_root = Path(__file__).parent.parent.parent
 
-        # Strategy-specific models
-        self.dca_model = None
-        self.swing_model = None
-        self.channel_model = None
-        self.models_loaded = False
+        for strategy, paths in self.model_paths.items():
+            # Load model
+            model_path = project_root / paths["model"]
+            if model_path.exists():
+                try:
+                    with open(model_path, "rb") as f:
+                        self.models[strategy] = pickle.load(f)
+                    logger.info(f"✅ Loaded {strategy} model from {paths['model']}")
+                except Exception as e:
+                    logger.error(f"❌ Failed to load {strategy} model: {e}")
+                    self.models[strategy] = None
+            else:
+                logger.warning(f"⚠️ Model not found: {paths['model']}")
+                self.models[strategy] = None
 
-        # Load models on initialization
-        self._load_strategy_models()
+            # Load scaler if exists
+            scaler_path = project_root / paths["scaler"]
+            if scaler_path.exists():
+                try:
+                    with open(scaler_path, "rb") as f:
+                        self.scalers[strategy] = pickle.load(f)
+                    logger.info(f"✅ Loaded {strategy} scaler")
+                except Exception as e:
+                    logger.error(f"Failed to load {strategy} scaler: {e}")
+                    self.scalers[strategy] = None
 
-    async def initialize(self):
-        """Initialize the ML predictor."""
-        logger.info("Initializing ML predictor...")
-
-        try:
-            # Initialize database client
-            self.db_client = SupabaseClient(self.settings)
-            await self.db_client.initialize()
-
-            # Initialize feature calculator
-            self.feature_calculator = FeatureCalculator(self.db_client)
-
-            # Load model if exists
-            await self._load_model()
-
-            logger.success("ML predictor initialized")
-
-        except Exception as e:
-            logger.error(f"Failed to initialize ML predictor: {e}")
-            raise
-
-    async def _load_model(self):
-        """Load trained model from disk."""
-        if self.model_path.exists():
-            try:
-                self.model = joblib.load(self.model_path)
-                logger.info(f"Loaded model from {self.model_path}")
-
-                # Load model metadata if available
-                metadata_path = self.model_path.with_suffix(".meta")
-                if metadata_path.exists():
-                    metadata = joblib.load(metadata_path)
-                    self.model_accuracy = metadata.get("accuracy", 0.0)
-                    logger.info(f"Model accuracy: {self.model_accuracy:.2%}")
-            except Exception as e:
-                logger.error(f"Failed to load model: {e}")
-                self.model = None
-        else:
-            logger.warning("No trained model found. Please train a model first.")
-            self.model = None
-
-    async def start(self):
-        """Start making predictions."""
-        logger.info("Starting ML predictions...")
-        self.running = True
-
-        # Start prediction loop
-        asyncio.create_task(self._prediction_loop())
-
-        # Start accuracy tracking
-        asyncio.create_task(self._track_accuracy())
-
-        logger.success("ML predictions started")
-
-    async def _prediction_loop(self):
-        """Main prediction loop."""
-        while self.running:
-            try:
-                if self.model is None:
-                    logger.warning("No model available, skipping predictions")
-                    await asyncio.sleep(60)
-                    continue
-
-                # Get symbols to predict
-                symbols = await self._get_active_symbols()
-
-                for symbol in symbols:
+            # Load feature config if exists
+            if "features" in paths:
+                features_path = project_root / paths["features"]
+                if features_path.exists():
                     try:
-                        prediction = await self.make_prediction(symbol)
-                        if prediction:
-                            self.last_predictions[symbol] = prediction
+                        import json
 
-                            # Store prediction in database
-                            await self.db_client.insert_prediction(
-                                {
-                                    "symbol": symbol,
-                                    "prediction": prediction["direction"],
-                                    "confidence": prediction["confidence"],
-                                    "timestamp": datetime.utcnow().isoformat(),
-                                }
-                            )
-
-                            logger.info(
-                                f"Prediction for {symbol}: {prediction['direction']} "
-                                f"(confidence: {prediction['confidence']:.2%})"
-                            )
+                        with open(features_path, "r") as f:
+                            self.feature_configs[strategy] = json.load(f)
                     except Exception as e:
-                        logger.error(f"Failed to predict for {symbol}: {e}")
+                        logger.error(f"Failed to load {strategy} features: {e}")
 
-                # Wait before next prediction cycle
-                await asyncio.sleep(60)  # Predict every minute
+    async def predict(self, symbol: str, strategy: str = None, features: Dict = None) -> Optional[Dict[str, Any]]:
+        """
+        Make prediction for a symbol
 
-            except Exception as e:
-                logger.error(f"Error in prediction loop: {e}")
-                await asyncio.sleep(60)
+        Args:
+            symbol: Trading symbol (e.g., 'BTC')
+            strategy: Strategy type ('dca', 'swing', 'channel') or None for all
+            features: Feature dictionary (if None, will calculate)
 
-    async def make_prediction(self, symbol: str) -> Optional[Dict]:
-        """Make a prediction for a symbol."""
-        try:
-            # Calculate features
-            features = await self.feature_calculator.calculate_features(symbol)
-            if features is None:
-                return None
+        Returns:
+            Dictionary with predictions and confidence scores
+        """
+        if strategy:
+            return await self._predict_single(symbol, strategy, features)
+        else:
+            # Predict for all strategies
+            results = {}
+            for strat in ["dca", "swing", "channel"]:
+                result = await self._predict_single(symbol, strat, features)
+                if result:
+                    results[strat] = result
+            return results if results else None
 
-            # Prepare features for model
-            X = self._prepare_features(features)
+    async def _predict_single(self, symbol: str, strategy: str, features: Dict = None) -> Optional[Dict[str, Any]]:
+        """Make prediction for a single strategy"""
 
-            # Make prediction
-            prediction_proba = self.model.predict_proba(X)[0]
-            prediction = self.model.predict(X)[0]
-
-            # Get confidence (probability of predicted class)
-            confidence = max(prediction_proba)
-
-            # Only return if confidence meets threshold
-            if confidence < self.ML_CONFIG["minimum_confidence"]:
-                logger.debug(f"Low confidence for {symbol}: {confidence:.2%}")
-                return None
-
-            return {
-                "symbol": symbol,
-                "direction": "UP" if prediction == 1 else "DOWN",
-                "confidence": float(confidence),
-                "timestamp": datetime.utcnow().isoformat(),
-                "features": features,
-            }
-
-        except Exception as e:
-            logger.error(f"Failed to make prediction for {symbol}: {e}")
+        if strategy not in self.models or self.models[strategy] is None:
+            logger.warning(f"Model not available for {strategy}")
             return None
 
-    def _prepare_features(self, features: Dict) -> np.ndarray:
-        """Prepare features for model input."""
-        # Extract features in the correct order
-        feature_values = []
-        for feature_name in self.ML_CONFIG["features"]:
-            value = features.get(feature_name, 0.0)
-            feature_values.append(value)
+        try:
+            # Get features if not provided
+            if features is None:
+                features = await self._calculate_features(symbol, strategy)
+                if features is None:
+                    return None
 
-        return np.array([feature_values])
+            # Prepare features for model
+            feature_array = self._prepare_features(strategy, features)
 
-    async def _get_active_symbols(self) -> List[str]:
-        """Get symbols with recent data."""
-        # For now, return top tier coins
-        # In production, this would check which symbols have recent data
-        from src.data.collector import DataCollector
+            # Scale features if scaler exists
+            if strategy in self.scalers and self.scalers[strategy]:
+                feature_array = self.scalers[strategy].transform(feature_array)
 
-        return DataCollector.TIER_1_COINS[:10]  # Start with top 10 coins
+            # Get prediction
+            model = self.models[strategy]
 
-    async def _track_accuracy(self):
-        """Track prediction accuracy."""
-        while self.running:
-            await asyncio.sleep(3600)  # Check every hour
+            # Handle different model types
+            if hasattr(model, "predict_proba"):
+                # Classification model
+                prediction = model.predict(feature_array)[0]
+                probabilities = model.predict_proba(feature_array)[0]
+                confidence = float(probabilities.max())
+                signal = bool(prediction)
+            elif hasattr(model, "predict"):
+                # Regression or other model
+                prediction = model.predict(feature_array)[0]
 
-            try:
-                # Get predictions from 2 hours ago
-                two_hours_ago = datetime.utcnow() - timedelta(hours=2)
+                # For multi-output models (like DCA)
+                if isinstance(prediction, np.ndarray) and len(prediction) > 1:
+                    signal = prediction[0] > 0.5  # First output as signal
+                    confidence = float(prediction[1]) if len(prediction) > 1 else 0.7
+                else:
+                    signal = float(prediction) > 0.5
+                    confidence = abs(float(prediction) - 0.5) * 2  # Convert to confidence
+            else:
+                logger.error(f"Unknown model type for {strategy}")
+                return None
 
-                # TODO: Implement accuracy tracking
-                # This would compare predictions with actual price movements
+            result = {
+                "symbol": symbol,
+                "strategy": strategy,
+                "signal": signal,
+                "confidence": min(max(confidence, 0.0), 1.0),  # Ensure 0-1 range
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "features_used": list(features.keys()),
+            }
 
-                logger.info(f"Current model accuracy: {self.model_accuracy:.2%}")
+            # Add strategy-specific outputs
+            if strategy == "dca" and isinstance(prediction, np.ndarray) and len(prediction) >= 4:
+                result["grid_levels"] = int(prediction[2]) if len(prediction) > 2 else 3
+                result["position_size"] = float(prediction[3]) if len(prediction) > 3 else 0.01
 
-                # Alert if accuracy drops
-                if self.model_accuracy < self.ML_CONFIG["minimum_accuracy"]:
-                    logger.warning(
-                        f"Model accuracy below threshold: {self.model_accuracy:.2%}"
-                    )
+            return result
 
-            except Exception as e:
-                logger.error(f"Error tracking accuracy: {e}")
+        except Exception as e:
+            logger.error(f"❌ Prediction error for {symbol}/{strategy}: {e}")
+            return None
 
-    async def stop(self):
-        """Stop ML predictions."""
-        logger.info("Stopping ML predictions...")
-        self.running = False
-        logger.info("ML predictions stopped")
+    async def _calculate_features(self, symbol: str, strategy: str) -> Optional[Dict]:
+        """Calculate features for a symbol (if not provided)"""
+        try:
+            # Import feature calculator
+            from src.ml.feature_calculator import FeatureCalculator
 
-    def get_last_prediction(self, symbol: str) -> Optional[Dict]:
-        """Get the last prediction for a symbol."""
-        return self.last_predictions.get(symbol)
+            calculator = FeatureCalculator()
 
-    def get_model_status(self) -> Dict:
-        """Get model status information."""
-        return {
-            "model_loaded": self.model is not None,
-            "model_accuracy": self.model_accuracy,
-            "active_predictions": len(self.last_predictions),
-            "last_update": datetime.utcnow().isoformat(),
+            # Calculate features
+            features_df = await calculator.calculate_features_for_symbol(symbol, lookback_hours=72)
+
+            if features_df is None or features_df.empty:
+                logger.warning(f"No features calculated for {symbol}")
+                return None
+
+            # Get the latest features
+            latest_features = features_df.iloc[-1].to_dict()
+
+            return latest_features
+
+        except Exception as e:
+            logger.error(f"Error calculating features for {symbol}: {e}")
+            return None
+
+    def _prepare_features(self, strategy: str, features: Dict) -> np.ndarray:
+        """Prepare features for model input"""
+
+        # Define expected features for each strategy
+        feature_orders = {
+            "dca": [
+                "rsi_14",
+                "rsi_30",
+                "macd_signal",
+                "macd_histogram",
+                "bb_position",
+                "volume_ratio",
+                "price_change_pct",
+                "volatility",
+                "support_distance",
+                "resistance_distance",
+                "trend_strength",
+                "volume_trend",
+                "bb_width",
+                "stoch_k",
+                "stoch_d",
+                "atr_14",
+                "obv",
+                "ema_12",
+                "ema_26",
+                "sma_50",
+                "sma_200",
+                "price_position",
+            ],
+            "swing": [
+                "rsi_14",
+                "macd_signal",
+                "bb_width",
+                "volume_surge",
+                "breakout_strength",
+                "momentum_score",
+                "trend_alignment",
+                "volatility",
+                "atr_14",
+                "obv_trend",
+                "price_momentum",
+                "volume_profile",
+            ],
+            "channel": [
+                "bb_position",
+                "bb_width",
+                "channel_position",
+                "keltner_position",
+                "volatility",
+                "volume_ratio",
+                "rsi_14",
+                "stoch_k",
+                "price_relative_high",
+                "price_relative_low",
+                "volume_profile",
+                "trend_strength",
+            ],
         }
 
-    def _load_strategy_models(self):
-        """Load strategy-specific ML models."""
-        models_dir = Path(self.settings.models_dir)
+        # Get feature order for strategy
+        feature_order = feature_orders.get(strategy, [])
 
-        # Load DCA model
-        dca_model_path = models_dir / "dca" / "xgboost_multi_output.pkl"
-        if dca_model_path.exists():
-            try:
-                self.dca_model = joblib.load(dca_model_path)
-                logger.info(f"Loaded DCA model from {dca_model_path}")
-            except Exception as e:
-                logger.error(f"Failed to load DCA model: {e}")
+        if not feature_order:
+            # If no predefined order, use all available features
+            feature_order = sorted(features.keys())
 
-        # Load Swing model
-        swing_model_path = models_dir / "swing" / "swing_classifier.pkl"
-        if swing_model_path.exists():
-            try:
-                self.swing_model = joblib.load(swing_model_path)
-                logger.info(f"Loaded Swing model from {swing_model_path}")
-            except Exception as e:
-                logger.error(f"Failed to load Swing model: {e}")
-
-        # Load Channel model
-        channel_model_path = models_dir / "channel" / "classifier.pkl"
-        if channel_model_path.exists():
-            try:
-                self.channel_model = joblib.load(channel_model_path)
-                logger.info(f"Loaded Channel model from {channel_model_path}")
-            except Exception as e:
-                logger.error(f"Failed to load Channel model: {e}")
-
-        self.models_loaded = True
-
-    def predict_dca(self, features: Dict) -> Dict:
-        """
-        Predict DCA trading opportunity.
-        Returns confidence and predicted outcomes.
-        """
-        try:
-            if self.dca_model is None:
-                logger.warning("DCA model not loaded, returning default prediction")
-                return {
-                    "confidence": 0.0,
-                    "predicted_return": 0.0,
-                    "take_profit_pct": 10.0,
-                    "stop_loss_pct": 5.0,
-                    "hold_hours": 24,
-                    "grid_levels": 5,
-                    # Fields expected by StrategyManager
-                    "win_probability": 0.0,
-                    "optimal_take_profit": 10.0,
-                    "optimal_stop_loss": 5.0,
-                }
-
-            # Prepare features for prediction
-            feature_array = self._prepare_dca_features(features)
-
-            # Get prediction from model
-            prediction = self.dca_model.predict(feature_array)
-
-            # DCA model is a MultiOutputRegressor, calculate confidence from predictions
-            # prediction[0] contains [position_mult, take_profit, stop_loss, hold_hours, win_prob]
-            if hasattr(prediction[0], "__len__") and len(prediction[0]) >= 5:
-                # Use win_prob as confidence
-                confidence = float(prediction[0][4])  # win_prob is the 5th output
-                take_profit = float(prediction[0][1]) if prediction[0][1] > 0 else 10.0
-                stop_loss = float(prediction[0][2]) if prediction[0][2] > 0 else 5.0
-                hold_hours = float(prediction[0][3]) if prediction[0][3] > 0 else 24
+        # Create feature array
+        feature_list = []
+        for feature_name in feature_order:
+            if feature_name in features:
+                value = features[feature_name]
+                # Handle NaN or None values
+                if pd.isna(value) or value is None:
+                    value = 0.0
+                feature_list.append(float(value))
             else:
-                # Fallback if prediction shape is unexpected
-                confidence = 0.65  # Default confidence
-                take_profit = 10.0
-                stop_loss = 5.0
-                hold_hours = 24
+                # Missing feature, use 0
+                feature_list.append(0.0)
 
-            # Ensure confidence is between 0 and 1
-            confidence = max(0.0, min(1.0, confidence))
+        return np.array([feature_list])
 
-            return {
-                "confidence": confidence,
-                "predicted_return": take_profit - stop_loss,
-                "take_profit_pct": take_profit,
-                "stop_loss_pct": stop_loss,
-                "hold_hours": hold_hours,
-                "grid_levels": 5,
-                # Fields expected by StrategyManager
-                "win_probability": confidence,  # Use confidence as win probability
-                "optimal_take_profit": take_profit,
-                "optimal_stop_loss": stop_loss,
-            }
-
-        except Exception as e:
-            logger.error(f"Error in DCA prediction: {e}")
-            return {
-                "confidence": 0.0,
-                "predicted_return": 0.0,
-                "take_profit_pct": 10.0,
-                "stop_loss_pct": 5.0,
-                "hold_hours": 24,
-                "grid_levels": 5,
-                # Fields expected by StrategyManager
-                "win_probability": 0.0,
-                "optimal_take_profit": 10.0,
-                "optimal_stop_loss": 5.0,
-            }
-
-    def predict_swing(self, features: Dict) -> Dict:
-        """
-        Predict Swing trading opportunity.
-        Returns confidence and predicted outcomes.
-        """
-        try:
-            if self.swing_model is None:
-                logger.warning("Swing model not loaded, returning default prediction")
+    def get_model_info(self, strategy: str = None) -> Dict:
+        """Get information about loaded models"""
+        if strategy:
+            if strategy in self.models:
                 return {
-                    "confidence": 0.0,
-                    "predicted_direction": "NEUTRAL",
-                    "take_profit_pct": 15.0,
-                    "stop_loss_pct": 7.0,
-                    "hold_hours": 48,
+                    "strategy": strategy,
+                    "model_loaded": self.models[strategy] is not None,
+                    "scaler_loaded": self.scalers.get(strategy) is not None,
+                    "features_config": bool(self.feature_configs.get(strategy)),
                 }
-
-            # Prepare features for prediction
-            feature_array = self._prepare_swing_features(features)
-
-            # Get prediction from model
-            prediction = self.swing_model.predict(feature_array)
-            confidence = self.swing_model.predict_proba(feature_array)[0].max()
-
-            return {
-                "confidence": float(confidence),
-                "predicted_direction": "UP" if prediction[0] > 0 else "DOWN",
-                "take_profit_pct": 15.0,  # Can be adjusted based on model
-                "stop_loss_pct": 7.0,  # Can be adjusted based on model
-                "hold_hours": 48,
-            }
-
-        except Exception as e:
-            logger.error(f"Error in Swing prediction: {e}")
-            return {
-                "confidence": 0.0,
-                "predicted_direction": "NEUTRAL",
-                "take_profit_pct": 15.0,
-                "stop_loss_pct": 7.0,
-                "hold_hours": 48,
-            }
-
-    def predict_channel(self, features: Dict) -> Dict:
-        """
-        Predict Channel trading opportunity.
-        Returns confidence and predicted outcomes.
-        """
-        try:
-            if self.channel_model is None:
-                logger.warning("Channel model not loaded, returning default prediction")
-                return {
-                    "confidence": 0.0,
-                    "predicted_bounce": False,
-                    "take_profit_pct": 8.0,
-                    "stop_loss_pct": 4.0,
-                    "hold_hours": 12,
+            else:
+                return {"error": f"Unknown strategy: {strategy}"}
+        else:
+            # Return info for all strategies
+            info = {}
+            for strat in ["dca", "swing", "channel"]:
+                info[strat] = {
+                    "model_loaded": self.models.get(strat) is not None,
+                    "scaler_loaded": self.scalers.get(strat) is not None,
+                    "features_config": bool(self.feature_configs.get(strat)),
                 }
+            return info
 
-            # Prepare features for prediction
-            feature_array = self._prepare_channel_features(features)
 
-            # Get prediction from model
-            prediction = self.channel_model.predict(feature_array)
-            confidence = self.channel_model.predict_proba(feature_array)[0].max()
-
-            return {
-                "confidence": float(confidence),
-                "predicted_bounce": bool(prediction[0] > 0),
-                "take_profit_pct": 8.0,  # Can be adjusted based on model
-                "stop_loss_pct": 4.0,  # Can be adjusted based on model
-                "hold_hours": 12,
-            }
-
-        except Exception as e:
-            logger.error(f"Error in Channel prediction: {e}")
-            return {
-                "confidence": 0.0,
-                "predicted_bounce": False,
-                "take_profit_pct": 8.0,
-                "stop_loss_pct": 4.0,
-                "hold_hours": 12,
-            }
-
-    def _prepare_dca_features(self, features: Dict) -> np.ndarray:
-        """Prepare features for DCA model."""
-        # DCA model expects 22 features based on features.json
-        feature_list = [
-            features.get("volume", 1000000),
-            features.get("volume_ratio", 1.0),
-            features.get("threshold", 0.6),
-            features.get("market_cap_tier", 1),
-            features.get("btc_regime", 0),
-            features.get("btc_price", 100000),
-            features.get("btc_sma50", 100000),
-            features.get("btc_sma200", 95000),
-            features.get("btc_sma50_distance", 0.0),
-            features.get("btc_sma200_distance", 0.05),
-            features.get("btc_trend_strength", 0.5),
-            features.get("btc_volatility_7d", 0.02),
-            features.get("btc_volatility_30d", 0.03),
-            features.get("btc_high_low_range_7d", 0.1),
-            features.get("symbol_vs_btc_7d", 0.0),
-            features.get("symbol_vs_btc_30d", 0.0),
-            features.get("symbol_correlation_30d", 0.7),
-            features.get("is_high_volatility", 0),
-            features.get("is_oversold", 0),
-            features.get("is_overbought", 0),
-            features.get("day_of_week", 1),
-            features.get("hour", 12),
-        ]
-        return np.array([feature_list])
-
-    def _prepare_swing_features(self, features: Dict) -> np.ndarray:
-        """Prepare features for Swing model."""
-        # Swing model expects 6 features (based on error message)
-        feature_list = [
-            features.get("breakout_strength", 0),
-            features.get("volume_surge", 1),
-            features.get("rsi", 50),
-            features.get("momentum", 0),
-            features.get("trend_strength", 0),
-            features.get("volatility", 0.02),  # Added 6th feature
-        ]
-        return np.array([feature_list])
-
-    def _prepare_channel_features(self, features: Dict) -> np.ndarray:
-        """Prepare features for Channel model."""
-        # Channel model expects 8 features based on config.json
-        # Using feature_columns from config
-        feature_list = [
-            features.get("range_width", 0.1),
-            features.get("position_in_range", 0.5),
-            features.get("resistance_touches", 2),
-            features.get("support_touches", 2),
-            features.get("total_touches", 4),
-            features.get("volatility", 0.02),
-            features.get("volume_trend", 1.0),
-            features.get("risk_reward", 2.0),
-        ]
-        # Note: Model expects 10 but config shows 8, adding 2 more
-        if len(feature_list) < 10:
-            feature_list.extend(
-                [
-                    features.get("rsi", 50),
-                    features.get("volume_ratio", 1.0),
-                ]
-            )
-        return np.array([feature_list])
+# Create global instance for easy access
+ml_predictor = MLPredictor()

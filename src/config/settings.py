@@ -44,11 +44,31 @@ class Settings(BaseSettings):
     log_level: str = Field("INFO", env="LOG_LEVEL")
     feature_update_interval: int = Field(120, env="FEATURE_UPDATE_INTERVAL")  # seconds
 
+    # Data Collection
+    buffer_size: int = Field(100, env="BUFFER_SIZE")
+    max_buffer_size: int = Field(500, env="MAX_BUFFER_SIZE")
+    db_flush_interval: float = Field(5.0, env="DB_FLUSH_INTERVAL")
+    price_change_threshold: float = Field(0.0001, env="PRICE_CHANGE_THRESHOLD")
+
+    # Database Performance
+    db_pool_min_size: int = Field(5, env="DB_POOL_MIN_SIZE")
+    db_pool_max_size: int = Field(20, env="DB_POOL_MAX_SIZE")
+    db_pool_max_queries: int = Field(50000, env="DB_POOL_MAX_QUERIES")
+    db_pool_max_inactive_connection_lifetime: int = Field(300, env="DB_POOL_MAX_INACTIVE")
+    db_statement_timeout: str = Field("30s", env="DB_STATEMENT_TIMEOUT")
+
+    # Retry Configuration
+    retry_max_attempts: int = Field(3, env="RETRY_MAX_ATTEMPTS")
+    retry_delay: float = Field(1.0, env="RETRY_DELAY")
+    retry_backoff: float = Field(2.0, env="RETRY_BACKOFF")
+
+    # Health Check
+    health_check_interval: int = Field(30, env="HEALTH_CHECK_INTERVAL")
+    data_freshness_threshold: int = Field(600, env="DATA_FRESHNESS_THRESHOLD")  # 10 minutes
+
     # Shadow Testing Configuration
     enable_shadow_testing: bool = Field(True, env="ENABLE_SHADOW_TESTING")
-    shadow_evaluation_interval: int = Field(
-        300, env="SHADOW_EVALUATION_INTERVAL"
-    )  # 5 minutes
+    shadow_evaluation_interval: int = Field(300, env="SHADOW_EVALUATION_INTERVAL")  # 5 minutes
     shadow_max_variations: int = Field(10, env="SHADOW_MAX_VARIATIONS")
     shadow_min_trades_for_adjustment: int = Field(30, env="SHADOW_MIN_TRADES")
     shadow_adjustment_hour: int = Field(2, env="SHADOW_ADJUSTMENT_HOUR")  # 2 AM PST
@@ -61,9 +81,7 @@ class Settings(BaseSettings):
     # Paths - using model_validator for initialization
     @property
     def project_root(self) -> str:
-        return os.path.dirname(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        )
+        return os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
     @property
     def data_dir(self) -> str:

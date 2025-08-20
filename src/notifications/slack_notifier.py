@@ -11,6 +11,10 @@ from typing import Dict, Optional, List, Any
 from datetime import datetime, timedelta
 from loguru import logger
 from enum import Enum
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 
 class NotificationType(Enum):
@@ -123,9 +127,7 @@ class SlackNotifier:
             color = self._get_color_for_type(notification_type)
 
         # Build the Slack message
-        slack_message = self._build_slack_message(
-            notification_type, title, message, details, color
-        )
+        slack_message = self._build_slack_message(notification_type, title, message, details, color)
 
         # Send to Slack
         try:
@@ -140,9 +142,7 @@ class SlackNotifier:
                         logger.debug(f"Slack notification sent to {channel}: {title}")
                         return True
                     else:
-                        logger.error(
-                            f"Failed to send Slack notification: {response.status}"
-                        )
+                        logger.error(f"Failed to send Slack notification: {response.status}")
                         return False
 
         except Exception as e:
@@ -205,9 +205,7 @@ class SlackNotifier:
                 else:
                     formatted_value = str(value)
 
-                fields.append(
-                    {"title": formatted_key, "value": formatted_value, "short": True}
-                )
+                fields.append({"title": formatted_key, "value": formatted_value, "short": True})
 
             slack_message["attachments"][0]["fields"] = fields
 

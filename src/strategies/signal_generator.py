@@ -20,6 +20,7 @@ import pandas as pd
 import numpy as np
 
 from src.data.supabase_client import SupabaseClient
+from src.data.hybrid_fetcher import HybridDataFetcher
 from src.strategies.dca.detector import DCADetector
 from src.strategies.dca.grid import GridCalculator
 from src.strategies.dca.executor import DCAExecutor
@@ -56,6 +57,7 @@ class SignalGenerator:
             auto_execute: Whether to automatically execute approved signals
         """
         self.supabase = supabase_client
+        self.fetcher = HybridDataFetcher()
         self.config = config or self._default_config()
         self.auto_execute = auto_execute
 
@@ -72,9 +74,7 @@ class SignalGenerator:
         # Executor (optional, for auto-execution)
         self.executor = None
         if auto_execute:
-            self.executor = DCAExecutor(
-                supabase_client=supabase_client, position_sizer=self.position_sizer
-            )
+            self.executor = DCAExecutor(supabase_client=supabase_client, position_sizer=self.position_sizer)
 
         # Signal tracking
         self.active_signals = {}
@@ -133,9 +133,7 @@ class SignalGenerator:
             # Initialize predictor
             from src.ml.predictor import MLPredictor
 
-            self.ml_predictor = MLPredictor(
-                model=self.ml_model, scaler=self.scaler, supabase_client=self.supabase
-            )
+            self.ml_predictor = MLPredictor(model=self.ml_model, scaler=self.scaler, supabase_client=self.supabase)
 
         except Exception as e:
             logger.error(f"Error loading ML components: {e}")
@@ -221,8 +219,7 @@ class SignalGenerator:
                     self.processed_symbols.add(setup["symbol"])
 
                     logger.info(
-                        f"New signal detected: {setup['symbol']} "
-                        f"({setup['setup_data']['drop_pct']:.1f}% drop)"
+                        f"New signal detected: {setup['symbol']} " f"({setup['setup_data']['drop_pct']:.1f}% drop)"
                     )
 
             # TODO: Add swing trading detection here
@@ -252,8 +249,7 @@ class SignalGenerator:
                 "symbol": setup["symbol"],
                 "status": SignalStatus.DETECTED,
                 "detected_at": datetime.now(),
-                "expires_at": datetime.now()
-                + timedelta(seconds=self.config["signal_ttl"]),
+                "expires_at": datetime.now() + timedelta(seconds=self.config["signal_ttl"]),
                 "setup_data": setup["setup_data"],
                 "setup_price": setup["setup_price"],
                 "ml_predictions": None,
@@ -326,9 +322,9 @@ class SignalGenerator:
                 }
 
             # Check expected value
-            expected_value = predictions["take_profit_percent"] * confidence - abs(
-                predictions["stop_loss_percent"]
-            ) * (1 - confidence)
+            expected_value = predictions["take_profit_percent"] * confidence - abs(predictions["stop_loss_percent"]) * (
+                1 - confidence
+            )
 
             if expected_value < 1.0:  # Minimum 1% expected value
                 return {
@@ -365,26 +361,14 @@ class SignalGenerator:
             Feature dataframe or None
         """
         try:
-            # Get recent OHLC data
-            end_time = datetime.now()
-            start_time = end_time - timedelta(hours=24)
+            # Get recent OHLC data using HybridDataFetcher
+            result_data = await self.fetcher.get_recent_data(signal["symbol"], hours=24, timeframe="15m")
 
-            result = (
-                self.supabase.client.table("unified_ohlc")
-                .select("*")
-                .eq("symbol", signal["symbol"])
-                .eq("timeframe", "15min")
-                .gte("timestamp", start_time.isoformat())
-                .lte("timestamp", end_time.isoformat())
-                .order("timestamp")
-                .execute()
-            )
-
-            if not result.data or len(result.data) < 20:
+            if not result_data or len(result_data) < 20:
                 logger.warning(f"Insufficient data for {signal['symbol']}")
                 return None
 
-            df = pd.DataFrame(result.data)
+            df = pd.DataFrame(result_data)
             df["timestamp"] = pd.to_datetime(df["timestamp"])
             df = df.set_index("timestamp").sort_index()
 
@@ -392,16 +376,12 @@ class SignalGenerator:
             features = {}
 
             # Price features
-            features["price_change_24h"] = (
-                df["close"].iloc[-1] / df["close"].iloc[0] - 1
-            ) * 100
+            features["price_change_24h"] = (df["close"].iloc[-1] / df["close"].iloc[0] - 1) * 100
             features["high_low_ratio"] = df["high"].iloc[-1] / df["low"].iloc[-1]
 
             # Volume features
             features["volume_ratio"] = (
-                df["volume"].iloc[-4:].mean() / df["volume"].mean()
-                if df["volume"].mean() > 0
-                else 1.0
+                df["volume"].iloc[-4:].mean() / df["volume"].mean() if df["volume"].mean() > 0 else 1.0
             )
 
             # Volatility
@@ -423,9 +403,7 @@ class SignalGenerator:
             support_levels = signal["setup_data"].get("support_levels", [])
             if support_levels:
                 features["support_distance"] = (
-                    (signal["setup_price"] - min(support_levels))
-                    / signal["setup_price"]
-                    * 100
+                    (signal["setup_price"] - min(support_levels)) / signal["setup_price"] * 100
                 )
             else:
                 features["support_distance"] = 5.0
@@ -481,9 +459,7 @@ class SignalGenerator:
 
                 # Calculate position size
                 if not signal["position_size"]:
-                    signal["position_size"] = await self._calculate_position_size(
-                        signal
-                    )
+                    signal["position_size"] = await self._calculate_position_size(signal)
 
                 # Execute if auto-execute is enabled
                 if self.auto_execute and self.executor:
@@ -499,18 +475,14 @@ class SignalGenerator:
 
                     if execution_result["success"]:
                         logger.info(
-                            f"Signal executed: {signal['symbol']} "
-                            f"position {execution_result['position_id']}"
+                            f"Signal executed: {signal['symbol']} " f"position {execution_result['position_id']}"
                         )
                     else:
-                        logger.warning(
-                            f"Signal execution failed: {execution_result['error']}"
-                        )
+                        logger.warning(f"Signal execution failed: {execution_result['error']}")
                 else:
                     # Just log the signal for manual execution
                     logger.info(
-                        f"Signal ready for execution: {signal['symbol']} "
-                        f"${signal['position_size']:.2f} position"
+                        f"Signal ready for execution: {signal['symbol']} " f"${signal['position_size']:.2f} position"
                     )
 
             except Exception as e:
@@ -523,9 +495,7 @@ class SignalGenerator:
             if signal["ml_predictions"]:
                 # Update config with ML predictions
                 grid_config = self.dca_detector.config.copy()
-                grid_config["take_profit"] = signal["ml_predictions"][
-                    "take_profit_percent"
-                ]
+                grid_config["take_profit"] = signal["ml_predictions"]["take_profit_percent"]
                 grid_config["stop_loss"] = signal["ml_predictions"]["stop_loss_percent"]
 
                 # Create temporary calculator with ML config
@@ -538,8 +508,7 @@ class SignalGenerator:
                 current_price=signal["setup_price"],
                 ml_confidence=signal["confidence_score"],
                 support_levels=signal["setup_data"].get("support_levels", []),
-                total_capital=signal["position_size"]
-                or self.config["capital_per_position"],
+                total_capital=signal["position_size"] or self.config["capital_per_position"],
             )
 
             return grid
@@ -567,9 +536,7 @@ class SignalGenerator:
                 portfolio_value=self.config["capital_per_position"],
                 market_data=market_data,
                 ml_confidence=ml_confidence,
-                ml_multiplier=signal["ml_predictions"].get(
-                    "position_size_multiplier", 1.0
-                )
+                ml_multiplier=signal["ml_predictions"].get("position_size_multiplier", 1.0)
                 if signal["ml_predictions"]
                 else 1.0,
             )
@@ -625,11 +592,7 @@ class SignalGenerator:
             return True
 
         # Check max concurrent positions
-        active_count = sum(
-            1
-            for s in self.active_signals.values()
-            if s["status"] == SignalStatus.EXECUTED
-        )
+        active_count = sum(1 for s in self.active_signals.values() if s["status"] == SignalStatus.EXECUTED)
         if active_count >= self.config["max_concurrent_positions"]:
             return True
 
@@ -642,10 +605,7 @@ class SignalGenerator:
         for signal_id, signal in self.active_signals.items():
             if signal["status"] == SignalStatus.EXPIRED:
                 expired.append(signal_id)
-            elif (
-                datetime.now() > signal["expires_at"]
-                and signal["status"] != SignalStatus.EXECUTED
-            ):
+            elif datetime.now() > signal["expires_at"] and signal["status"] != SignalStatus.EXECUTED:
                 signal["status"] = SignalStatus.EXPIRED
                 expired.append(signal_id)
 
@@ -668,16 +628,12 @@ class SignalGenerator:
                 "signal_id": s["signal_id"],
                 "symbol": s["symbol"],
                 "strategy": s["strategy"],
-                "status": s["status"].value
-                if isinstance(s["status"], SignalStatus)
-                else s["status"],
+                "status": s["status"].value if isinstance(s["status"], SignalStatus) else s["status"],
                 "confidence": s["confidence_score"],
                 "detected_at": s["detected_at"].isoformat()
                 if isinstance(s["detected_at"], datetime)
                 else s["detected_at"],
-                "expires_at": s["expires_at"].isoformat()
-                if isinstance(s["expires_at"], datetime)
-                else s["expires_at"],
+                "expires_at": s["expires_at"].isoformat() if isinstance(s["expires_at"], datetime) else s["expires_at"],
             }
             for s in self.active_signals.values()
         ]

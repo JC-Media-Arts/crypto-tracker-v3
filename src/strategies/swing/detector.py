@@ -9,6 +9,8 @@ import numpy as np
 from typing import Dict, List, Optional, Tuple
 from datetime import datetime, timedelta
 import logging
+from src.data.hybrid_fetcher import HybridDataFetcher
+import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +26,7 @@ class SwingDetector:
 
     def __init__(self, supabase_client):
         self.supabase = supabase_client
+        self.fetcher = HybridDataFetcher()
 
         # Swing detection parameters
         self.config = {
@@ -125,9 +128,7 @@ class SwingDetector:
 
                 if setup:
                     setups.append(setup)
-                    logger.info(
-                        f"🎯 Swing setup detected for {symbol}: {setup['pattern']}"
-                    )
+                    logger.info(f"🎯 Swing setup detected for {symbol}: {setup['pattern']}")
 
             except Exception as e:
                 logger.error(f"Error detecting swing setup for {symbol}: {e}")
@@ -152,9 +153,7 @@ class SwingDetector:
         df["rsi"] = self._calculate_rsi(df["close"])
 
         # MACD
-        df["macd"], df["macd_signal"], df["macd_hist"] = self._calculate_macd(
-            df["close"]
-        )
+        df["macd"], df["macd_signal"], df["macd_hist"] = self._calculate_macd(df["close"])
 
         # Bollinger Bands
         (
@@ -171,9 +170,7 @@ class SwingDetector:
         df["momentum"] = df["close"].pct_change(periods=self.config["momentum_period"])
 
         # Resistance levels
-        df["resistance"] = (
-            df["high"].rolling(window=self.config["breakout_lookback"]).max()
-        )
+        df["resistance"] = df["high"].rolling(window=self.config["breakout_lookback"]).max()
         df["support"] = df["low"].rolling(window=self.config["breakout_lookback"]).min()
 
         # Candle patterns
@@ -197,9 +194,7 @@ class SwingDetector:
 
         # Skip if already in active setup
         if symbol in self.active_setups:
-            if (
-                datetime.now() - self.active_setups[symbol]["timestamp"]
-            ).seconds < 3600:
+            if (datetime.now() - self.active_setups[symbol]["timestamp"]).seconds < 3600:
                 return None
 
         score = 0
@@ -229,15 +224,9 @@ class SwingDetector:
             signals.append("Strong Momentum")
 
         # 5. Price Action (15 points)
-        price_change_24h = (
-            (latest["close"] - df.iloc[-24]["close"]) / df.iloc[-24]["close"]
-        ) * 100
+        price_change_24h = ((latest["close"] - df.iloc[-24]["close"]) / df.iloc[-24]["close"]) * 100
 
-        if (
-            self.config["min_price_change_24h"]
-            <= price_change_24h
-            <= self.config["max_price_change_24h"]
-        ):
+        if self.config["min_price_change_24h"] <= price_change_24h <= self.config["max_price_change_24h"]:
             score += 15
             signals.append(f"Price +{price_change_24h:.1f}%")
 
@@ -293,11 +282,7 @@ class SwingDetector:
         if latest["close"] > latest["bb_upper"]:
             # Must have volume confirmation AND good RSI
             if latest["volume_ratio"] > self.config["volume_spike_threshold"]:
-                if (
-                    self.config["rsi_bullish_min"]
-                    < latest.get("rsi", 50)
-                    < self.config["rsi_overbought"]
-                ):
+                if self.config["rsi_bullish_min"] < latest.get("rsi", 50) < self.config["rsi_overbought"]:
                     return True
 
         return False
@@ -323,18 +308,11 @@ class SwingDetector:
         prev = df.iloc[-2]
 
         # RSI in bullish zone
-        if (
-            self.config["rsi_bullish_min"]
-            < latest["rsi"]
-            < self.config["rsi_overbought"]
-        ):
+        if self.config["rsi_bullish_min"] < latest["rsi"] < self.config["rsi_overbought"]:
             score += 5
 
         # MACD bullish cross
-        if (
-            latest["macd"] > latest["macd_signal"]
-            and prev["macd"] <= prev["macd_signal"]
-        ):
+        if latest["macd"] > latest["macd_signal"] and prev["macd"] <= prev["macd_signal"]:
             score += 5
 
         # Positive momentum
@@ -388,9 +366,7 @@ class SwingDetector:
 
         # Check for consolidation after peak
         post_peak = recent.iloc[peak_pos:]
-        consolidation_range = (
-            post_peak["high"].max() - post_peak["low"].min()
-        ) / post_peak["close"].mean()
+        consolidation_range = (post_peak["high"].max() - post_peak["low"].min()) / post_peak["close"].mean()
 
         if consolidation_range < 0.03:  # Less than 3% range
             # Check if breaking out of consolidation
@@ -514,9 +490,7 @@ class SwingDetector:
         rsi = 100 - (100 / (1 + rs))
         return rsi
 
-    def _calculate_macd(
-        self, prices: pd.Series
-    ) -> Tuple[pd.Series, pd.Series, pd.Series]:
+    def _calculate_macd(self, prices: pd.Series) -> Tuple[pd.Series, pd.Series, pd.Series]:
         """Calculate MACD"""
         exp1 = prices.ewm(span=12, adjust=False).mean()
         exp2 = prices.ewm(span=26, adjust=False).mean()
@@ -548,21 +522,14 @@ class SwingDetector:
         return atr
 
     async def _fetch_ohlc_data(self, symbol: str) -> Optional[List[Dict]]:
-        """Fetch OHLC data from database"""
+        """Fetch OHLC data from database using HybridDataFetcher"""
         try:
-            # Get last 100 periods of 1-hour data
-            response = (
-                self.supabase.client.table("ohlc_data")
-                .select("*")
-                .eq("symbol", symbol)
-                .order("timestamp", desc=True)
-                .limit(100)
-                .execute()
-            )
+            # Get last 100 hours of 1-hour data using the fast views
+            data = await self.fetcher.get_recent_data(symbol, hours=100, timeframe="1h")
 
-            if response.data:
-                # Reverse to get chronological order
-                return list(reversed(response.data))
+            if data:
+                # Data is already in chronological order from HybridDataFetcher
+                return data
             else:
                 return None
 

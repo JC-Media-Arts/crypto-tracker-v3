@@ -8,11 +8,12 @@ import time
 from datetime import datetime, timezone
 from typing import Dict
 from loguru import logger
-from collections import defaultdict
+from collections import defaultdict, deque
 
 from src.config import get_settings
 from src.data.polygon_client import PolygonWebSocketClient
 from src.data.supabase_client import SupabaseClient
+from src.utils.retry import with_retry, RetryPolicy
 
 
 class DataCollector:
@@ -21,20 +22,20 @@ class DataCollector:
     def __init__(self):
         """Initialize the data collector."""
         self.settings = get_settings()
-        self.polygon_client = PolygonWebSocketClient(
-            on_message_callback=self._on_price_update
-        )
+        self.polygon_client = PolygonWebSocketClient(on_message_callback=self._on_price_update)
         self.db_client = SupabaseClient()
 
-        # Batch processing
-        self.price_buffer = []
-        self.buffer_size = 100  # Insert in batches of 100
+        # Batch processing with bounded buffer to prevent memory leaks
+        self.price_buffer = deque(maxlen=1000)  # Automatically drops old items when full
+        self.buffer_lock = asyncio.Lock()  # Thread-safe buffer operations
+        self.buffer_size = self.settings.buffer_size
         self.last_db_flush = time.time()
-        self.db_flush_interval = 5.0  # Flush every 5 seconds
+        self.db_flush_interval = self.settings.db_flush_interval
+        self.max_buffer_size = self.settings.max_buffer_size
 
         # Price tracking for deduplication
         self.last_prices = {}  # symbol -> (price, timestamp)
-        self.price_change_threshold = 0.0001  # 0.01% change threshold
+        self.price_change_threshold = self.settings.price_change_threshold
 
         # Stats
         self.stats = defaultdict(int)
@@ -48,7 +49,7 @@ class DataCollector:
 
         # Check if price changed significantly
         if self._should_store_price(symbol, price, timestamp):
-            # Add to buffer
+            # Add to buffer (deque automatically handles overflow)
             self.price_buffer.append(
                 {
                     "timestamp": timestamp.isoformat(),
@@ -62,13 +63,14 @@ class DataCollector:
             self.last_prices[symbol] = (price, timestamp)
             self.stats["prices_buffered"] += 1
 
-            # Check if we should flush
-            if len(self.price_buffer) >= self.buffer_size:
+            # Check if we should flush (either batch size or max buffer size)
+            if len(self.price_buffer) >= self.max_buffer_size:
+                # Force flush if buffer is getting too large
+                asyncio.create_task(self._async_flush_to_database())
+            elif len(self.price_buffer) >= self.buffer_size:
                 self._flush_to_database()
 
-    def _should_store_price(
-        self, symbol: str, price: float, timestamp: datetime
-    ) -> bool:
+    def _should_store_price(self, symbol: str, price: float, timestamp: datetime) -> bool:
         """Determine if price should be stored (avoid storing unchanged prices)."""
         if symbol not in self.last_prices:
             return True
@@ -84,22 +86,28 @@ class DataCollector:
         return price_change > self.price_change_threshold
 
     def _flush_to_database(self):
-        """Flush price buffer to database."""
+        """Flush price buffer to database (synchronous version)."""
         if not self.price_buffer:
             return
 
+        # Extract batch without holding lock for too long
+        batch = list(self.price_buffer)[: self.buffer_size]
+
         try:
             # Insert batch to Supabase
-            num_records = len(self.price_buffer)
-            self.db_client.insert_price_data(self.price_buffer)
+            num_records = len(batch)
+            self.db_client.insert_price_data(batch)
 
             self.stats["prices_saved"] += num_records
             self.stats["db_flushes"] += 1
 
             logger.info(f"Saved {num_records} price records to database")
 
-            # Clear buffer
-            self.price_buffer.clear()
+            # Remove successfully saved items from buffer
+            for _ in range(num_records):
+                if self.price_buffer:
+                    self.price_buffer.popleft()
+
             self.last_db_flush = time.time()
 
         except Exception as e:
@@ -107,14 +115,43 @@ class DataCollector:
             if "duplicate key value" not in str(e):
                 logger.error(f"Failed to save prices to database: {e}")
                 self.stats["db_errors"] += 1
-
-                # Keep data in buffer to retry later
-                if len(self.price_buffer) > 1000:
-                    # Prevent memory issues - keep only recent data
-                    self.price_buffer = self.price_buffer[-500:]
+                # Buffer will automatically handle overflow due to maxlen
             else:
-                # Duplicates are normal, just clear the buffer
-                self.price_buffer.clear()
+                # Duplicates are normal, remove the batch
+                for _ in range(len(batch)):
+                    if self.price_buffer:
+                        self.price_buffer.popleft()
+                self.last_db_flush = time.time()
+
+    @with_retry(**RetryPolicy.DATABASE)
+    async def _async_flush_to_database(self):
+        """Async version of flush with proper locking and retry logic."""
+        async with self.buffer_lock:
+            if not self.price_buffer:
+                return
+
+            # Extract batch
+            batch = []
+            for _ in range(min(self.buffer_size, len(self.price_buffer))):
+                batch.append(self.price_buffer.popleft())
+
+        # Process batch without holding lock
+        try:
+            num_records = len(batch)
+            self.db_client.insert_price_data(batch)
+
+            self.stats["prices_saved"] += num_records
+            self.stats["db_flushes"] += 1
+
+            logger.info(f"Saved {num_records} price records to database (async)")
+            self.last_db_flush = time.time()
+
+        except Exception as e:
+            if "duplicate key value" not in str(e):
+                logger.error(f"Failed to save prices to database: {e}")
+                self.stats["db_errors"] += 1
+                # Lost data is acceptable with bounded buffer
+            else:
                 self.last_db_flush = time.time()
 
     async def _periodic_flush(self):
@@ -124,7 +161,7 @@ class DataCollector:
 
             # Flush if enough time has passed
             if time.time() - self.last_db_flush > self.db_flush_interval:
-                self._flush_to_database()
+                await self._async_flush_to_database()
 
             # Also get any buffered data from Polygon client
             buffered_data = self.polygon_client.get_buffer_data()
@@ -228,8 +265,6 @@ class DataCollector:
             "buffer_size": len(self.price_buffer),
             "symbols_tracked": len(self.last_prices),
             "uptime_seconds": (
-                (datetime.now(timezone.utc) - self.start_time).total_seconds()
-                if self.start_time
-                else 0
+                (datetime.now(timezone.utc) - self.start_time).total_seconds() if self.start_time else 0
             ),
         }

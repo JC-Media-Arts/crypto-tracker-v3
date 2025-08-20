@@ -1,0 +1,102 @@
+OHLC BACKFILL VERIFICATION REPORT
+Generated: 2025-08-20 09:13:22.334662
+================================================================================
+
+Total Expected Symbols: 90
+Symbols with Data: 1
+
+Missing Symbols:
+  - AAVE
+  - ACT
+  - ADA
+  - ALGO
+  - ALT
+  - APT
+  - ARB
+  - ATOM
+  - AVAX
+  - AXS
+  - BAL
+  - BCH
+  - BLUR
+  - BNB
+  - BONK
+  - BRETT
+  - BTC
+  - CHZ
+  - COMP
+  - CRV
+  - DASH
+  - DOGE
+  - DOT
+  - DYM
+  - ENS
+  - EOS
+  - ETH
+  - FARTCOIN
+  - FET
+  - FIL
+  - FLOKI
+  - FLOW
+  - GALA
+  - GIGA
+  - GOAT
+  - GRT
+  - HBAR
+  - HIPPO
+  - ICP
+  - IMX
+  - INJ
+  - JTO
+  - JUP
+  - KAS
+  - KSM
+  - LDO
+  - LINK
+  - LRC
+  - MANA
+  - MEME
+  - MEW
+  - MKR
+  - MOG
+  - NEAR
+  - NEIRO
+  - OCEAN
+  - OP
+  - PENDLE
+  - PEPE
+  - PNUT
+  - POL
+  - PONKE
+  - POPCAT
+  - PYTH
+  - QNT
+  - RENDER
+  - RPL
+  - RUNE
+  - SAND
+  - SEI
+  - SHIB
+  - SNX
+  - STRK
+  - STX
+  - SUSHI
+  - THETA
+  - TIA
+  - TON
+  - TREMP
+  - TRUMP
+  - TRX
+  - TURBO
+  - UNI
+  - VET
+  - WIF
+  - XLM
+  - XMR
+  - XRP
+  - ZEC
+
+Data Gaps Found:
+  - BTC 15m: 1 gaps
+  - ETH 15m: 1 gaps
+  - SOL 15m: 1 gaps
