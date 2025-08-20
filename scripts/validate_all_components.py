@@ -807,9 +807,9 @@ class SystemValidator:
             successes = sum(1 for r in results if r and not isinstance(r, Exception))
 
             self.performance_metrics["concurrent_queries_duration"] = duration
-            self.performance_metrics["concurrent_queries_success_rate"] = (
-                successes / len(tasks)
-            )
+            self.performance_metrics[
+                "concurrent_queries_success_rate"
+            ] = successes / len(tasks)
 
             if successes < len(tasks) * 0.95:  # 95% success rate
                 self.warnings.append(

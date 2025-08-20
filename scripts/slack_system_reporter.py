@@ -125,7 +125,9 @@ class SlackSystemReporter:
                     "status": (
                         "ok"
                         if age_minutes < 5
-                        else "warning" if age_minutes < 10 else "critical"
+                        else "warning"
+                        if age_minutes < 10
+                        else "critical"
                     ),
                 }
 
@@ -138,7 +140,9 @@ class SlackSystemReporter:
                 "status": (
                     "ok"
                     if query_time < 0.5
-                    else "warning" if query_time < 1.0 else "critical"
+                    else "warning"
+                    if query_time < 1.0
+                    else "critical"
                 ),
             }
 
@@ -159,7 +163,9 @@ class SlackSystemReporter:
                     "status": (
                         "ok"
                         if len(unique_symbols) >= 85
-                        else "warning" if len(unique_symbols) >= 75 else "critical"
+                        else "warning"
+                        if len(unique_symbols) >= 75
+                        else "critical"
                     ),
                 }
 
@@ -456,7 +462,9 @@ class SlackSystemReporter:
                     emoji = (
                         "✅"
                         if check_data["status"] == "ok"
-                        else "⚠️" if check_data["status"] == "warning" else "❌"
+                        else "⚠️"
+                        if check_data["status"] == "warning"
+                        else "❌"
                     )
                     message_parts.append(f"{emoji} {check_name}: {check_data['value']}")
 
@@ -547,7 +555,9 @@ class SlackSystemReporter:
                 color=(
                     "good"
                     if health_status == "healthy"
-                    else "warning" if health_status == "degraded" else "danger"
+                    else "warning"
+                    if health_status == "degraded"
+                    else "danger"
                 ),
             )
 

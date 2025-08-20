@@ -191,9 +191,9 @@ class SlackNotificationMethods:
         if best_trade:
             details["best_trade"] = f"{best_trade['symbol']} +${best_trade['pnl']:.2f}"
         if worst_trade:
-            details["worst_trade"] = (
-                f"{worst_trade['symbol']} -${abs(worst_trade['pnl']):.2f}"
-            )
+            details[
+                "worst_trade"
+            ] = f"{worst_trade['symbol']} -${abs(worst_trade['pnl']):.2f}"
 
         # Add strategy breakdown if available
         if strategy_breakdown:
