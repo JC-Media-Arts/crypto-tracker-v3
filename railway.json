@@ -28,13 +28,6 @@
       "startCommand": "python scripts/run_daily_retraining.py",
       "cronSchedule": "0 9 * * *",
       "restartPolicyType": "NEVER"
-    },
-    "Slack Reporter": {
-      "startCommand": "python scripts/run_slack_reporter.py",
-      "restartPolicyType": "ON_FAILURE",
-      "restartPolicyMaxRetries": 5,
-      "healthcheckTimeout": 60,
-      "numReplicas": 1
     }
   }
 }
