@@ -368,19 +368,21 @@ class ChannelLabelGenerator:
             )
 
         logger.info(f"\nSaved {len(all_labels)} channel labels to {output_file}")
-        
+
         # Save to database for ML training
         if all_labels:
             logger.info("\nSaving labels to strategy_channel_labels table...")
             saved_count = 0
             skipped_count = 0
-            
+
             for setup in all_labels:
                 # Prepare data for strategy_channel_labels table
                 label_data = {
                     "symbol": setup["symbol"],
                     "timestamp": setup["timestamp"],
-                    "channel_position": setup["position"].upper(),  # TOP, BOTTOM, MIDDLE
+                    "channel_position": setup[
+                        "position"
+                    ].upper(),  # TOP, BOTTOM, MIDDLE
                     "channel_strength": float(setup.get("channel_strength", 50)),
                     "channel_width": float(setup.get("channel_width_pct", 5.0)),
                     "outcome": setup["outcome"],
@@ -396,10 +398,10 @@ class ChannelLabelGenerator:
                         "price": setup.get("price", 0),
                         "stop_loss": setup.get("stop_loss", 0),
                         "channel_top": setup.get("channel_top", 0),
-                        "channel_bottom": setup.get("channel_bottom", 0)
-                    }
+                        "channel_bottom": setup.get("channel_bottom", 0),
+                    },
                 }
-                
+
                 try:
                     # Use upsert to handle duplicates gracefully
                     result = (
@@ -413,8 +415,10 @@ class ChannelLabelGenerator:
                     if "duplicate" in str(e).lower():
                         skipped_count += 1
                     else:
-                        logger.error(f"Error saving label for {setup['symbol']} at {setup['timestamp']}: {e}")
-            
+                        logger.error(
+                            f"Error saving label for {setup['symbol']} at {setup['timestamp']}: {e}"
+                        )
+
             logger.info(f"Saved {saved_count} labels to strategy_channel_labels table")
             if skipped_count > 0:
                 logger.info(f"Skipped {skipped_count} duplicate labels")

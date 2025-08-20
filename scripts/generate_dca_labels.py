@@ -363,12 +363,16 @@ class DCALabelGenerator:
                 "breakeven": (df["label"] == "BREAKEVEN").sum(),
                 "skipped": (df["label"] == "SKIP").sum(),
                 "win_rate": (df["label"] == "WIN").mean(),
-                "avg_win_pnl": df[df["label"] == "WIN"]["pnl_pct"].mean()
-                if any(df["label"] == "WIN")
-                else 0,
-                "avg_loss_pnl": df[df["label"] == "LOSS"]["pnl_pct"].mean()
-                if any(df["label"] == "LOSS")
-                else 0,
+                "avg_win_pnl": (
+                    df[df["label"] == "WIN"]["pnl_pct"].mean()
+                    if any(df["label"] == "WIN")
+                    else 0
+                ),
+                "avg_loss_pnl": (
+                    df[df["label"] == "LOSS"]["pnl_pct"].mean()
+                    if any(df["label"] == "LOSS")
+                    else 0
+                ),
                 "avg_time_to_exit": df["time_to_exit"].mean(),
             }
 
@@ -415,7 +419,7 @@ def main():
         print("\nSaving labels to strategy_dca_labels table...")
         saved_count = 0
         skipped_count = 0
-        
+
         for _, row in df.iterrows():
             if row["label"] in ["WIN", "LOSS", "BREAKEVEN", "TIMEOUT"]:
                 # Prepare data for strategy_dca_labels table
@@ -439,7 +443,7 @@ def main():
                         "volume": float(row.get("volume", 0)),
                         "macd": float(row.get("macd", 0)),
                         "bb_position": float(row.get("bb_position", 0.5)),
-                    }
+                    },
                 }
 
                 try:
@@ -455,7 +459,9 @@ def main():
                     if "duplicate" in str(e).lower():
                         skipped_count += 1
                     else:
-                        logger.error(f"Error saving label for {row['symbol']} at {row['setup_time']}: {e}")
+                        logger.error(
+                            f"Error saving label for {row['symbol']} at {row['setup_time']}: {e}"
+                        )
 
         print(f"Saved {saved_count} labels to strategy_dca_labels table")
         if skipped_count > 0:

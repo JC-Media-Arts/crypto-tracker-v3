@@ -479,30 +479,36 @@ class SwingLabelGenerator:
             csv_file = "data/swing_training_labels.csv"
             df_labels.to_csv(csv_file, index=False)
             logger.info(f"CSV saved to {csv_file}")
-            
+
             # Save to database for ML training
             logger.info("\nSaving labels to strategy_swing_labels table...")
             saved_count = 0
             skipped_count = 0
-            
+
             for setup in all_setups:
                 # Prepare data for strategy_swing_labels table
                 label_data = {
                     "symbol": setup["symbol"],
                     "timestamp": setup["timestamp"],
                     "breakout_detected": True,
-                    "breakout_strength": float(setup["features"].get("breakout_pct", 0) * 100),
+                    "breakout_strength": float(
+                        setup["features"].get("breakout_pct", 0) * 100
+                    ),
                     "volume_surge": float(setup["features"].get("volume_ratio", 1.0)),
                     "momentum_score": float(setup["features"].get("rsi", 50)),
-                    "trend_alignment": "UPTREND" if setup["features"].get("sma_trend", 0) > 0 else "DOWNTREND",
+                    "trend_alignment": (
+                        "UPTREND"
+                        if setup["features"].get("sma_trend", 0) > 0
+                        else "DOWNTREND"
+                    ),
                     "outcome": setup["outcome"],
                     "optimal_take_profit": float(setup.get("take_profit", 15.0)),
                     "optimal_stop_loss": float(setup.get("stop_loss", -5.0)),
                     "actual_return": float(setup["actual_return"]) * 100,
                     "hold_time_hours": int(setup["hold_hours"]),
-                    "features": setup["features"]
+                    "features": setup["features"],
                 }
-                
+
                 try:
                     # Use upsert to handle duplicates gracefully
                     result = (
@@ -516,8 +522,10 @@ class SwingLabelGenerator:
                     if "duplicate" in str(e).lower():
                         skipped_count += 1
                     else:
-                        logger.error(f"Error saving label for {setup['symbol']} at {setup['timestamp']}: {e}")
-            
+                        logger.error(
+                            f"Error saving label for {setup['symbol']} at {setup['timestamp']}: {e}"
+                        )
+
             logger.info(f"Saved {saved_count} labels to strategy_swing_labels table")
             if skipped_count > 0:
                 logger.info(f"Skipped {skipped_count} duplicate labels")
