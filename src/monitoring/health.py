@@ -40,7 +40,12 @@ class HealthChecker:
         try:
             # Test basic connectivity
             start_time = datetime.now()
-            result = self.db_client.client.table("ohlc_data").select("timestamp").limit(1).execute()
+            result = (
+                self.db_client.client.table("ohlc_data")
+                .select("timestamp")
+                .limit(1)
+                .execute()
+            )
             query_time = (datetime.now() - start_time).total_seconds()
 
             self.database_connected = True
@@ -73,16 +78,25 @@ class HealthChecker:
                 )
 
                 if result.data:
-                    latest = datetime.fromisoformat(result.data[0]["timestamp"].replace("Z", "+00:00"))
-                    age_minutes = (datetime.now(timezone.utc) - latest).total_seconds() / 60
+                    latest = datetime.fromisoformat(
+                        result.data[0]["timestamp"].replace("Z", "+00:00")
+                    )
+                    age_minutes = (
+                        datetime.now(timezone.utc) - latest
+                    ).total_seconds() / 60
 
                     freshness[tf] = {
                         "latest_timestamp": latest.isoformat(),
                         "age_minutes": round(age_minutes, 2),
-                        "healthy": age_minutes < self.settings.data_freshness_threshold / 60,
+                        "healthy": age_minutes
+                        < self.settings.data_freshness_threshold / 60,
                     }
                 else:
-                    freshness[tf] = {"latest_timestamp": None, "age_minutes": None, "healthy": False}
+                    freshness[tf] = {
+                        "latest_timestamp": None,
+                        "age_minutes": None,
+                        "healthy": False,
+                    }
 
             # Overall health
             all_healthy = all(f.get("healthy", False) for f in freshness.values())
@@ -106,13 +120,16 @@ class HealthChecker:
             )
 
             if result.data:
-                latest = datetime.fromisoformat(result.data[0]["timestamp"].replace("Z", "+00:00"))
+                latest = datetime.fromisoformat(
+                    result.data[0]["timestamp"].replace("Z", "+00:00")
+                )
                 age_minutes = (datetime.now(timezone.utc) - latest).total_seconds() / 60
 
                 return {
                     "latest_timestamp": latest.isoformat(),
                     "age_minutes": round(age_minutes, 2),
-                    "healthy": age_minutes < 30,  # Features should update every 30 minutes
+                    "healthy": age_minutes
+                    < 30,  # Features should update every 30 minutes
                 }
             else:
                 return {"latest_timestamp": None, "age_minutes": None, "healthy": False}
@@ -154,7 +171,9 @@ class HealthChecker:
                     "memory_mb": round(process_memory.rss / (1024**2), 2),
                     "cpu_percent": process.cpu_percent(),
                 },
-                "healthy": cpu_percent < 80 and memory.percent < 90 and disk.percent < 90,
+                "healthy": cpu_percent < 80
+                and memory.percent < 90
+                and disk.percent < 90,
             }
 
         except Exception as e:
@@ -177,7 +196,9 @@ class HealthChecker:
             )
 
             if result.data:
-                latest = datetime.fromisoformat(result.data[0]["timestamp"].replace("Z", "+00:00"))
+                latest = datetime.fromisoformat(
+                    result.data[0]["timestamp"].replace("Z", "+00:00")
+                )
                 age_seconds = (datetime.now(timezone.utc) - latest).total_seconds()
                 services["data_collector"] = {
                     "active": age_seconds < 60,
@@ -234,19 +255,29 @@ async def health_check() -> JSONResponse:
 
     # Process results
     checks["database"] = (
-        results[0] if not isinstance(results[0], Exception) else {"healthy": False, "error": str(results[0])}
+        results[0]
+        if not isinstance(results[0], Exception)
+        else {"healthy": False, "error": str(results[0])}
     )
     checks["data_freshness"] = (
-        results[1] if not isinstance(results[1], Exception) else {"healthy": False, "error": str(results[1])}
+        results[1]
+        if not isinstance(results[1], Exception)
+        else {"healthy": False, "error": str(results[1])}
     )
     checks["ml_features"] = (
-        results[2] if not isinstance(results[2], Exception) else {"healthy": False, "error": str(results[2])}
+        results[2]
+        if not isinstance(results[2], Exception)
+        else {"healthy": False, "error": str(results[2])}
     )
     checks["system_resources"] = (
-        results[3] if not isinstance(results[3], Exception) else {"healthy": False, "error": str(results[3])}
+        results[3]
+        if not isinstance(results[3], Exception)
+        else {"healthy": False, "error": str(results[3])}
     )
     checks["services"] = (
-        results[4] if not isinstance(results[4], Exception) else {"healthy": False, "error": str(results[4])}
+        results[4]
+        if not isinstance(results[4], Exception)
+        else {"healthy": False, "error": str(results[4])}
     )
 
     # Add uptime
@@ -254,7 +285,9 @@ async def health_check() -> JSONResponse:
 
     # Overall health
     all_healthy = all(
-        check.get("healthy", False) for check in checks.values() if isinstance(check, dict) and "healthy" in check
+        check.get("healthy", False)
+        for check in checks.values()
+        if isinstance(check, dict) and "healthy" in check
     )
 
     # Prepare response

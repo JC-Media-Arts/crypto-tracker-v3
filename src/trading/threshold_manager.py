@@ -207,9 +207,11 @@ class ThresholdManager:
                 parameter_name=recommendation.parameter_name,
                 old_value=recommendation.current_value,
                 new_value=adjusted_value,
-                reason="Applied successfully"
-                if success
-                else "Failed to update configuration",
+                reason=(
+                    "Applied successfully"
+                    if success
+                    else "Failed to update configuration"
+                ),
             )
 
         except Exception as e:

@@ -17,7 +17,11 @@ from src.config.settings import get_settings
 from supabase import create_client, Client
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s", datefmt="%H:%M:%S")
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | %(message)s",
+    datefmt="%H:%M:%S",
+)
 logger = logging.getLogger(__name__)
 
 
@@ -170,7 +174,10 @@ def check_data_gaps():
             )
 
             if result.data:
-                timestamps = [datetime.fromisoformat(row["timestamp"].replace("+00:00", "")) for row in result.data]
+                timestamps = [
+                    datetime.fromisoformat(row["timestamp"].replace("+00:00", ""))
+                    for row in result.data
+                ]
 
                 # Expected interval based on timeframe
                 expected_delta = {
@@ -185,12 +192,20 @@ def check_data_gaps():
                 for i in range(1, len(timestamps)):
                     actual_delta = timestamps[i] - timestamps[i - 1]
                     if actual_delta > expected_delta * 1.5:  # Allow some tolerance
-                        gaps.append({"start": timestamps[i - 1], "end": timestamps[i], "duration": actual_delta})
+                        gaps.append(
+                            {
+                                "start": timestamps[i - 1],
+                                "end": timestamps[i],
+                                "duration": actual_delta,
+                            }
+                        )
 
                 if gaps:
                     print(f"  {timeframe}: ⚠️  {len(gaps)} gaps found")
                     for gap in gaps[:3]:  # Show first 3 gaps
-                        print(f"       Gap: {gap['duration']} between {gap['start']} and {gap['end']}")
+                        print(
+                            f"       Gap: {gap['duration']} between {gap['start']} and {gap['end']}"
+                        )
                 else:
                     print(f"  {timeframe}: ✅ No gaps (continuous data)")
 

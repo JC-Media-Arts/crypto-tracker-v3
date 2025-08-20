@@ -44,7 +44,9 @@ def with_retry(
                     last_exception = e
 
                     if attempt >= max_attempts:
-                        logger.error(f"Failed after {max_attempts} attempts in {func.__name__}: {e}")
+                        logger.error(
+                            f"Failed after {max_attempts} attempts in {func.__name__}: {e}"
+                        )
                         raise
 
                     logger.warning(
@@ -76,7 +78,9 @@ def with_retry(
                     last_exception = e
 
                     if attempt >= max_attempts:
-                        logger.error(f"Failed after {max_attempts} attempts in {func.__name__}: {e}")
+                        logger.error(
+                            f"Failed after {max_attempts} attempts in {func.__name__}: {e}"
+                        )
                         raise
 
                     logger.warning(
@@ -119,7 +123,12 @@ class RetryPolicy:
     RATE_LIMITED = {"max_attempts": 3, "delay": 5.0, "backoff": 2.0}
 
     # Database operations
-    DATABASE = {"max_attempts": 3, "delay": 0.5, "backoff": 2.0, "exceptions": (ConnectionError, TimeoutError)}
+    DATABASE = {
+        "max_attempts": 3,
+        "delay": 0.5,
+        "backoff": 2.0,
+        "exceptions": (ConnectionError, TimeoutError),
+    }
 
 
 class CircuitBreaker:
@@ -128,7 +137,10 @@ class CircuitBreaker:
     """
 
     def __init__(
-        self, failure_threshold: int = 5, recovery_timeout: float = 60.0, expected_exception: type = Exception
+        self,
+        failure_threshold: int = 5,
+        recovery_timeout: float = 60.0,
+        expected_exception: type = Exception,
     ):
         """
         Initialize circuit breaker.
@@ -184,7 +196,10 @@ class CircuitBreaker:
 
     def _should_attempt_reset(self) -> bool:
         """Check if we should attempt to reset the circuit."""
-        return self.last_failure_time and time.time() - self.last_failure_time >= self.recovery_timeout
+        return (
+            self.last_failure_time
+            and time.time() - self.last_failure_time >= self.recovery_timeout
+        )
 
     def _on_success(self):
         """Handle successful call."""
@@ -198,7 +213,9 @@ class CircuitBreaker:
 
         if self.failure_count >= self.failure_threshold:
             self.state = "open"
-            logger.warning(f"Circuit breaker opened after {self.failure_count} failures")
+            logger.warning(
+                f"Circuit breaker opened after {self.failure_count} failures"
+            )
 
 
 # Example usage functions
@@ -209,7 +226,9 @@ async def fetch_with_retry(url: str) -> dict:
     pass
 
 
-@with_retry(max_attempts=5, delay=2.0, backoff=2.0, exceptions=(ConnectionError, TimeoutError))
+@with_retry(
+    max_attempts=5, delay=2.0, backoff=2.0, exceptions=(ConnectionError, TimeoutError)
+)
 async def database_operation():
     """Example database operation with custom retry settings."""
     # This would be your actual database operation

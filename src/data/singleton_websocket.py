@@ -70,7 +70,10 @@ class SingletonWebSocket:
 
                 # Single connection for everything
                 self.connection = await websockets.connect(
-                    "wss://socket.polygon.io/crypto", ping_interval=20, ping_timeout=10, close_timeout=10
+                    "wss://socket.polygon.io/crypto",
+                    ping_interval=20,
+                    ping_timeout=10,
+                    close_timeout=10,
                 )
 
                 # Authenticate
@@ -107,7 +110,9 @@ class SingletonWebSocket:
 
                 if self.reconnect_attempts < self.max_reconnect_attempts:
                     wait_time = min(60, 5 * self.reconnect_attempts)
-                    logger.info(f"Retrying in {wait_time} seconds... (attempt {self.reconnect_attempts})")
+                    logger.info(
+                        f"Retrying in {wait_time} seconds... (attempt {self.reconnect_attempts})"
+                    )
                     await asyncio.sleep(wait_time)
                     return await self.connect()
                 else:
@@ -132,12 +137,17 @@ class SingletonWebSocket:
         batch_size = 20
         for i in range(0, len(new_symbols), batch_size):
             batch = new_symbols[i : i + batch_size]
-            subscribe_msg = {"action": "subscribe", "params": ",".join([f"XA.{symbol}-USD" for symbol in batch])}
+            subscribe_msg = {
+                "action": "subscribe",
+                "params": ",".join([f"XA.{symbol}-USD" for symbol in batch]),
+            }
 
             try:
                 await self.connection.send(json.dumps(subscribe_msg))
                 self.subscribed_symbols.update(batch)
-                logger.info(f"✅ Subscribed to {len(batch)} symbols (Total: {len(self.subscribed_symbols)})")
+                logger.info(
+                    f"✅ Subscribed to {len(batch)} symbols (Total: {len(self.subscribed_symbols)})"
+                )
                 await asyncio.sleep(0.1)  # Small delay between batches
             except Exception as e:
                 logger.error(f"❌ Subscribe failed: {e}")

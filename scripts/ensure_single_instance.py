@@ -29,7 +29,9 @@ def check_single_instance():
                 try:
                     process = psutil.Process(old_pid)
                     if "python" in process.name().lower():
-                        print(f"❌ Another instance is already running (PID: {old_pid})")
+                        print(
+                            f"❌ Another instance is already running (PID: {old_pid})"
+                        )
                         print(f"   Process: {process.name()}")
                         print(f"   Command: {' '.join(process.cmdline()[:3])}")
                         sys.exit(1)
@@ -75,7 +77,11 @@ def kill_existing_collectors():
             cmdline = " ".join(proc.info["cmdline"] or [])
 
             # Check for data collector processes
-            if "collector" in cmdline.lower() or "websocket" in cmdline.lower() or "run_data_collector" in cmdline:
+            if (
+                "collector" in cmdline.lower()
+                or "websocket" in cmdline.lower()
+                or "run_data_collector" in cmdline
+            ):
                 # Don't kill ourselves
                 if proc.info["pid"] != os.getpid():
                     proc.terminate()

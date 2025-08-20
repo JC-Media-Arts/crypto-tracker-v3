@@ -606,12 +606,14 @@ class PaperTrader:
                         "current_price": position.current_price,
                         "unrealized_pnl": position.unrealized_pnl,
                         "unrealized_pnl_pct": (
-                            position.unrealized_pnl
-                            / (position.entry_price * position.quantity)
-                            * 100
-                        )
-                        if position.entry_price > 0
-                        else 0,
+                            (
+                                position.unrealized_pnl
+                                / (position.entry_price * position.quantity)
+                                * 100
+                            )
+                            if position.entry_price > 0
+                            else 0
+                        ),
                     }
                 )
 

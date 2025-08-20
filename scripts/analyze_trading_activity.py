@@ -389,9 +389,11 @@ class TradingActivityAnalyzer:
                     position_desc = (
                         "near top"
                         if channel_analysis["near_top"]
-                        else "near bottom"
-                        if channel_analysis["near_bottom"]
-                        else "in middle"
+                        else (
+                            "near bottom"
+                            if channel_analysis["near_bottom"]
+                            else "in middle"
+                        )
                     )
                     print(f"  ❌ Channel: Not ready")
                     print(

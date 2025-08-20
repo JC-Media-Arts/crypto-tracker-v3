@@ -140,15 +140,21 @@ def analyze_price_movements():
                     "pct_hit_5": (drop_df["hit_5pct"].sum() / len(drop_df)) * 100,
                     "pct_hit_7": (drop_df["hit_7pct"].sum() / len(drop_df)) * 100,
                     "pct_hit_10": (drop_df["hit_10pct"].sum() / len(drop_df)) * 100,
-                    "avg_time_to_5": drop_df["time_to_5pct"].dropna().mean()
-                    if any(drop_df["hit_5pct"])
-                    else None,
-                    "avg_time_to_7": drop_df["time_to_7pct"].dropna().mean()
-                    if any(drop_df["hit_7pct"])
-                    else None,
-                    "avg_time_to_10": drop_df["time_to_10pct"].dropna().mean()
-                    if any(drop_df["hit_10pct"])
-                    else None,
+                    "avg_time_to_5": (
+                        drop_df["time_to_5pct"].dropna().mean()
+                        if any(drop_df["hit_5pct"])
+                        else None
+                    ),
+                    "avg_time_to_7": (
+                        drop_df["time_to_7pct"].dropna().mean()
+                        if any(drop_df["hit_7pct"])
+                        else None
+                    ),
+                    "avg_time_to_10": (
+                        drop_df["time_to_10pct"].dropna().mean()
+                        if any(drop_df["hit_10pct"])
+                        else None
+                    ),
                 }
 
                 tier_results.append(stats)

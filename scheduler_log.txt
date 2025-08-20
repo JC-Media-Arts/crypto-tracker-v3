@@ -261,3 +261,7 @@
 2025-08-20 15:43:24.539 | SUCCESS  | __main__:monitor_job:173 - Job 1m completed successfully in 19.7 seconds
 2025-08-20 15:48:04.859 | INFO     | __main__:run_job:121 - Starting job: 1m
 2025-08-20 15:48:24.532 | SUCCESS  | __main__:monitor_job:173 - Job 1m completed successfully in 19.7 seconds
+2025-08-20 15:52:43.861 | INFO     | __main__:run_job:121 - Starting job: 15m
+2025-08-20 15:53:02.214 | SUCCESS  | __main__:monitor_job:173 - Job 15m completed successfully in 18.4 seconds
+2025-08-20 15:53:04.926 | INFO     | __main__:run_job:121 - Starting job: 1m
+2025-08-20 15:53:24.121 | SUCCESS  | __main__:monitor_job:173 - Job 1m completed successfully in 19.2 seconds

@@ -5,7 +5,7 @@ Multi-Output XGBoost Model Training for DCA Strategy.
 This script trains a model to predict multiple trading parameters:
 1. Position size multiplier
 2. Optimal take profit percentage
-3. Optimal stop loss percentage  
+3. Optimal stop loss percentage
 4. Expected hold time (hours)
 5. Win probability (confidence)
 """

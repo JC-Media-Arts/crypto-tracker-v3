@@ -348,9 +348,9 @@ class StrategyManagerTest:
                 self.manager.update_performance(
                     strategy=StrategyType[result["strategy"]],
                     symbol=result["symbol"],
-                    outcome="WIN"
-                    if np.random.rand() > 0.5
-                    else "LOSS",  # Random for test
+                    outcome=(
+                        "WIN" if np.random.rand() > 0.5 else "LOSS"
+                    ),  # Random for test
                     pnl=np.random.randn() * 10,
                 )
 

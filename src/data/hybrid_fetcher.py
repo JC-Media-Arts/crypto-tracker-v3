@@ -49,7 +49,9 @@ class HybridDataFetcher:
         else:
             return "ohlc_data"
 
-    async def get_latest_price(self, symbol: str, timeframe: str = "1m") -> Optional[Dict]:
+    async def get_latest_price(
+        self, symbol: str, timeframe: str = "1m"
+    ) -> Optional[Dict]:
         """
         Get the most recent price - uses ohlc_today for maximum speed.
 
@@ -106,7 +108,9 @@ class HybridDataFetcher:
             logger.error(f"Error fetching latest price for {symbol}: {e}")
             return None
 
-    async def get_recent_data(self, symbol: str, hours: int = 24, timeframe: str = "15m") -> List[Dict]:
+    async def get_recent_data(
+        self, symbol: str, hours: int = 24, timeframe: str = "15m"
+    ) -> List[Dict]:
         """
         Get recent data optimized for trading signals.
 
@@ -173,7 +177,11 @@ class HybridDataFetcher:
                 .execute()
             )
 
-            return {"1h": result_1h.data, "15m": result_15m.data, "has_data": bool(result_1h.data or result_15m.data)}
+            return {
+                "1h": result_1h.data,
+                "15m": result_15m.data,
+                "has_data": bool(result_1h.data or result_15m.data),
+            }
 
         except Exception as e:
             logger.error(f"Error fetching ML data for {symbol}: {e}")
@@ -209,7 +217,9 @@ class HybridDataFetcher:
                     previous = result.data[1]
 
                     # Calculate basic signals
-                    price_change = ((current["close"] - previous["close"]) / previous["close"]) * 100
+                    price_change = (
+                        (current["close"] - previous["close"]) / previous["close"]
+                    ) * 100
 
                     # Find 24h high/low
                     high_24h = max(r["high"] for r in result.data)
@@ -234,7 +244,11 @@ class HybridDataFetcher:
         return signals
 
     async def get_historical_data(
-        self, symbol: str, start_date: datetime, end_date: datetime, timeframe: str = "1d"
+        self,
+        symbol: str,
+        start_date: datetime,
+        end_date: datetime,
+        timeframe: str = "1d",
     ) -> List[Dict]:
         """
         Get historical data - may be slow for old dates.
@@ -258,7 +272,9 @@ class HybridDataFetcher:
             tables_to_query.append("ohlc_today")
 
         # Check if we need ohlc_recent
-        if end_date > now - timedelta(days=self.recent_days) and start_date < now - timedelta(hours=self.today_hours):
+        if end_date > now - timedelta(
+            days=self.recent_days
+        ) and start_date < now - timedelta(hours=self.today_hours):
             tables_to_query.append("ohlc_recent")
 
         # Check if we need historical data

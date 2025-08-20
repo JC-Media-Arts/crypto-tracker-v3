@@ -4,7 +4,7 @@ Fetch historical OHLC (candlestick) data from Polygon REST API.
 
 This fetches aggregated bars instead of individual trades, giving us:
 - Open: First trade price in the period
-- High: Highest price in the period  
+- High: Highest price in the period
 - Low: Lowest price in the period
 - Close: Last trade price in the period
 - Volume: Total volume in the period

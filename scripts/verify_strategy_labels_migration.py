@@ -17,7 +17,11 @@ from supabase import create_client, Client
 import logging
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s", datefmt="%H:%M:%S")
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | %(message)s",
+    datefmt="%H:%M:%S",
+)
 logger = logging.getLogger(__name__)
 
 
@@ -26,7 +30,9 @@ class MigrationVerifier:
 
     def __init__(self):
         settings = get_settings()
-        self.supabase: Client = create_client(settings.supabase_url, settings.supabase_key)
+        self.supabase: Client = create_client(
+            settings.supabase_url, settings.supabase_key
+        )
         self.results = {
             "tables_exist": {},
             "indexes_exist": {},
@@ -41,7 +47,11 @@ class MigrationVerifier:
         print("CHECKING TABLE EXISTENCE")
         print("=" * 60)
 
-        tables = ["strategy_dca_labels", "strategy_swing_labels", "strategy_channel_labels"]
+        tables = [
+            "strategy_dca_labels",
+            "strategy_swing_labels",
+            "strategy_channel_labels",
+        ]
 
         all_exist = True
         for table in tables:
@@ -128,12 +138,18 @@ class MigrationVerifier:
                     # Table is empty, try inserting a test row to get column info
                     test_row = self._get_test_row(table)
                     try:
-                        insert_result = self.supabase.table(table).insert(test_row).execute()
+                        insert_result = (
+                            self.supabase.table(table).insert(test_row).execute()
+                        )
                         actual_cols = set(insert_result.data[0].keys())
                         # Delete test row
-                        self.supabase.table(table).delete().eq("id", insert_result.data[0]["id"]).execute()
+                        self.supabase.table(table).delete().eq(
+                            "id", insert_result.data[0]["id"]
+                        ).execute()
                     except Exception as e:
-                        print(f"  ⚠️  Could not verify columns (empty table): {str(e)[:100]}")
+                        print(
+                            f"  ⚠️  Could not verify columns (empty table): {str(e)[:100]}"
+                        )
                         self.results["columns_correct"][table] = "unknown"
                         continue
 
@@ -172,23 +188,38 @@ class MigrationVerifier:
             "strategy_dca_labels": [
                 (
                     "symbol_timestamp",
-                    lambda t: t.select("*").eq("symbol", "BTC").order("timestamp", desc=True).limit(10),
+                    lambda t: t.select("*")
+                    .eq("symbol", "BTC")
+                    .order("timestamp", desc=True)
+                    .limit(10),
                 ),
                 ("outcome", lambda t: t.select("*").eq("outcome", "WIN").limit(10)),
             ],
             "strategy_swing_labels": [
                 (
                     "symbol_timestamp",
-                    lambda t: t.select("*").eq("symbol", "ETH").order("timestamp", desc=True).limit(10),
+                    lambda t: t.select("*")
+                    .eq("symbol", "ETH")
+                    .order("timestamp", desc=True)
+                    .limit(10),
                 ),
-                ("breakout", lambda t: t.select("*").eq("breakout_detected", True).limit(10)),
+                (
+                    "breakout",
+                    lambda t: t.select("*").eq("breakout_detected", True).limit(10),
+                ),
             ],
             "strategy_channel_labels": [
                 (
                     "symbol_timestamp",
-                    lambda t: t.select("*").eq("symbol", "SOL").order("timestamp", desc=True).limit(10),
+                    lambda t: t.select("*")
+                    .eq("symbol", "SOL")
+                    .order("timestamp", desc=True)
+                    .limit(10),
                 ),
-                ("position", lambda t: t.select("*").eq("channel_position", "TOP").limit(10)),
+                (
+                    "position",
+                    lambda t: t.select("*").eq("channel_position", "TOP").limit(10),
+                ),
             ],
         }
 
@@ -205,10 +236,14 @@ class MigrationVerifier:
                     elapsed = time.time() - start
 
                     if elapsed < 1.0:  # Query should be fast with index
-                        print(f"  ✅ Index '{index_name}' appears to be working (query: {elapsed:.3f}s)")
+                        print(
+                            f"  ✅ Index '{index_name}' appears to be working (query: {elapsed:.3f}s)"
+                        )
                         self.results["indexes_exist"][f"{table}.{index_name}"] = True
                     else:
-                        print(f"  ⚠️  Index '{index_name}' may be missing (query: {elapsed:.3f}s)")
+                        print(
+                            f"  ⚠️  Index '{index_name}' may be missing (query: {elapsed:.3f}s)"
+                        )
                         self.results["indexes_exist"][f"{table}.{index_name}"] = "slow"
 
                 except Exception as e:
@@ -226,7 +261,11 @@ class MigrationVerifier:
 
         all_success = True
 
-        for table in ["strategy_dca_labels", "strategy_swing_labels", "strategy_channel_labels"]:
+        for table in [
+            "strategy_dca_labels",
+            "strategy_swing_labels",
+            "strategy_channel_labels",
+        ]:
             print(f"\n{table}:")
             test_row = self._get_test_row(table)
 
@@ -239,7 +278,12 @@ class MigrationVerifier:
                     print(f"  ✅ Insert successful (ID: {row_id})")
 
                     # Retrieve and verify
-                    retrieve_result = self.supabase.table(table).select("*").eq("id", row_id).execute()
+                    retrieve_result = (
+                        self.supabase.table(table)
+                        .select("*")
+                        .eq("id", row_id)
+                        .execute()
+                    )
 
                     if retrieve_result.data:
                         retrieved = retrieve_result.data[0]
@@ -281,7 +325,9 @@ class MigrationVerifier:
             if result.data:
                 print("\nSummary Data:")
                 for row in result.data:
-                    print(f"  {row.get('strategy', 'N/A')}: {row.get('total_labels', 0)} labels")
+                    print(
+                        f"  {row.get('strategy', 'N/A')}: {row.get('total_labels', 0)} labels"
+                    )
 
             return True
         except:
@@ -347,7 +393,12 @@ class MigrationVerifier:
         total_checks = 0
         passed_checks = 0
 
-        for category in ["tables_exist", "columns_correct", "test_inserts", "indexes_exist"]:
+        for category in [
+            "tables_exist",
+            "columns_correct",
+            "test_inserts",
+            "indexes_exist",
+        ]:
             for key, value in self.results[category].items():
                 total_checks += 1
                 if value is True:

@@ -59,7 +59,9 @@ class EmergencyDataFetcher:
             logger.error(f"Emergency fetch failed for {symbol}: {e}")
             return None
 
-    async def get_recent_data_emergency(self, symbol: str, hours: int = 24) -> List[Dict]:
+    async def get_recent_data_emergency(
+        self, symbol: str, hours: int = 24
+    ) -> List[Dict]:
         """
         Get recent data with aggressive limits to avoid timeout.
         """
@@ -128,11 +130,23 @@ class EmergencyDataFetcher:
                     "timestamps": [r["timestamp"] for r in result.data],
                 }
 
-            return {"prices": [], "highs": [], "lows": [], "volumes": [], "timestamps": []}
+            return {
+                "prices": [],
+                "highs": [],
+                "lows": [],
+                "volumes": [],
+                "timestamps": [],
+            }
 
         except Exception as e:
             logger.error(f"Emergency ML fetch failed for {symbol}: {e}")
-            return {"prices": [], "highs": [], "lows": [], "volumes": [], "timestamps": []}
+            return {
+                "prices": [],
+                "highs": [],
+                "lows": [],
+                "volumes": [],
+                "timestamps": [],
+            }
 
     async def get_trading_signal_emergency(self, symbol: str) -> Dict:
         """

@@ -2,6 +2,7 @@
 Shadow Testing Configuration
 Defines all shadow variations, adjustment rules, and safety parameters
 """
+
 from typing import Dict, Any, List
 from dataclasses import dataclass
 from decimal import Decimal

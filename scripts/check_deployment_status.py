@@ -34,7 +34,12 @@ def check_railway_status():
 
         # Try to get project status
         print("Checking Railway project status...")
-        result = subprocess.run(["railway", "status"], capture_output=True, text=True, cwd=Path(__file__).parent.parent)
+        result = subprocess.run(
+            ["railway", "status"],
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
         if result.returncode == 0:
             print(result.stdout)
         else:
@@ -53,9 +58,20 @@ def check_environment_variables():
     print("=" * 80)
     print()
 
-    required_vars = ["POLYGON_API_KEY", "SUPABASE_URL", "SUPABASE_KEY", "SLACK_WEBHOOK_URL"]
+    required_vars = [
+        "POLYGON_API_KEY",
+        "SUPABASE_URL",
+        "SUPABASE_KEY",
+        "SLACK_WEBHOOK_URL",
+    ]
 
-    optional_vars = ["KRAKEN_API_KEY", "KRAKEN_API_SECRET", "ENVIRONMENT", "POSITION_SIZE", "MAX_POSITIONS"]
+    optional_vars = [
+        "KRAKEN_API_KEY",
+        "KRAKEN_API_SECRET",
+        "ENVIRONMENT",
+        "POSITION_SIZE",
+        "MAX_POSITIONS",
+    ]
 
     print("Required Variables:")
     for var in required_vars:
@@ -148,7 +164,9 @@ def check_recent_logs():
         return
 
     # Get recent log files
-    log_files = sorted(log_dir.glob("*.log"), key=lambda x: x.stat().st_mtime, reverse=True)
+    log_files = sorted(
+        log_dir.glob("*.log"), key=lambda x: x.stat().st_mtime, reverse=True
+    )
 
     if log_files:
         print(f"Found {len(log_files)} log files:")

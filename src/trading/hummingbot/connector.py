@@ -183,9 +183,11 @@ class HummingbotConnector:
                         "timestamp": datetime.now().isoformat(),
                         "strategy_name": signal.get("strategy", "DCA"),
                         "symbol": signal["symbol"],
-                        "prediction": "TAKE_SETUP"
-                        if signal["status"] == "APPROVED"
-                        else "SKIP_SETUP",
+                        "prediction": (
+                            "TAKE_SETUP"
+                            if signal["status"] == "APPROVED"
+                            else "SKIP_SETUP"
+                        ),
                         "confidence": signal.get("confidence", 0.5),
                         "optimal_take_profit": signal.get("ml_predictions", {}).get(
                             "take_profit_percent", 10.0
@@ -298,9 +300,9 @@ class HummingbotConnector:
             "connector_running": self.is_running,
             "container_exists": self._check_container(),
             "container_running": self._is_container_running(),
-            "last_health_check": self.last_health_check.isoformat()
-            if self.last_health_check
-            else None,
+            "last_health_check": (
+                self.last_health_check.isoformat() if self.last_health_check else None
+            ),
             "signal_generator_active": self.signal_generator.monitoring_active,
             "active_signals": len(self.signal_generator.get_active_signals()),
         }

@@ -128,7 +128,9 @@ class PerformanceVerifier:
         end_date = datetime.now(timezone.utc)
         start_date = end_date - timedelta(days=30)
 
-        result = await self.fetcher.get_historical_data(symbol, start_date, end_date, "1d")
+        result = await self.fetcher.get_historical_data(
+            symbol, start_date, end_date, "1d"
+        )
         return result and len(result) > 0
 
     async def test_multi_symbol_latest(self):
@@ -208,7 +210,9 @@ class PerformanceVerifier:
             # Detailed breakdown
             print(f"\n{Fore.CYAN}Query Breakdown:")
 
-            fast_queries = [q for q, t in self.query_times if t < 0.5 and t != float("inf")]
+            fast_queries = [
+                q for q, t in self.query_times if t < 0.5 and t != float("inf")
+            ]
             acceptable_queries = [q for q, t in self.query_times if 0.5 <= t < 2.0]
 
             print(f"  • Fast queries (< 0.5s): {len(fast_queries)}")
@@ -255,7 +259,9 @@ class PerformanceVerifier:
             print(f"\n{Fore.CYAN}Recommendations:")
 
             if avg_time < 0.5 and not self.failed_queries:
-                print(f"{Fore.GREEN}  ✨ Performance is excellent! No immediate action needed.")
+                print(
+                    f"{Fore.GREEN}  ✨ Performance is excellent! No immediate action needed."
+                )
                 print(f"     • Continue monitoring for degradation")
                 print(f"     • Set up alerts for slow queries")
                 print(f"     • Document current configuration")

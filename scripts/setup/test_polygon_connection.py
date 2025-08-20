@@ -152,7 +152,9 @@ def test_polygon_websocket():
         success = connection_established and auth_success and len(messages_received) > 0
 
         if success:
-            console.print("\n[bold green]✅ Polygon WebSocket test PASSED![/bold green]")
+            console.print(
+                "\n[bold green]✅ Polygon WebSocket test PASSED![/bold green]"
+            )
             console.print("\nYou're ready to start collecting real-time crypto data!")
         else:
             console.print("\n[bold red]❌ Polygon WebSocket test FAILED![/bold red]")

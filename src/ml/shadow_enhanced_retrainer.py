@@ -156,9 +156,9 @@ class ShadowEnhancedRetrainer:
                 )
             else:
                 result["action"] = "rejected"
-                result[
-                    "message"
-                ] = f"Insufficient improvement ({improvement:.1%} < {self.improvement_threshold:.1%})"
+                result["message"] = (
+                    f"Insufficient improvement ({improvement:.1%} < {self.improvement_threshold:.1%})"
+                )
                 logger.info(
                     f"❌ Kept existing {strategy} model (improvement only {improvement:.1%})"
                 )
@@ -482,9 +482,11 @@ class ShadowEnhancedRetrainer:
             "precision": precision,
             "recall": recall,
             "auc": auc,
-            "f1_score": 2 * (precision * recall) / (precision + recall)
-            if (precision + recall) > 0
-            else 0,
+            "f1_score": (
+                2 * (precision * recall) / (precision + recall)
+                if (precision + recall) > 0
+                else 0
+            ),
         }
 
     def _compare_with_current(

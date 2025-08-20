@@ -28,13 +28,20 @@ class OHLCDataManager:
 
         # Threshold for what's considered "recent" data (in main table)
         self.recent_days_threshold = 365  # 1 year in main table
-        self.archive_cutoff = datetime.utcnow() - timedelta(days=self.recent_days_threshold)
+        self.archive_cutoff = datetime.utcnow() - timedelta(
+            days=self.recent_days_threshold
+        )
 
         # Cache for frequently accessed data
         self.cache = {}
-        self.cache_ttl = {"recent": 300, "historical": 3600}  # 5 minutes for recent data  # 1 hour for historical data
+        self.cache_ttl = {
+            "recent": 300,
+            "historical": 3600,
+        }  # 5 minutes for recent data  # 1 hour for historical data
 
-    async def get_ohlc_data(self, symbol: str, timeframe: str, start_date: datetime, end_date: datetime) -> List[Dict]:
+    async def get_ohlc_data(
+        self, symbol: str, timeframe: str, start_date: datetime, end_date: datetime
+    ) -> List[Dict]:
         """
         Automatically routes queries to correct table(s).
 
@@ -65,7 +72,9 @@ class OHLCDataManager:
             if use_main:
                 # Query main table for recent data
                 logger.debug(f"Querying main table for {symbol} recent data")
-                main_data = await self.query_main(symbol, timeframe, max(start_date, self.archive_cutoff), end_date)
+                main_data = await self.query_main(
+                    symbol, timeframe, max(start_date, self.archive_cutoff), end_date
+                )
                 results.extend(main_data)
 
             # Sort by timestamp
@@ -78,7 +87,9 @@ class OHLCDataManager:
             logger.error(f"Error fetching OHLC data: {e}")
             return []
 
-    async def query_main(self, symbol: str, timeframe: str, start_date: datetime, end_date: datetime) -> List[Dict]:
+    async def query_main(
+        self, symbol: str, timeframe: str, start_date: datetime, end_date: datetime
+    ) -> List[Dict]:
         """
         Query the main OHLC table (recent data).
 
@@ -96,7 +107,9 @@ class OHLCDataManager:
 
         if days_ago <= 30:
             # Use optimized fetcher for recent data
-            return await self.optimized_fetcher.get_price_range(symbol, start_date, end_date, timeframe)
+            return await self.optimized_fetcher.get_price_range(
+                symbol, start_date, end_date, timeframe
+            )
 
         # Fallback to standard query for older data
         result = (
@@ -112,7 +125,9 @@ class OHLCDataManager:
 
         return result.data
 
-    async def query_archive(self, symbol: str, timeframe: str, start_date: datetime, end_date: datetime) -> List[Dict]:
+    async def query_archive(
+        self, symbol: str, timeframe: str, start_date: datetime, end_date: datetime
+    ) -> List[Dict]:
         """
         Query the archive OHLC table (historical data).
 
@@ -161,7 +176,9 @@ class OHLCDataManager:
             Cached or fresh OHLC data
         """
         # Generate cache key
-        cache_key = f"{symbol}:{timeframe}:{start_date.isoformat()}:{end_date.isoformat()}"
+        cache_key = (
+            f"{symbol}:{timeframe}:{start_date.isoformat()}:{end_date.isoformat()}"
+        )
 
         # Check cache
         if cache_key in self.cache:
@@ -169,7 +186,9 @@ class OHLCDataManager:
 
             # Determine TTL based on data recency
             is_recent = end_date > datetime.utcnow() - timedelta(days=1)
-            ttl = self.cache_ttl["recent"] if is_recent else self.cache_ttl["historical"]
+            ttl = (
+                self.cache_ttl["recent"] if is_recent else self.cache_ttl["historical"]
+            )
 
             # Return cached data if still valid
             if (datetime.utcnow() - cached_time).total_seconds() < ttl:
@@ -222,7 +241,9 @@ class OHLCDataManager:
 
         return prices
 
-    async def get_ml_training_data(self, symbol: str, days: int = 180) -> Dict[str, List[Dict]]:
+    async def get_ml_training_data(
+        self, symbol: str, days: int = 180
+    ) -> Dict[str, List[Dict]]:
         """
         Get comprehensive data for ML training.
 

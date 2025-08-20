@@ -27,7 +27,9 @@ def get_database_url():
 
     # Construct PostgreSQL connection URL
     # Note: You'll need to provide the password
-    db_url = f"postgresql://postgres:[PASSWORD]@db.{project_ref}.supabase.co:5432/postgres"
+    db_url = (
+        f"postgresql://postgres:[PASSWORD]@db.{project_ref}.supabase.co:5432/postgres"
+    )
 
     print("\n" + "=" * 60)
     print("DATABASE CONNECTION SETUP")

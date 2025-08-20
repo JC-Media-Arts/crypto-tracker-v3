@@ -32,7 +32,10 @@ def verify_procfile():
     has_debug = False
 
     for cmd in debug_commands:
-        if cmd in content.lower() and "ls" not in ["false", "else"]:  # Avoid false positives
+        if cmd in content.lower() and "ls" not in [
+            "false",
+            "else",
+        ]:  # Avoid false positives
             has_debug = True
             print(f"⚠️  Found debug command: {cmd}")
 
@@ -63,7 +66,12 @@ def verify_railway_json():
     issues = []
 
     # Check for required services
-    required_services = ["Paper Trading", "Data Collector", "Feature Calculator", "ML Retrainer Cron"]
+    required_services = [
+        "Paper Trading",
+        "Data Collector",
+        "Feature Calculator",
+        "ML Retrainer Cron",
+    ]
 
     if "services" in config:
         existing_services = list(config["services"].keys())
@@ -78,7 +86,9 @@ def verify_railway_json():
                     if "healthcheckPath" not in service_config:
                         issues.append(f"{service} missing healthcheckPath")
                     elif service_config["healthcheckPath"] != "/health":
-                        print(f"   ⚠️  Health check path: {service_config['healthcheckPath']}")
+                        print(
+                            f"   ⚠️  Health check path: {service_config['healthcheckPath']}"
+                        )
 
             else:
                 issues.append(f"Missing service: {service}")

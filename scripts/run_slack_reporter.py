@@ -54,7 +54,8 @@ async def main():
         # Send critical alert about reporter failure
         try:
             await reporter.send_critical_alert(
-                "Slack Reporter Crashed", f"The Slack reporter service has stopped unexpectedly: {str(e)[:200]}"
+                "Slack Reporter Crashed",
+                f"The Slack reporter service has stopped unexpectedly: {str(e)[:200]}",
             )
         except:
             pass

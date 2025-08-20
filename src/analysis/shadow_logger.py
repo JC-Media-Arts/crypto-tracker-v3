@@ -418,24 +418,26 @@ class ShadowLogger:
             "stop_loss_percent": params.get("stop_loss_percent", 0.05) * 100,
             "take_profit_multiplier": params.get("take_profit_multiplier", 1.0),
             # Strategy-specific parameters
-            "dca_drop_threshold": params.get("dca_drop_threshold")
-            if strategy_name == "DCA"
-            else None,
-            "dca_grid_levels": params.get("grid_levels", 5)
-            if strategy_name == "DCA"
-            else None,
-            "dca_grid_spacing": params.get("grid_spacing", 0.01) * 100
-            if strategy_name == "DCA"
-            else None,
-            "swing_breakout_threshold": params.get("breakout_threshold")
-            if strategy_name == "SWING"
-            else None,
-            "swing_volume_multiplier": params.get("volume_multiplier")
-            if strategy_name == "SWING"
-            else None,
-            "channel_boundary_percent": params.get("boundary_percent")
-            if strategy_name == "CHANNEL"
-            else None,
+            "dca_drop_threshold": (
+                params.get("dca_drop_threshold") if strategy_name == "DCA" else None
+            ),
+            "dca_grid_levels": (
+                params.get("grid_levels", 5) if strategy_name == "DCA" else None
+            ),
+            "dca_grid_spacing": (
+                params.get("grid_spacing", 0.01) * 100
+                if strategy_name == "DCA"
+                else None
+            ),
+            "swing_breakout_threshold": (
+                params.get("breakout_threshold") if strategy_name == "SWING" else None
+            ),
+            "swing_volume_multiplier": (
+                params.get("volume_multiplier") if strategy_name == "SWING" else None
+            ),
+            "channel_boundary_percent": (
+                params.get("boundary_percent") if strategy_name == "CHANNEL" else None
+            ),
             # Shadow decision
             "would_take_trade": decision.would_take_trade,
             "shadow_confidence": decision.shadow_confidence,
@@ -495,10 +497,11 @@ class ShadowLogger:
             "consensus_score": len(taking_trade) / len(decisions),
             "shadows_taking": len(taking_trade),
             "total_shadows": len(decisions),
-            "avg_confidence": sum(d.shadow_confidence for d in taking_trade)
-            / len(taking_trade)
-            if taking_trade
-            else 0,
+            "avg_confidence": (
+                sum(d.shadow_confidence for d in taking_trade) / len(taking_trade)
+                if taking_trade
+                else 0
+            ),
             "variations_taking": [d.variation_name for d in taking_trade],
             "variations_skipping": [
                 d.variation_name for d in decisions if not d.would_take_trade

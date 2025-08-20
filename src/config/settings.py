@@ -54,7 +54,9 @@ class Settings(BaseSettings):
     db_pool_min_size: int = Field(5, env="DB_POOL_MIN_SIZE")
     db_pool_max_size: int = Field(20, env="DB_POOL_MAX_SIZE")
     db_pool_max_queries: int = Field(50000, env="DB_POOL_MAX_QUERIES")
-    db_pool_max_inactive_connection_lifetime: int = Field(300, env="DB_POOL_MAX_INACTIVE")
+    db_pool_max_inactive_connection_lifetime: int = Field(
+        300, env="DB_POOL_MAX_INACTIVE"
+    )
     db_statement_timeout: str = Field("30s", env="DB_STATEMENT_TIMEOUT")
 
     # Retry Configuration
@@ -64,11 +66,15 @@ class Settings(BaseSettings):
 
     # Health Check
     health_check_interval: int = Field(30, env="HEALTH_CHECK_INTERVAL")
-    data_freshness_threshold: int = Field(600, env="DATA_FRESHNESS_THRESHOLD")  # 10 minutes
+    data_freshness_threshold: int = Field(
+        600, env="DATA_FRESHNESS_THRESHOLD"
+    )  # 10 minutes
 
     # Shadow Testing Configuration
     enable_shadow_testing: bool = Field(True, env="ENABLE_SHADOW_TESTING")
-    shadow_evaluation_interval: int = Field(300, env="SHADOW_EVALUATION_INTERVAL")  # 5 minutes
+    shadow_evaluation_interval: int = Field(
+        300, env="SHADOW_EVALUATION_INTERVAL"
+    )  # 5 minutes
     shadow_max_variations: int = Field(10, env="SHADOW_MAX_VARIATIONS")
     shadow_min_trades_for_adjustment: int = Field(30, env="SHADOW_MIN_TRADES")
     shadow_adjustment_hour: int = Field(2, env="SHADOW_ADJUSTMENT_HOUR")  # 2 AM PST
@@ -81,7 +87,9 @@ class Settings(BaseSettings):
     # Paths - using model_validator for initialization
     @property
     def project_root(self) -> str:
-        return os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        return os.path.dirname(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        )
 
     @property
     def data_dir(self) -> str:

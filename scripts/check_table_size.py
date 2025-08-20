@@ -21,7 +21,9 @@ def main():
 
     # Get row count (approximate)
     try:
-        result = supabase.table("ohlc_data").select("id", count="exact").limit(1).execute()
+        result = (
+            supabase.table("ohlc_data").select("id", count="exact").limit(1).execute()
+        )
         print(f"Total rows: {result.count:,}")
     except Exception as e:
         print(f"Could not get exact count: {e}")
@@ -56,12 +58,24 @@ def main():
     print("\nChecking data date range...")
     try:
         # Get oldest
-        oldest = supabase.table("ohlc_data").select("timestamp").order("timestamp").limit(1).execute()
+        oldest = (
+            supabase.table("ohlc_data")
+            .select("timestamp")
+            .order("timestamp")
+            .limit(1)
+            .execute()
+        )
         if oldest.data:
             print(f"Oldest data: {oldest.data[0]['timestamp']}")
 
         # Get newest
-        newest = supabase.table("ohlc_data").select("timestamp").order("timestamp", desc=True).limit(1).execute()
+        newest = (
+            supabase.table("ohlc_data")
+            .select("timestamp")
+            .order("timestamp", desc=True)
+            .limit(1)
+            .execute()
+        )
         if newest.data:
             print(f"Newest data: {newest.data[0]['timestamp']}")
     except Exception as e:

@@ -4,7 +4,7 @@ Fetch complete historical OHLC data for all timeframes from Polygon.
 
 This is the ONE-TIME historical backfill script that fetches:
 - 10 years of daily data
-- 3 years of hourly data  
+- 3 years of hourly data
 - 2 years of 15-minute data
 - 1 year of minute data
 

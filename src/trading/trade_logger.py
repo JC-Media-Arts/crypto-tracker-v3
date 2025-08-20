@@ -320,12 +320,12 @@ class TradeLogger:
                 "open_trades": len([t for t in trades if t["status"] == "OPEN"]),
                 "closed_trades": len(closed_trades),
                 "win_rate": len(wins) / len(closed_trades) if closed_trades else 0,
-                "avg_pnl_pct": sum(
-                    float(t["pnl_percentage"] or 0) for t in closed_trades
-                )
-                / len(closed_trades)
-                if closed_trades
-                else 0,
+                "avg_pnl_pct": (
+                    sum(float(t["pnl_percentage"] or 0) for t in closed_trades)
+                    / len(closed_trades)
+                    if closed_trades
+                    else 0
+                ),
                 "total_pnl": sum(float(t["pnl_amount"] or 0) for t in closed_trades),
             }
 

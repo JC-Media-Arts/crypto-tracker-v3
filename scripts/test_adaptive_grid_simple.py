@@ -197,12 +197,16 @@ class SimpleAdaptiveGridTester:
         )
         market_data = {
             "btc_regime": ["BEAR", "NEUTRAL", "BULL"][int(btc_regime_val) + 1],
-            "symbol_volatility": features_df["btc_volatility_7d"].iloc[0]
-            if "btc_volatility_7d" in features_df.columns
-            else 0.04,
-            "symbol_vs_btc_7d": features_df["symbol_vs_btc_7d"].iloc[0]
-            if "symbol_vs_btc_7d" in features_df.columns
-            else 0.0,
+            "symbol_volatility": (
+                features_df["btc_volatility_7d"].iloc[0]
+                if "btc_volatility_7d" in features_df.columns
+                else 0.04
+            ),
+            "symbol_vs_btc_7d": (
+                features_df["symbol_vs_btc_7d"].iloc[0]
+                if "symbol_vs_btc_7d" in features_df.columns
+                else 0.0
+            ),
             "market_cap_tier": "mid",
         }
 

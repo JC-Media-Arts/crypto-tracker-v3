@@ -70,15 +70,15 @@ class ScanLogger:
                 "reason": reason,
                 "features": json.dumps(features) if features else None,
                 "ml_confidence": ml_confidence,
-                "ml_predictions": json.dumps(ml_predictions)
-                if ml_predictions
-                else None,
+                "ml_predictions": (
+                    json.dumps(ml_predictions) if ml_predictions else None
+                ),
                 "setup_data": json.dumps(setup_data) if setup_data else None,
                 "market_regime": market_regime,
                 "btc_price": btc_price,
-                "thresholds_used": json.dumps(thresholds_used)
-                if thresholds_used
-                else None,
+                "thresholds_used": (
+                    json.dumps(thresholds_used) if thresholds_used else None
+                ),
                 "proposed_position_size": proposed_position_size,
                 "proposed_capital": proposed_capital,
             }

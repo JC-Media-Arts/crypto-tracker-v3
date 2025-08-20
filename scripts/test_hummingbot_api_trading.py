@@ -533,7 +533,9 @@ class ComprehensiveTradingTest:
 
             has_warnings = len(warnings) > 0
             result = (
-                "✅ PASS" if (has_warnings == scenario["expected_warning"]) else "❌ FAIL"
+                "✅ PASS"
+                if (has_warnings == scenario["expected_warning"])
+                else "❌ FAIL"
             )
 
             logger.info(

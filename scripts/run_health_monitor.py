@@ -22,7 +22,10 @@ def main():
 
     # Configure logging
     logger.add(
-        f"{settings.logs_dir}/health_monitor.log", rotation="1 day", retention="7 days", level=settings.log_level
+        f"{settings.logs_dir}/health_monitor.log",
+        rotation="1 day",
+        retention="7 days",
+        level=settings.log_level,
     )
 
     logger.info("Starting Health Monitoring Service")
@@ -30,7 +33,13 @@ def main():
     logger.info(f"Port: 8080")
 
     # Run the FastAPI app
-    uvicorn.run(app, host="0.0.0.0", port=8080, log_level=settings.log_level.lower(), reload=settings.is_development)
+    uvicorn.run(
+        app,
+        host="0.0.0.0",
+        port=8080,
+        log_level=settings.log_level.lower(),
+        reload=settings.is_development,
+    )
 
 
 if __name__ == "__main__":

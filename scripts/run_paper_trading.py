@@ -215,7 +215,9 @@ class PaperTradingSystem:
                 for symbol in batch:
                     try:
                         # Fetch latest OHLC data using HybridDataFetcher
-                        ohlc_data = await self.fetcher.get_recent_data(symbol, hours=100, timeframe="1h")
+                        ohlc_data = await self.fetcher.get_recent_data(
+                            symbol, hours=100, timeframe="1h"
+                        )
 
                         if ohlc_data:
                             # Calculate indicators
@@ -254,7 +256,9 @@ class PaperTradingSystem:
                 else:
                     high_4h = latest.get("high", 0)
 
-                drop_pct = ((current_price - high_4h) / high_4h) * 100 if high_4h > 0 else 0
+                drop_pct = (
+                    ((current_price - high_4h) / high_4h) * 100 if high_4h > 0 else 0
+                )
 
                 # Near miss if drop is between -2% and -5%
                 if -5.0 < drop_pct <= -2.0:
@@ -271,7 +275,11 @@ class PaperTradingSystem:
                 if isinstance(data, list) and len(data) >= 20:
                     highs = [bar.get("high", 0) for bar in data[-20:]]
                     period_high = max(highs[:-1])
-                    breakout_pct = ((current_price - period_high) / period_high) * 100 if period_high > 0 else 0
+                    breakout_pct = (
+                        ((current_price - period_high) / period_high) * 100
+                        if period_high > 0
+                        else 0
+                    )
 
                     # Near miss if breakout is between 0.5% and 2%
                     if 0.5 <= breakout_pct < 2.0:
@@ -306,8 +314,14 @@ class PaperTradingSystem:
         volumes = [d["volume"] for d in ohlc_data if d.get("volume")]
 
         # Price changes
-        price_24h_ago = prices[min(96, len(prices) - 1)] if len(prices) > 96 else prices[-1]
-        price_change_24h = ((latest["close"] - price_24h_ago) / price_24h_ago * 100) if price_24h_ago else 0
+        price_24h_ago = (
+            prices[min(96, len(prices) - 1)] if len(prices) > 96 else prices[-1]
+        )
+        price_change_24h = (
+            ((latest["close"] - price_24h_ago) / price_24h_ago * 100)
+            if price_24h_ago
+            else 0
+        )
 
         # Volume ratio
         avg_volume = sum(volumes) / len(volumes) if volumes else 1
@@ -340,13 +354,29 @@ class PaperTradingSystem:
             "price_change_24h": price_change_24h,
             "rsi": rsi,
             "volume_ratio": volume_ratio,
-            "high_24h": max(d["high"] for d in ohlc_data[:96]) if len(ohlc_data) > 96 else latest["high"],
-            "low_24h": min(d["low"] for d in ohlc_data[:96]) if len(ohlc_data) > 96 else latest["low"],
+            "high_24h": (
+                max(d["high"] for d in ohlc_data[:96])
+                if len(ohlc_data) > 96
+                else latest["high"]
+            ),
+            "low_24h": (
+                min(d["low"] for d in ohlc_data[:96])
+                if len(ohlc_data) > 96
+                else latest["low"]
+            ),
             "sma_20": sma_20,
             "sma_50": sma_50,
             "sma_200": sma_200,
-            "support_level": min(d["low"] for d in ohlc_data[:20]) if len(ohlc_data) > 20 else latest["low"],
-            "resistance_level": max(d["high"] for d in ohlc_data[:20]) if len(ohlc_data) > 20 else latest["high"],
+            "support_level": (
+                min(d["low"] for d in ohlc_data[:20])
+                if len(ohlc_data) > 20
+                else latest["low"]
+            ),
+            "resistance_level": (
+                max(d["high"] for d in ohlc_data[:20])
+                if len(ohlc_data) > 20
+                else latest["high"]
+            ),
             "timestamp": latest["timestamp"],
         }
 
@@ -358,12 +388,16 @@ class PaperTradingSystem:
             if not self.api_session:
                 self.api_session = aiohttp.ClientSession()
 
-            async with self.api_session.get(f"{self.config['hummingbot_api_url']}/") as response:
+            async with self.api_session.get(
+                f"{self.config['hummingbot_api_url']}/"
+            ) as response:
                 if response.status == 200:
                     logger.info("✅ Hummingbot API is accessible")
                     return True
                 else:
-                    logger.warning(f"⚠️ Hummingbot API returned status {response.status}")
+                    logger.warning(
+                        f"⚠️ Hummingbot API returned status {response.status}"
+                    )
                     return False
 
         except Exception as e:
@@ -423,11 +457,16 @@ class PaperTradingSystem:
                             is_win = signal.confidence > 0.65
                             pnl = 50 if is_win else -20
 
-                            self.strategy_manager.update_performance(symbol, pnl, is_win)
+                            self.strategy_manager.update_performance(
+                                symbol, pnl, is_win
+                            )
                             self.total_pnl += pnl
                             self.total_trades += 1
 
-                            logger.info(f"📈 Position closed: {symbol} " f"{'WIN' if is_win else 'LOSS'} ${pnl:+.2f}")
+                            logger.info(
+                                f"📈 Position closed: {symbol} "
+                                f"{'WIN' if is_win else 'LOSS'} ${pnl:+.2f}"
+                            )
 
                 await asyncio.sleep(60)  # Check every minute
 
@@ -457,7 +496,9 @@ class PaperTradingSystem:
                 # 2. Scan for opportunities
                 logger.info("🔍 Scanning for opportunities...")
                 try:
-                    signals = await self.strategy_manager.scan_for_opportunities(market_data)
+                    signals = await self.strategy_manager.scan_for_opportunities(
+                        market_data
+                    )
 
                     # Track near misses for visibility
                     self.last_near_misses = await self._analyze_near_misses(market_data)
@@ -485,9 +526,13 @@ class PaperTradingSystem:
                         for signal in results["executed"]:
                             success = await self.execute_via_hummingbot(signal)
                             if success:
-                                logger.info(f"✅ {signal.symbol} order sent to Hummingbot")
+                                logger.info(
+                                    f"✅ {signal.symbol} order sent to Hummingbot"
+                                )
                             else:
-                                logger.error(f"❌ Failed to send {signal.symbol} to Hummingbot")
+                                logger.error(
+                                    f"❌ Failed to send {signal.symbol} to Hummingbot"
+                                )
 
                 # 6. Display status
                 self._display_status()
@@ -523,8 +568,12 @@ class PaperTradingSystem:
 
         logger.info("💰 Capital Status:")
         cap = status["capital_allocation"]
-        logger.info(f"  DCA: ${cap['dca_used']:.0f} used, ${cap['dca_available']:.0f} available")
-        logger.info(f"  Swing: ${cap['swing_used']:.0f} used, ${cap['swing_available']:.0f} available")
+        logger.info(
+            f"  DCA: ${cap['dca_used']:.0f} used, ${cap['dca_available']:.0f} available"
+        )
+        logger.info(
+            f"  Swing: ${cap['swing_used']:.0f} used, ${cap['swing_available']:.0f} available"
+        )
         logger.info(
             f"  Channel: ${cap.get('channel_used', 0):.0f} used, ${cap.get('channel_available', self.config['total_capital'] * self.config.get('channel_allocation', 0.3)):.0f} available"
         )
@@ -532,13 +581,17 @@ class PaperTradingSystem:
         logger.info("📈 Performance:")
         for strategy in ["dca", "swing", "channel"]:
             perf = status["performance"].get(strategy, {"win_rate": 0, "total_pnl": 0})
-            logger.info(f"  {strategy.upper()}: Win Rate {perf['win_rate']:.1%}, P&L ${perf['total_pnl']:+.2f}")
+            logger.info(
+                f"  {strategy.upper()}: Win Rate {perf['win_rate']:.1%}, P&L ${perf['total_pnl']:+.2f}"
+            )
 
         # Show near misses
         if hasattr(self, "last_near_misses") and self.last_near_misses:
             logger.info("🎯 Near Misses (Almost Triggered):")
             for miss in self.last_near_misses[:3]:  # Show top 3
-                logger.info(f"  {miss['symbol']} - {miss['strategy']} - {miss['reason']}")
+                logger.info(
+                    f"  {miss['symbol']} - {miss['strategy']} - {miss['reason']}"
+                )
 
         logger.info("=" * 50)
 
@@ -566,7 +619,9 @@ class PaperTradingSystem:
             hummingbot_ok = await self.check_hummingbot_connection()
 
             if not hummingbot_ok:
-                logger.warning("⚠️ Hummingbot API not available - running in simulation mode")
+                logger.warning(
+                    "⚠️ Hummingbot API not available - running in simulation mode"
+                )
 
             # Start monitoring task
             monitor_task = asyncio.create_task(self.monitor_positions())

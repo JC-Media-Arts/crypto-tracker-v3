@@ -23,14 +23,20 @@ class FeatureCalculator:
         self.fetcher = HybridDataFetcher()
         self.min_periods = 100  # Minimum data points needed for indicators
 
-    async def calculate_features_for_symbol(self, symbol: str, lookback_hours: int = 48) -> Optional[pd.DataFrame]:
+    async def calculate_features_for_symbol(
+        self, symbol: str, lookback_hours: int = 48
+    ) -> Optional[pd.DataFrame]:
         """Calculate features for a single symbol"""
         try:
             # Get recent price data using HybridDataFetcher
             # This will use the fast materialized views
             # Increase lookback if needed to get enough data points
-            actual_lookback = max(lookback_hours, 72)  # At least 72 hours for 288 data points
-            price_data = await self.fetcher.get_recent_data(symbol, actual_lookback, "15m")
+            actual_lookback = max(
+                lookback_hours, 72
+            )  # At least 72 hours for 288 data points
+            price_data = await self.fetcher.get_recent_data(
+                symbol, actual_lookback, "15m"
+            )
 
             if not price_data or len(price_data) < self.min_periods:
                 logger.warning(
@@ -86,7 +92,9 @@ class FeatureCalculator:
         features["bb_high_band"] = bb.bollinger_hband()
         features["bb_low_band"] = bb.bollinger_lband()
         features["bb_middle_band"] = bb.bollinger_mavg()
-        features["bb_width"] = (features["bb_high_band"] - features["bb_low_band"]) / features["bb_middle_band"]
+        features["bb_width"] = (
+            features["bb_high_band"] - features["bb_low_band"]
+        ) / features["bb_middle_band"]
         features["bb_position"] = (df["price"] - features["bb_low_band"]) / (
             features["bb_high_band"] - features["bb_low_band"]
         )
@@ -98,31 +106,47 @@ class FeatureCalculator:
         features["ema_26"] = ta.trend.ema_indicator(df["price"], window=26)
 
         # Distance from moving averages
-        features["distance_from_sma20"] = ((df["price"] - features["sma_20"]) / features["sma_20"]) * 100
-        features["distance_from_sma50"] = ((df["price"] - features["sma_50"]) / features["sma_50"]) * 100
+        features["distance_from_sma20"] = (
+            (df["price"] - features["sma_20"]) / features["sma_20"]
+        ) * 100
+        features["distance_from_sma50"] = (
+            (df["price"] - features["sma_50"]) / features["sma_50"]
+        ) * 100
 
         # Support/Resistance
-        features["distance_from_support"] = self._calculate_support_resistance(df["price"], "support")
-        features["distance_from_resistance"] = self._calculate_support_resistance(df["price"], "resistance")
+        features["distance_from_support"] = self._calculate_support_resistance(
+            df["price"], "support"
+        )
+        features["distance_from_resistance"] = self._calculate_support_resistance(
+            df["price"], "resistance"
+        )
 
         # Volatility
         features["volatility_1h"] = df["price"].pct_change().rolling(60).std() * 100
         features["volatility_4h"] = df["price"].pct_change().rolling(240).std() * 100
 
         # Volume indicators
-        features["obv"] = ta.volume.OnBalanceVolumeIndicator(df["price"], df["volume"]).on_balance_volume()
-        features["volume_sma_ratio"] = df["volume"] / ta.trend.sma_indicator(df["volume"], window=20)
+        features["obv"] = ta.volume.OnBalanceVolumeIndicator(
+            df["price"], df["volume"]
+        ).on_balance_volume()
+        features["volume_sma_ratio"] = df["volume"] / ta.trend.sma_indicator(
+            df["volume"], window=20
+        )
 
         # Momentum indicators
         features["roc_12"] = ta.momentum.ROCIndicator(df["price"], window=12).roc()
-        features["stoch_k"] = ta.momentum.StochasticOscillator(df["price"], df["price"], df["price"]).stoch()
+        features["stoch_k"] = ta.momentum.StochasticOscillator(
+            df["price"], df["price"], df["price"]
+        ).stoch()
 
         # Fill NaN values
         features = features.ffill().fillna(0)
 
         return features
 
-    def _calculate_support_resistance(self, prices: pd.Series, level_type: str) -> pd.Series:
+    def _calculate_support_resistance(
+        self, prices: pd.Series, level_type: str
+    ) -> pd.Series:
         """Calculate distance from support/resistance levels"""
         window = 20
 

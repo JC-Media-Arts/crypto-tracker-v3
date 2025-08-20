@@ -83,7 +83,9 @@ class MLPredictor:
                     except Exception as e:
                         logger.error(f"Failed to load {strategy} features: {e}")
 
-    async def predict(self, symbol: str, strategy: str = None, features: Dict = None) -> Optional[Dict[str, Any]]:
+    async def predict(
+        self, symbol: str, strategy: str = None, features: Dict = None
+    ) -> Optional[Dict[str, Any]]:
         """
         Make prediction for a symbol
 
@@ -106,7 +108,9 @@ class MLPredictor:
                     results[strat] = result
             return results if results else None
 
-    async def _predict_single(self, symbol: str, strategy: str, features: Dict = None) -> Optional[Dict[str, Any]]:
+    async def _predict_single(
+        self, symbol: str, strategy: str, features: Dict = None
+    ) -> Optional[Dict[str, Any]]:
         """Make prediction for a single strategy"""
 
         if strategy not in self.models or self.models[strategy] is None:
@@ -147,7 +151,9 @@ class MLPredictor:
                     confidence = float(prediction[1]) if len(prediction) > 1 else 0.7
                 else:
                     signal = float(prediction) > 0.5
-                    confidence = abs(float(prediction) - 0.5) * 2  # Convert to confidence
+                    confidence = (
+                        abs(float(prediction) - 0.5) * 2
+                    )  # Convert to confidence
             else:
                 logger.error(f"Unknown model type for {strategy}")
                 return None
@@ -162,9 +168,15 @@ class MLPredictor:
             }
 
             # Add strategy-specific outputs
-            if strategy == "dca" and isinstance(prediction, np.ndarray) and len(prediction) >= 4:
+            if (
+                strategy == "dca"
+                and isinstance(prediction, np.ndarray)
+                and len(prediction) >= 4
+            ):
                 result["grid_levels"] = int(prediction[2]) if len(prediction) > 2 else 3
-                result["position_size"] = float(prediction[3]) if len(prediction) > 3 else 0.01
+                result["position_size"] = (
+                    float(prediction[3]) if len(prediction) > 3 else 0.01
+                )
 
             return result
 
@@ -181,7 +193,9 @@ class MLPredictor:
             calculator = FeatureCalculator()
 
             # Calculate features
-            features_df = await calculator.calculate_features_for_symbol(symbol, lookback_hours=72)
+            features_df = await calculator.calculate_features_for_symbol(
+                symbol, lookback_hours=72
+            )
 
             if features_df is None or features_df.empty:
                 logger.warning(f"No features calculated for {symbol}")

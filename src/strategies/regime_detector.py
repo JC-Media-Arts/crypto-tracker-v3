@@ -141,9 +141,7 @@ class RegimeDetector:
         if new_regime == MarketRegime.PANIC:
             logger.error(f"🚨 MARKET PANIC! BTC 1h: {btc_1h:.1f}%, 4h: {btc_4h_str}")
         elif new_regime == MarketRegime.CAUTION:
-            logger.warning(
-                f"⚠️ MARKET CAUTION! BTC 1h: {btc_1h:.1f}%, 4h: {btc_4h_str}"
-            )
+            logger.warning(f"⚠️ MARKET CAUTION! BTC 1h: {btc_1h:.1f}%, 4h: {btc_4h_str}")
         elif new_regime == MarketRegime.EUPHORIA:
             logger.warning(
                 f"🚀 MARKET EUPHORIA! BTC 1h: {btc_1h:.1f}%, 4h: {btc_4h_str}"

@@ -104,12 +104,16 @@ class OneMinuteFetcher:
                         "low": float(bar.low),
                         "close": float(bar.close),
                         "volume": float(bar.volume) if bar.volume else 0,
-                        "vwap": float(bar.vwap)
-                        if hasattr(bar, "vwap") and bar.vwap
-                        else None,
-                        "trades": int(bar.transactions)
-                        if hasattr(bar, "transactions")
-                        else None,
+                        "vwap": (
+                            float(bar.vwap)
+                            if hasattr(bar, "vwap") and bar.vwap
+                            else None
+                        ),
+                        "trades": (
+                            int(bar.transactions)
+                            if hasattr(bar, "transactions")
+                            else None
+                        ),
                     }
                 )
 

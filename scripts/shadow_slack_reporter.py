@@ -269,9 +269,9 @@ class ShadowSlackReporter:
                 "best_challenger": "None",
                 "best_win_rate": 0,
                 "best_outperformance": 0,
-                "total_shadows": shadow_count.count
-                if hasattr(shadow_count, "count")
-                else 0,
+                "total_shadows": (
+                    shadow_count.count if hasattr(shadow_count, "count") else 0
+                ),
                 "active_variations": len(ShadowConfig.get_active_variations()),
             }
 

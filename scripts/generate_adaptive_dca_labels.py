@@ -276,9 +276,11 @@ class AdaptiveDCALabelGenerator:
 
         return {
             **setup,
-            "outcome": "BREAKEVEN"
-            if abs(final_pct) < 2
-            else ("BREAKEVEN_POS" if final_pct > 0 else "BREAKEVEN_NEG"),
+            "outcome": (
+                "BREAKEVEN"
+                if abs(final_pct) < 2
+                else ("BREAKEVEN_POS" if final_pct > 0 else "BREAKEVEN_NEG")
+            ),
             "exit_price": final_price,
             "pnl_pct": final_pct,
             "exit_timestamp": df.iloc[setup_idx + max_look_forward]["timestamp"],
@@ -364,11 +366,15 @@ class AdaptiveDCALabelGenerator:
 
             # Add additional features
             df["market_cap_tier"] = df["symbol"].apply(
-                lambda s: "large"
-                if s in self.market_tiers["large_cap"]["symbols"]
-                else "mid"
-                if s in self.market_tiers["mid_cap"]["symbols"]
-                else "small"
+                lambda s: (
+                    "large"
+                    if s in self.market_tiers["large_cap"]["symbols"]
+                    else (
+                        "mid"
+                        if s in self.market_tiers["mid_cap"]["symbols"]
+                        else "small"
+                    )
+                )
             )
 
             # Sort by timestamp

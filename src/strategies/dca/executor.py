@@ -542,17 +542,21 @@ class DCAExecutor:
             {
                 "position_id": pid,
                 "symbol": p["symbol"],
-                "status": p["status"].value
-                if isinstance(p["status"], PositionStatus)
-                else p["status"],
+                "status": (
+                    p["status"].value
+                    if isinstance(p["status"], PositionStatus)
+                    else p["status"]
+                ),
                 "filled_levels": p["filled_levels"],
                 "total_invested": p["total_invested"],
                 "current_value": p["current_value"],
                 "pnl": p["pnl"],
                 "pnl_percent": p["pnl_percent"],
-                "created_at": p["created_at"].isoformat()
-                if isinstance(p["created_at"], datetime)
-                else p["created_at"],
+                "created_at": (
+                    p["created_at"].isoformat()
+                    if isinstance(p["created_at"], datetime)
+                    else p["created_at"]
+                ),
             }
             for pid, p in self.active_positions.items()
             if p["status"] in [PositionStatus.ACTIVE, PositionStatus.ACTIVE.value]

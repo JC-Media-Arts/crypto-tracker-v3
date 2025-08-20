@@ -29,14 +29,22 @@ def create_materialized_view_solution():
         # Count last 7 days
         week_ago = (datetime.utcnow() - timedelta(days=7)).isoformat()
         result = (
-            supabase.table("ohlc_data").select("symbol", count="exact").gte("timestamp", week_ago).limit(1).execute()
+            supabase.table("ohlc_data")
+            .select("symbol", count="exact")
+            .gte("timestamp", week_ago)
+            .limit(1)
+            .execute()
         )
         print(f"   Records in last 7 days: ~{result.count:,}")
 
         # Count last 24 hours
         day_ago = (datetime.utcnow() - timedelta(hours=24)).isoformat()
         result = (
-            supabase.table("ohlc_data").select("symbol", count="exact").gte("timestamp", day_ago).limit(1).execute()
+            supabase.table("ohlc_data")
+            .select("symbol", count="exact")
+            .gte("timestamp", day_ago)
+            .limit(1)
+            .execute()
         )
         print(f"   Records in last 24 hours: ~{result.count:,}")
 
