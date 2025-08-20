@@ -62,9 +62,11 @@ class ShadowEvaluator:
             # Get shadows ready for evaluation
             shadows = await self._get_pending_shadows()
             logger.info(f"Found {len(shadows)} shadow trades to evaluate")
-            
+
             if not shadows:
-                logger.debug("No shadows ready for evaluation yet (need 5+ minute delay)")
+                logger.debug(
+                    "No shadows ready for evaluation yet (need 5+ minute delay)"
+                )
 
             for shadow in shadows:
                 outcome = await self._evaluate_shadow(shadow)
@@ -478,7 +480,9 @@ class ShadowEvaluator:
                 "created_at": datetime.utcnow().isoformat(),
             }
 
-            result = self.supabase.client.table("shadow_outcomes").insert(record).execute()
+            result = (
+                self.supabase.client.table("shadow_outcomes").insert(record).execute()
+            )
 
             if result.data:
                 logger.debug(
