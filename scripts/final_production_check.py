@@ -118,7 +118,7 @@ async def final_production_check():
 
 async def main():
     passed, total = await final_production_check()
-    print(f"\n{"="*60}")
+    print(f"\n{'='*60}")
     print(f"ADVISOR ASSESSMENT: {passed}/{total} checks passed")
 
     if passed >= 5:
