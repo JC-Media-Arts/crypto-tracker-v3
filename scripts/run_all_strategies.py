@@ -4,22 +4,23 @@ Run all trading strategies (DCA, SWING, CHANNEL)
 """
 
 import asyncio
-import sys
 import json
-from pathlib import Path
+import sys
 from datetime import datetime, timezone
-from typing import List, Dict
+from pathlib import Path
+from typing import Dict, List
+
 from loguru import logger
 
 # Add parent directory to path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from src.data.supabase_client import SupabaseClient
-from src.data.hybrid_fetcher import HybridDataFetcher
-from src.strategies.dca.detector import DCADetector
-from src.strategies.swing.detector import SwingDetector
-from src.strategies.channel.detector import ChannelDetector
-from src.config.settings import get_settings
+from src.config.settings import get_settings  # noqa: E402
+from src.data.hybrid_fetcher import HybridDataFetcher  # noqa: E402
+from src.data.supabase_client import SupabaseClient  # noqa: E402
+from src.strategies.channel.detector import ChannelDetector  # noqa: E402
+from src.strategies.dca.detector import DCADetector  # noqa: E402
+from src.strategies.swing.detector import SwingDetector  # noqa: E402
 
 
 class AllStrategiesRunner:
@@ -235,7 +236,7 @@ class AllStrategiesRunner:
             except Exception as scan_error:
                 # Log error but continue - schema cache might need refresh
                 if "schema cache" in str(scan_error):
-                    logger.warning(f"Schema cache issue for scan_history, will retry later")
+                    logger.warning("Schema cache issue for scan_history, will retry later")
                 else:
                     logger.error(f"Error inserting to scan_history: {scan_error}")
 
@@ -255,7 +256,7 @@ class AllStrategiesRunner:
             except Exception as shadow_error:
                 # Log error but continue
                 if "schema cache" in str(shadow_error):
-                    logger.warning(f"Schema cache issue for shadow_testing_scans, will retry later")
+                    logger.warning("Schema cache issue for shadow_testing_scans, will retry later")
                 else:
                     logger.error(f"Error inserting to shadow_testing_scans: {shadow_error}")
 
