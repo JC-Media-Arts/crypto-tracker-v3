@@ -84,7 +84,9 @@ class AllStrategiesRunner:
                     try:
                         # Get OHLC data for the symbol
                         ohlc_data = await self.data_fetcher.get_recent_data(
-                            symbol=symbol, hours=24, timeframe="15m"  # Get last 24 hours of data
+                            symbol=symbol,
+                            hours=24,
+                            timeframe="15m",  # Get last 24 hours of data
                         )
 
                         if ohlc_data:
@@ -163,7 +165,9 @@ class AllStrategiesRunner:
                     try:
                         # Get OHLC data for the symbol
                         ohlc_data = await self.data_fetcher.get_recent_data(
-                            symbol=symbol, hours=24, timeframe="15m"  # Get last 24 hours of data
+                            symbol=symbol,
+                            hours=24,
+                            timeframe="15m",  # Get last 24 hours of data
                         )
 
                         if ohlc_data:
@@ -200,7 +204,11 @@ class AllStrategiesRunner:
                                     )
                             else:
                                 # No valid channel found
-                                await self.log_scan(strategy="CHANNEL", symbol=symbol, signal_detected=False)
+                                await self.log_scan(
+                                    strategy="CHANNEL",
+                                    symbol=symbol,
+                                    signal_detected=False,
+                                )
 
                     except Exception as e:
                         logger.error(f"Error in CHANNEL scan for {symbol}: {e}")
@@ -213,7 +221,12 @@ class AllStrategiesRunner:
                 await asyncio.sleep(60)
 
     async def log_scan(
-        self, strategy: str, symbol: str, signal_detected: bool, confidence: float = 0.0, metadata: Dict = None
+        self,
+        strategy: str,
+        symbol: str,
+        signal_detected: bool,
+        confidence: float = 0.0,
+        metadata: Dict = None,
     ):
         """Log scan to database"""
         try:
