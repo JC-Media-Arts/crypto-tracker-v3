@@ -4,16 +4,11 @@ Evaluates shadow trade outcomes using dynamic evaluation with full grid simulati
 Runs every 5 minutes to check for completed trades
 """
 
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Dict, List, Optional
 from datetime import datetime, timedelta
-from decimal import Decimal
 from loguru import logger
-import json
 import asyncio
-import numpy as np
 from dataclasses import dataclass
-
-from src.config.shadow_config import ShadowConfig
 
 
 @dataclass
@@ -90,7 +85,7 @@ class ShadowEvaluator:
             # Get shadow variations that need evaluation
             # First get all variations that would take trades
             result = (
-                self.supabase.client.table("shadow_variations")
+                self.supabase.table("shadow_variations")
                 .select("*, scan_history!inner(*)")
                 .eq("would_take_trade", True)
                 .lt("created_at", cutoff_time)
@@ -106,7 +101,7 @@ class ShadowEvaluator:
             if shadow_ids:
                 # Check which ones already have outcomes
                 outcomes_result = (
-                    self.supabase.client.table("shadow_outcomes")
+                    self.supabase.table("shadow_outcomes")
                     .select("shadow_id")
                     .in_("shadow_id", shadow_ids)
                     .execute()
@@ -400,7 +395,7 @@ class ShadowEvaluator:
         """Get scan data from scan_history table"""
         try:
             result = (
-                self.supabase.client.table("scan_history")
+                self.supabase.table("scan_history")
                 .select("*")
                 .eq("scan_id", scan_id)
                 .single()
@@ -421,7 +416,7 @@ class ShadowEvaluator:
         try:
             # Query OHLC data
             result = (
-                self.supabase.client.table("ohlc_data")
+                self.supabase.table("ohlc_data")
                 .select("timestamp, open, high, low, close, volume")
                 .eq("symbol", symbol)
                 .eq("timeframe", "1m")  # Fixed: was "1min", should be "1m"
@@ -438,7 +433,7 @@ class ShadowEvaluator:
             logger.warning(f"No 1m data for {symbol}, trying 5m fallback")
             # Fallback to 5-minute data if 1-minute not available
             result = (
-                self.supabase.client.table("ohlc_data")
+                self.supabase.table("ohlc_data")
                 .select("timestamp, open, high, low, close, volume")
                 .eq("symbol", symbol)
                 .eq("timeframe", "5m")  # Fixed: was "5min", should be "5m"
@@ -453,7 +448,7 @@ class ShadowEvaluator:
         except Exception as e:
             logger.error(f"Error getting price data for {symbol}: {e}")
             logger.error(f"Start time: {start_time}, End time: {end_time}")
-            logger.error(f"This is likely causing shadow evaluation failures!")
+            logger.error("This is likely causing shadow evaluation failures!")
             return []
 
     async def _save_outcome(self, outcome: ShadowOutcome) -> bool:
@@ -480,9 +475,7 @@ class ShadowEvaluator:
                 "created_at": datetime.utcnow().isoformat(),
             }
 
-            result = (
-                self.supabase.client.table("shadow_outcomes").insert(record).execute()
-            )
+            result = self.supabase.table("shadow_outcomes").insert(record).execute()
 
             if result.data:
                 logger.debug(
@@ -502,7 +495,7 @@ class ShadowEvaluator:
         try:
             # Get the shadow variation record
             shadow_result = (
-                self.supabase.client.table("shadow_variations")
+                self.supabase.table("shadow_variations")
                 .select("scan_id, variation_name")
                 .eq("shadow_id", outcome.shadow_id)
                 .single()
@@ -516,7 +509,7 @@ class ShadowEvaluator:
             if shadow_result.data["variation_name"] != "CHAMPION":
                 # For non-champion, check if a real trade exists
                 trade_result = (
-                    self.supabase.client.table("trade_logs")
+                    self.supabase.table("trade_logs")
                     .select("status, pnl_percentage")
                     .eq("scan_id", shadow_result.data["scan_id"])
                     .execute()
