@@ -190,13 +190,13 @@ class FeatureCalculator:
                 # Duplicates are handled in supabase client
                 return True
 
-    def update_all_symbols(self, symbols: List[str]) -> Dict[str, bool]:
+    async def update_all_symbols(self, symbols: List[str]) -> Dict[str, bool]:
         """Update features for all symbols"""
         results = {}
 
         for symbol in symbols:
             logger.info(f"Calculating features for {symbol}")
-            features_df = self.calculate_features_for_symbol(symbol)
+            features_df = await self.calculate_features_for_symbol(symbol)
 
             if features_df is not None and not features_df.empty:
                 # Only save the most recent features

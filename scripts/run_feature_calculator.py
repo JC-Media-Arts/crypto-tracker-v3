@@ -188,7 +188,7 @@ async def main():
                 logger.info(f"Symbols ready for feature calculation: {ready_symbols}")
 
                 # Update features for ready symbols
-                results = calculator.update_all_symbols(ready_symbols)
+                results = await calculator.update_all_symbols(ready_symbols)
 
                 # Count successes and failures
                 successful = sum(1 for success in results.values() if success)
