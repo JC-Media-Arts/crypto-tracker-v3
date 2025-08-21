@@ -12,11 +12,11 @@ from datetime import datetime, timezone, timedelta
 import sys
 import os
 import signal
-from loguru import logger
 
 # Add project root to Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from loguru import logger
 from src.ml.feature_calculator import FeatureCalculator
 from src.data.supabase_client import SupabaseClient
 from src.config.settings import get_settings
@@ -177,9 +177,7 @@ async def main():
             ready_symbols = []
             for symbol in SYMBOLS:
                 end_time = datetime.now(timezone.utc)
-                start_time_check = end_time - timedelta(
-                    hours=48
-                )  # Need 48 hours of data
+                start_time_check = end_time - timedelta(hours=48)  # Need 48 hours of data
                 price_data = supabase.get_price_data(symbol, start_time_check, end_time)
                 if price_data and len(price_data) >= calculator.min_periods:
                     ready_symbols.append(symbol)
@@ -195,17 +193,13 @@ async def main():
                 failed = len(results) - successful
 
                 elapsed = time.time() - start_time
-                logger.info(
-                    f"Feature calculation complete in {elapsed:.1f}s - Success: {successful}, Failed: {failed}"
-                )
+                logger.info(f"Feature calculation complete in {elapsed:.1f}s - Success: {successful}, Failed: {failed}")
             else:
                 logger.warning("No symbols have enough data yet. Waiting...")
 
             # Wait before next update
             if not shutdown_flag:
-                logger.info(
-                    f"Waiting {settings.feature_update_interval} seconds before next update..."
-                )
+                logger.info(f"Waiting {settings.feature_update_interval} seconds before next update...")
                 await asyncio.sleep(settings.feature_update_interval)
 
         except Exception as e:
@@ -225,3 +219,4 @@ if __name__ == "__main__":
     except Exception as e:
         logger.error(f"Fatal error: {e}")
         sys.exit(1)
+# Force Railway redeploy at Wed Aug 20 20:44:45 PDT 2025
