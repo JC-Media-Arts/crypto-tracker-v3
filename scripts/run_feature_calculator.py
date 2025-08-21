@@ -177,7 +177,9 @@ async def main():
             ready_symbols = []
             for symbol in SYMBOLS:
                 end_time = datetime.now(timezone.utc)
-                start_time_check = end_time - timedelta(hours=48)  # Need 48 hours of data
+                start_time_check = end_time - timedelta(
+                    hours=48
+                )  # Need 48 hours of data
                 price_data = supabase.get_price_data(symbol, start_time_check, end_time)
                 if price_data and len(price_data) >= calculator.min_periods:
                     ready_symbols.append(symbol)
@@ -193,13 +195,17 @@ async def main():
                 failed = len(results) - successful
 
                 elapsed = time.time() - start_time
-                logger.info(f"Feature calculation complete in {elapsed:.1f}s - Success: {successful}, Failed: {failed}")
+                logger.info(
+                    f"Feature calculation complete in {elapsed:.1f}s - Success: {successful}, Failed: {failed}"
+                )
             else:
                 logger.warning("No symbols have enough data yet. Waiting...")
 
             # Wait before next update
             if not shutdown_flag:
-                logger.info(f"Waiting {settings.feature_update_interval} seconds before next update...")
+                logger.info(
+                    f"Waiting {settings.feature_update_interval} seconds before next update..."
+                )
                 await asyncio.sleep(settings.feature_update_interval)
 
         except Exception as e:
