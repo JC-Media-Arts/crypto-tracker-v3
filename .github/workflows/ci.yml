@@ -30,7 +30,7 @@ jobs:
     - name: Check formatting with Black
       run: |
         pip install black==23.12.1
-        black --check --line-length=120 src/ scripts/ --exclude venv
+        black --check src/ scripts/ --exclude venv
 
     - name: Run linting
       run: |

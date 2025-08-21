@@ -30,7 +30,9 @@ class AllStrategiesRunner:
         """Initialize all strategy runners"""
         self.settings = get_settings()
         self.supabase = SupabaseClient()
-        self.data_fetcher = HybridDataFetcher()  # HybridDataFetcher creates its own client
+        self.data_fetcher = (
+            HybridDataFetcher()
+        )  # HybridDataFetcher creates its own client
 
         # Initialize detectors
         self.dca_detector = DCADetector(self.supabase)
@@ -106,7 +108,9 @@ class AllStrategiesRunner:
                                 )
                             else:
                                 # Log negative scan
-                                await self.log_scan(strategy="DCA", symbol=symbol, signal_detected=False)
+                                await self.log_scan(
+                                    strategy="DCA", symbol=symbol, signal_detected=False
+                                )
                         else:
                             logger.warning(f"No data available for {symbol}")
 
@@ -138,15 +142,20 @@ class AllStrategiesRunner:
                             strategy="SWING",
                             symbol=setup.get("symbol"),
                             signal_detected=True,
-                            confidence=setup.get("score", 0) / 10.0,  # Convert score to 0-1
+                            confidence=setup.get("score", 0)
+                            / 10.0,  # Convert score to 0-1
                             metadata=setup,
                         )
 
                 # Log symbols that didn't have signals
-                symbols_with_signals = {s.get("symbol") for s in setups} if setups else set()
+                symbols_with_signals = (
+                    {s.get("symbol") for s in setups} if setups else set()
+                )
                 for symbol in self.symbols:
                     if symbol not in symbols_with_signals:
-                        await self.log_scan(strategy="SWING", symbol=symbol, signal_detected=False)
+                        await self.log_scan(
+                            strategy="SWING", symbol=symbol, signal_detected=False
+                        )
 
                 # Wait before next scan
                 await asyncio.sleep(60)  # Scan every minute
@@ -172,14 +181,20 @@ class AllStrategiesRunner:
 
                         if ohlc_data:
                             # ChannelDetector has detect_channel method
-                            channel = self.channel_detector.detect_channel(symbol, ohlc_data)
+                            channel = self.channel_detector.detect_channel(
+                                symbol, ohlc_data
+                            )
 
                             if channel and channel.is_valid():
                                 # Get trading signal
-                                signal = self.channel_detector.get_trading_signal(channel)
+                                signal = self.channel_detector.get_trading_signal(
+                                    channel
+                                )
 
                                 if signal:
-                                    logger.info(f"CHANNEL setup detected for {symbol}: {signal}")
+                                    logger.info(
+                                        f"CHANNEL setup detected for {symbol}: {signal}"
+                                    )
 
                                     # Log to scan_history
                                     await self.log_scan(
@@ -249,7 +264,9 @@ class AllStrategiesRunner:
             except Exception as scan_error:
                 # Log error but continue - schema cache might need refresh
                 if "schema cache" in str(scan_error):
-                    logger.warning("Schema cache issue for scan_history, will retry later")
+                    logger.warning(
+                        "Schema cache issue for scan_history, will retry later"
+                    )
                 else:
                     logger.error(f"Error inserting to scan_history: {scan_error}")
 
@@ -265,13 +282,19 @@ class AllStrategiesRunner:
             }
 
             try:
-                self.supabase.client.table("shadow_testing_scans").insert(shadow_data).execute()
+                self.supabase.client.table("shadow_testing_scans").insert(
+                    shadow_data
+                ).execute()
             except Exception as shadow_error:
                 # Log error but continue
                 if "schema cache" in str(shadow_error):
-                    logger.warning("Schema cache issue for shadow_testing_scans, will retry later")
+                    logger.warning(
+                        "Schema cache issue for shadow_testing_scans, will retry later"
+                    )
                 else:
-                    logger.error(f"Error inserting to shadow_testing_scans: {shadow_error}")
+                    logger.error(
+                        f"Error inserting to shadow_testing_scans: {shadow_error}"
+                    )
 
         except Exception as e:
             logger.error(f"Unexpected error in log_scan: {e}")
