@@ -62,10 +62,17 @@ def get_strategy_status():
         # Process cached results
         if cache_result.data:
             for entry in cache_result.data:
+                # Format price based on value
+                price = float(entry["current_price"])
+                if price > 1:
+                    price_str = f"${price:.2f}"
+                else:
+                    price_str = f"${price:.4f}"
+
                 candidate = {
                     "symbol": entry["symbol"],
                     "readiness": float(entry["readiness"]),
-                    "current_price": f"${float(entry['current_price']):.2f}" if float(entry["current_price"]) > 1 else f"${float(entry['current_price']):.4f}",
+                    "current_price": price_str,
                     "details": entry["details"],
                     "status": entry["status"]
                 }

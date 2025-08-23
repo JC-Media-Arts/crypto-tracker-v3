@@ -4,13 +4,13 @@ Check existing database indexes and analyze query performance
 """
 
 import sys
+import time
 from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent.parent))
 
-from src.data.supabase_client import SupabaseClient
-from loguru import logger
-import time
+from src.data.supabase_client import SupabaseClient  # noqa: E402
+from loguru import logger  # noqa: E402
 
 
 def check_indexes():
@@ -20,18 +20,6 @@ def check_indexes():
     logger.info("=" * 60)
 
     db = SupabaseClient()
-
-    # Check indexes using raw SQL
-    index_query = """
-    SELECT
-        schemaname,
-        tablename,
-        indexname,
-        indexdef
-    FROM pg_indexes
-    WHERE tablename = 'ohlc_data'
-    ORDER BY indexname;
-    """
 
     try:
         # Test query performance

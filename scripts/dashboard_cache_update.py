@@ -110,7 +110,9 @@ def get_strategy_status():
 
             # Add cache freshness indicator
             from datetime import datetime
-            cache_age = datetime.now() - datetime.fromisoformat(summary["calculated_at"].replace('Z', '+00:00').replace('+00:00', ''))
+            calc_time = summary["calculated_at"].replace('Z', '+00:00')
+            calc_time = calc_time.replace('+00:00', '')
+            cache_age = datetime.now() - datetime.fromisoformat(calc_time)
             cache_minutes = int(cache_age.total_seconds() / 60)
             strategy_status["market_summary"]["cache_age"] = f"{cache_minutes} min ago"
         else:

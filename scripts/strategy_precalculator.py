@@ -6,17 +6,16 @@ This runs as a background service to avoid dashboard timeouts
 
 import sys
 import asyncio
+import time
 from pathlib import Path
 from datetime import datetime, timedelta
-from typing import Dict, List
-import json
+from typing import Dict
 
 sys.path.append(str(Path(__file__).parent.parent))
 
-from src.data.supabase_client import SupabaseClient
-from src.strategies.simple_rules import SimpleRules
-from loguru import logger
-import time
+from src.data.supabase_client import SupabaseClient  # noqa: E402
+from src.strategies.simple_rules import SimpleRules  # noqa: E402
+from loguru import logger  # noqa: E402
 
 
 class StrategyPreCalculator:

@@ -6,8 +6,8 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent.parent))
 
-from src.data.supabase_client import SupabaseClient
-from loguru import logger
+from src.data.supabase_client import SupabaseClient  # noqa: E402
+from loguru import logger  # noqa: E402
 
 
 def verify_tables():
