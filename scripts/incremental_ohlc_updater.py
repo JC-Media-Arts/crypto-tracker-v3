@@ -226,9 +226,7 @@ class IncrementalOHLCUpdater:
                 return timestamp
             return None
         except Exception as e:
-            logger.error(
-                f"Error getting latest timestamp for {symbol}/{timeframe}: {e}"
-            )
+            logger.error(f"Error getting latest timestamp for {symbol}/{timeframe}: {e}")
             return None
 
     def fetch_ohlc_from_polygon(
@@ -284,9 +282,7 @@ class IncrementalOHLCUpdater:
             records = []
             for bar in data:
                 record = {
-                    "timestamp": datetime.fromtimestamp(
-                        bar["t"] / 1000, tz=tz.UTC
-                    ).isoformat(),
+                    "timestamp": datetime.fromtimestamp(bar["t"] / 1000, tz=tz.UTC).isoformat(),
                     "symbol": symbol,
                     "timeframe": timeframe,
                     "open": bar["o"],
@@ -345,9 +341,7 @@ class IncrementalOHLCUpdater:
                 break
 
             delay = self.retry_delays[min(retry, len(self.retry_delays) - 1)]
-            logger.warning(
-                f"Retry {retry + 1}/{self.max_retries} for {symbol}/{timeframe} after {delay}s"
-            )
+            logger.warning(f"Retry {retry + 1}/{self.max_retries} for {symbol}/{timeframe} after {delay}s")
             time.sleep(delay)
 
         # Save data
@@ -368,9 +362,7 @@ class IncrementalOHLCUpdater:
                 logger.error(f"Failed to fetch data for {symbol}/{timeframe}")
                 return False, 0
 
-    def update_timeframe(
-        self, timeframe: str, symbols: Optional[List[str]] = None
-    ) -> Dict:
+    def update_timeframe(self, timeframe: str, symbols: Optional[List[str]] = None) -> Dict:
         """Update all symbols for a specific timeframe"""
         logger.info(f"Starting {timeframe} update")
 
@@ -378,9 +370,7 @@ class IncrementalOHLCUpdater:
             symbols = self.get_all_symbols()
 
         # Filter out known failures
-        symbols = [
-            s for s in symbols if s not in self.known_failures.get(timeframe, [])
-        ]
+        symbols = [s for s in symbols if s not in self.known_failures.get(timeframe, [])]
 
         results = {"successful": [], "failed": [], "records_inserted": 0, "duration": 0}
 
@@ -388,10 +378,7 @@ class IncrementalOHLCUpdater:
 
         # Process symbols in parallel with thread pool
         with ThreadPoolExecutor(max_workers=5) as executor:
-            futures = {
-                executor.submit(self.update_symbol_timeframe, symbol, timeframe): symbol
-                for symbol in symbols
-            }
+            futures = {executor.submit(self.update_symbol_timeframe, symbol, timeframe): symbol for symbol in symbols}
 
             for future in as_completed(futures):
                 symbol = futures[future]

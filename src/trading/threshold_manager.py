@@ -112,9 +112,7 @@ class ThresholdManager:
                     return results
 
             # Process each recommendation
-            for rec in recommendations[
-                : self.max_adjustments_per_day - adjustments_today
-            ]:
+            for rec in recommendations[: self.max_adjustments_per_day - adjustments_today]:
                 result = await self._apply_adjustment(rec, force)
                 results.append(result)
 
@@ -124,9 +122,7 @@ class ThresholdManager:
                         f"{rec.current_value:.2f} → {rec.recommended_value:.2f}"
                     )
                 else:
-                    logger.warning(
-                        f"❌ Failed adjustment: {rec.parameter_name} - {result.reason}"
-                    )
+                    logger.warning(f"❌ Failed adjustment: {rec.parameter_name} - {result.reason}")
 
         except Exception as e:
             logger.error(f"Error processing recommendations: {e}")
@@ -207,11 +203,7 @@ class ThresholdManager:
                 parameter_name=recommendation.parameter_name,
                 old_value=recommendation.current_value,
                 new_value=adjusted_value,
-                reason=(
-                    "Applied successfully"
-                    if success
-                    else "Failed to update configuration"
-                ),
+                reason=("Applied successfully" if success else "Failed to update configuration"),
             )
 
         except Exception as e:
@@ -236,9 +228,7 @@ class ThresholdManager:
         Apply safety limits to recommended value
         """
         # Get adjustment multiplier based on confidence
-        multiplier = ShadowConfig.CONFIDENCE_TIERS[confidence_level][
-            "adjustment_multiplier"
-        ]
+        multiplier = ShadowConfig.CONFIDENCE_TIERS[confidence_level]["adjustment_multiplier"]
 
         # Calculate maximum allowed change
         max_change = current_value * limits.max_relative_change
@@ -266,9 +256,7 @@ class ThresholdManager:
 
         try:
             # Get regime history
-            cutoff_time = datetime.utcnow() - timedelta(
-                hours=self.regime_stability_hours
-            )
+            cutoff_time = datetime.utcnow() - timedelta(hours=self.regime_stability_hours)
 
             result = (
                 self.supabase.table("scan_history")
@@ -292,9 +280,7 @@ class ThresholdManager:
             is_stable = len(unique_regimes) == 1
 
             if not is_stable:
-                logger.info(
-                    f"Regime changed in last {self.regime_stability_hours}h: {unique_regimes}"
-                )
+                logger.info(f"Regime changed in last {self.regime_stability_hours}h: {unique_regimes}")
 
             return is_stable
 
@@ -307,9 +293,7 @@ class ThresholdManager:
         Count adjustments made today
         """
         try:
-            today_start = datetime.utcnow().replace(
-                hour=0, minute=0, second=0, microsecond=0
-            )
+            today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
 
             result = (
                 self.supabase.table("threshold_adjustments")
@@ -336,10 +320,7 @@ class ThresholdManager:
                 "old_value": kwargs["old_value"],
                 "new_value": kwargs["new_value"],
                 "shadow_recommended_value": kwargs["shadow_recommended"],
-                "adjustment_percentage": (
-                    (kwargs["new_value"] - kwargs["old_value"]) / kwargs["old_value"]
-                )
-                * 100,
+                "adjustment_percentage": ((kwargs["new_value"] - kwargs["old_value"]) / kwargs["old_value"]) * 100,
                 "adjustment_confidence": kwargs["confidence"],
                 "evidence_trades": kwargs["evidence_trades"],
                 "evidence_timeframe": "3d",  # Default to 3-day evidence
@@ -354,9 +335,7 @@ class ThresholdManager:
                 "adjusted_by": "shadow_system",
             }
 
-            result = (
-                self.supabase.table("threshold_adjustments").insert(record).execute()
-            )
+            result = self.supabase.table("threshold_adjustments").insert(record).execute()
 
             if result.data and len(result.data) > 0:
                 return result.data[0]["adjustment_id"]
@@ -366,9 +345,7 @@ class ThresholdManager:
 
         return None
 
-    async def _update_configuration(
-        self, strategy_name: str, parameter_name: str, new_value: float
-    ) -> bool:
+    async def _update_configuration(self, strategy_name: str, parameter_name: str, new_value: float) -> bool:
         """
         Update the actual configuration
         This would update your production parameters
@@ -423,9 +400,7 @@ class ThresholdManager:
 
             # Check performance every hour for rollback_monitor_hours
             for hour in range(self.rollback_monitor_hours):
-                should_rollback, reason = await self._check_rollback_conditions(
-                    adjustment_id
-                )
+                should_rollback, reason = await self._check_rollback_conditions(adjustment_id)
 
                 if should_rollback:
                     await self.rollback_adjustment(adjustment_id, reason)
@@ -456,9 +431,7 @@ class ThresholdManager:
             adjustment = result.data
 
             # Get current performance
-            current_performance = await self._get_current_performance(
-                adjustment["strategy_name"]
-            )
+            current_performance = await self._get_current_performance(adjustment["strategy_name"])
 
             if not current_performance:
                 return False, ""
@@ -468,32 +441,21 @@ class ThresholdManager:
 
             # Immediate rollback: Win rate drop
             if "win_rate_before" in adjustment:
-                win_rate_drop = (
-                    adjustment["win_rate_before"] - current_performance["win_rate"]
-                )
+                win_rate_drop = adjustment["win_rate_before"] - current_performance["win_rate"]
                 if win_rate_drop > rollback_config["immediate"]["win_rate_drop"]:
                     return True, f"Win rate dropped by {win_rate_drop:.1%}"
 
             # Immediate rollback: Consecutive losses
-            recent_trades = await self._get_recent_trades(
-                adjustment["strategy_name"], hours=1
-            )
+            recent_trades = await self._get_recent_trades(adjustment["strategy_name"], hours=1)
             if recent_trades:
                 consecutive_losses = self._count_consecutive_losses(recent_trades)
-                if (
-                    consecutive_losses
-                    >= rollback_config["immediate"]["consecutive_losses"]
-                ):
+                if consecutive_losses >= rollback_config["immediate"]["consecutive_losses"]:
                     return True, f"{consecutive_losses} consecutive losses"
 
             # Gradual rollback: Underperformance
-            hours_since = (
-                datetime.utcnow() - datetime.fromisoformat(adjustment["adjusted_at"])
-            ).total_seconds() / 3600
+            hours_since = (datetime.utcnow() - datetime.fromisoformat(adjustment["adjusted_at"])).total_seconds() / 3600
             if hours_since >= rollback_config["gradual"]["underperform_hours"]:
-                if current_performance["win_rate"] < adjustment.get(
-                    "win_rate_before", 0
-                ):
+                if current_performance["win_rate"] < adjustment.get("win_rate_before", 0):
                     return True, f"Underperforming for {hours_since:.0f} hours"
 
         except Exception as e:
@@ -629,9 +591,7 @@ class ThresholdManager:
 
             if result.data:
                 for adjustment in result.data:
-                    await self.rollback_adjustment(
-                        adjustment["adjustment_id"], f"Emergency stop: {reason}"
-                    )
+                    await self.rollback_adjustment(adjustment["adjustment_id"], f"Emergency stop: {reason}")
 
                 logger.info(f"Rolled back {len(result.data)} adjustments")
             else:

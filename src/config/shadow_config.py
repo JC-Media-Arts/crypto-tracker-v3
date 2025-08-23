@@ -319,9 +319,7 @@ class ShadowConfig:
         return base_params
 
     @classmethod
-    def should_adjust_parameter(
-        cls, param_name: str, evidence: Dict
-    ) -> tuple[bool, float, str]:
+    def should_adjust_parameter(cls, param_name: str, evidence: Dict) -> tuple[bool, float, str]:
         """
         Determine if a parameter should be adjusted based on evidence
         Returns: (should_adjust, recommended_value, confidence_level)

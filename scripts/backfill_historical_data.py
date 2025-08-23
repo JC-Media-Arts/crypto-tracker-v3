@@ -37,9 +37,7 @@ class HistoricalDataBackfill:
         self.polygon_client = PolygonWebSocketClient()
         self.api_key = self.settings.polygon_api_key
         self.base_url = "https://api.polygon.io/v2"
-        self.rate_limit_delay = (
-            0.1  # Paid tier: Unlimited API calls, just a small delay to be nice
-        )
+        self.rate_limit_delay = 0.1  # Paid tier: Unlimited API calls, just a small delay to be nice
 
     def get_symbols(self) -> List[str]:
         """Get list of symbols to backfill from PolygonClient."""
@@ -90,9 +88,7 @@ class HistoricalDataBackfill:
             if response.status_code == 429:
                 logger.warning("Rate limit hit, waiting 60 seconds...")
                 time.sleep(60)
-                return self.fetch_aggregates(
-                    symbol, from_date, to_date, timespan, multiplier
-                )
+                return self.fetch_aggregates(symbol, from_date, to_date, timespan, multiplier)
 
             response.raise_for_status()
             data = response.json()
@@ -136,9 +132,7 @@ class HistoricalDataBackfill:
 
         return records
 
-    async def backfill_symbol(
-        self, symbol: str, months_back: int = 6, timespan: str = "minute"
-    ) -> Tuple[int, int]:
+    async def backfill_symbol(self, symbol: str, months_back: int = 6, timespan: str = "minute") -> Tuple[int, int]:
         """
         Backfill historical data for a single symbol.
 
@@ -220,9 +214,7 @@ class HistoricalDataBackfill:
         if symbols is None:
             symbols = self.get_symbols()
 
-        logger.info(
-            f"Starting backfill for {len(symbols)} symbols, {months_back} months back"
-        )
+        logger.info(f"Starting backfill for {len(symbols)} symbols, {months_back} months back")
         # With 30-day chunks and 0.1s delay, estimate is much faster
         chunks_per_symbol = (months_back * 30) // 30  # Number of 30-day chunks
         logger.info(
@@ -237,9 +229,7 @@ class HistoricalDataBackfill:
             logger.info(f"\n[{i}/{len(symbols)}] Processing {symbol}")
 
             try:
-                fetched, saved = await self.backfill_symbol(
-                    symbol=symbol, months_back=months_back, timespan=timespan
-                )
+                fetched, saved = await self.backfill_symbol(symbol=symbol, months_back=months_back, timespan=timespan)
                 total_fetched += fetched
                 total_saved += saved
 
@@ -251,9 +241,7 @@ class HistoricalDataBackfill:
         # Summary
         logger.info("\n" + "=" * 50)
         logger.info("BACKFILL COMPLETE")
-        logger.info(
-            f"Symbols processed: {len(symbols) - len(failed_symbols)}/{len(symbols)}"
-        )
+        logger.info(f"Symbols processed: {len(symbols) - len(failed_symbols)}/{len(symbols)}")
         logger.info(f"Total records fetched: {total_fetched:,}")
         logger.info(f"Total records saved: {total_saved:,}")
         if failed_symbols:
@@ -266,9 +254,7 @@ async def main():
     import argparse
 
     parser = argparse.ArgumentParser(description="Backfill historical crypto data")
-    parser.add_argument(
-        "--symbols", nargs="+", help="Specific symbols to backfill (e.g., BTC ETH SOL)"
-    )
+    parser.add_argument("--symbols", nargs="+", help="Specific symbols to backfill (e.g., BTC ETH SOL)")
     parser.add_argument(
         "--months",
         type=int,
@@ -300,9 +286,7 @@ async def main():
         symbols = args.symbols
         months = args.months
 
-    await backfiller.backfill_all(
-        symbols=symbols, months_back=months, timespan=args.timespan
-    )
+    await backfiller.backfill_all(symbols=symbols, months_back=months, timespan=args.timespan)
 
 
 if __name__ == "__main__":

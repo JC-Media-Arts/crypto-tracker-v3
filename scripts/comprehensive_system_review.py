@@ -41,9 +41,7 @@ class SystemReview:
         self.warnings = []
 
         # Add psql to PATH for direct database checks
-        os.environ["PATH"] = "/opt/homebrew/opt/postgresql@16/bin:" + os.environ.get(
-            "PATH", ""
-        )
+        os.environ["PATH"] = "/opt/homebrew/opt/postgresql@16/bin:" + os.environ.get("PATH", "")
 
     async def run_comprehensive_review(self):
         """Run all system checks and generate report."""
@@ -206,17 +204,11 @@ class SystemReview:
         try:
             # Check ohlc_today freshness
             result = (
-                self.db.client.table("ohlc_today")
-                .select("timestamp")
-                .order("timestamp", desc=True)
-                .limit(1)
-                .execute()
+                self.db.client.table("ohlc_today").select("timestamp").order("timestamp", desc=True).limit(1).execute()
             )
 
             if result.data:
-                latest = datetime.fromisoformat(
-                    result.data[0]["timestamp"].replace("Z", "+00:00")
-                )
+                latest = datetime.fromisoformat(result.data[0]["timestamp"].replace("Z", "+00:00"))
                 age_hours = (datetime.now(timezone.utc) - latest).total_seconds() / 3600
                 return age_hours < 24
             return False
@@ -251,13 +243,7 @@ class SystemReview:
             start = time.time()
 
             # Test query on materialized view
-            result = (
-                self.db.client.table("ohlc_recent")
-                .select("*")
-                .eq("symbol", "BTC")
-                .limit(100)
-                .execute()
-            )
+            result = self.db.client.table("ohlc_recent").select("*").eq("symbol", "BTC").limit(100).execute()
 
             elapsed = time.time() - start
             return elapsed < 0.5 and result.data is not None
@@ -281,9 +267,7 @@ class SystemReview:
 
             # Clean up test data
             if result.data:
-                self.db.client.table("health_metrics").delete().eq(
-                    "metric_name", "system_review_test"
-                ).execute()
+                self.db.client.table("health_metrics").delete().eq("metric_name", "system_review_test").execute()
 
             return result.data is not None
         except Exception:
@@ -303,9 +287,7 @@ class SystemReview:
                 return count >= 84
 
             # Fallback: check main table
-            result = (
-                self.db.client.table("ohlc_data").select("symbol").limit(1000).execute()
-            )
+            result = self.db.client.table("ohlc_data").select("symbol").limit(1000).execute()
 
             if result.data:
                 unique_symbols = set(r["symbol"] for r in result.data)
@@ -320,12 +302,8 @@ class SystemReview:
         try:
             result = await self.fetcher.get_latest_price("BTC", "1m")
             if result:
-                timestamp = datetime.fromisoformat(
-                    result["timestamp"].replace("Z", "+00:00")
-                )
-                age_minutes = (
-                    datetime.now(timezone.utc) - timestamp
-                ).total_seconds() / 60
+                timestamp = datetime.fromisoformat(result["timestamp"].replace("Z", "+00:00"))
+                age_minutes = (datetime.now(timezone.utc) - timestamp).total_seconds() / 60
                 return age_minutes < 5
             return False
         except Exception:
@@ -360,9 +338,7 @@ class SystemReview:
                 )
 
                 if result.data:
-                    timestamp = datetime.fromisoformat(
-                        result.data[0]["timestamp"].replace("Z", "+00:00")
-                    )
+                    timestamp = datetime.fromisoformat(result.data[0]["timestamp"].replace("Z", "+00:00"))
 
                     # Different freshness thresholds for different timeframes
                     if tf == "1d":
@@ -372,9 +348,7 @@ class SystemReview:
                     else:  # 15m
                         threshold_hours = 0.5
 
-                    age_hours = (
-                        datetime.now(timezone.utc) - timestamp
-                    ).total_seconds() / 3600
+                    age_hours = (datetime.now(timezone.utc) - timestamp).total_seconds() / 3600
                     if age_hours < threshold_hours:
                         fresh_count += 1
 
@@ -408,9 +382,7 @@ class SystemReview:
         try:
             # Test various fetcher methods
             latest = await self.fetcher.get_latest_price("ETH", "1m")
-            recent = await self.fetcher.get_recent_data(
-                "ETH", hours=24, timeframe="15m"
-            )
+            recent = await self.fetcher.get_recent_data("ETH", hours=24, timeframe="15m")
             ml_data = await self.fetcher.get_ml_features_data("ETH")
 
             return all(
@@ -476,9 +448,7 @@ class SystemReview:
             calc = FeatureCalculator()
 
             # Test feature calculation
-            features = await calc.calculate_features_for_symbol(
-                "BTC", lookback_hours=24
-            )
+            features = await calc.calculate_features_for_symbol("BTC", lookback_hours=24)
             return features is not None and not features.empty
         except Exception:
             return False
@@ -628,9 +598,7 @@ class SystemReview:
             sizer = AdaptivePositionSizer()
 
             # Test position sizing
-            size = sizer.calculate_position_size(
-                symbol="BTC", strategy="dca", confidence=0.75, account_balance=10000
-            )
+            size = sizer.calculate_position_size(symbol="BTC", strategy="dca", confidence=0.75, account_balance=10000)
 
             return size > 0 and size <= 10000
         except Exception:
@@ -651,9 +619,7 @@ class SystemReview:
             ]
 
             for symbol, strategy, confidence, balance in test_cases:
-                size = sizer.calculate_position_size(
-                    symbol, strategy, confidence, balance
-                )
+                size = sizer.calculate_position_size(symbol, strategy, confidence, balance)
                 if not (0 < size <= balance * 0.1):  # Max 10% per position
                     return False
 
@@ -762,11 +728,7 @@ class SystemReview:
             # Should use ohlc_data
             table3 = self.fetcher._select_table(now - timedelta(days=10))
 
-            return (
-                table1 == "ohlc_today"
-                and table2 == "ohlc_recent"
-                and table3 == "ohlc_data"
-            )
+            return table1 == "ohlc_today" and table2 == "ohlc_recent" and table3 == "ohlc_data"
         except Exception:
             return False
 
@@ -788,10 +750,7 @@ class SystemReview:
                 if full_path.exists():
                     with open(full_path, "r") as f:
                         content = f.read()
-                        if (
-                            "HybridDataFetcher" in content
-                            or "hybrid_fetcher" in content
-                        ):
+                        if "HybridDataFetcher" in content or "hybrid_fetcher" in content:
                             usage_count += 1
 
             return usage_count >= 2
@@ -860,9 +819,7 @@ class SystemReview:
             from src.ml.feature_calculator import FeatureCalculator
 
             calc = FeatureCalculator()
-            features = await calc.calculate_features_for_symbol(
-                "BTC", lookback_hours=24
-            )
+            features = await calc.calculate_features_for_symbol("BTC", lookback_hours=24)
             if features is None or features.empty:
                 return False
 
@@ -902,9 +859,7 @@ class SystemReview:
         total_checks = self.checks_passed + self.checks_failed
         pass_rate = (self.checks_passed / total_checks * 100) if total_checks > 0 else 0
 
-        print(
-            f"\n{Fore.GREEN}Passed: {self.checks_passed}/{total_checks} ({pass_rate:.1f}%)"
-        )
+        print(f"\n{Fore.GREEN}Passed: {self.checks_passed}/{total_checks} ({pass_rate:.1f}%)")
         print(f"{Fore.RED}Failed: {self.checks_failed}/{total_checks}")
 
         if self.warnings:
@@ -948,19 +903,13 @@ class SystemReview:
             recommendations = []
 
             if self.checks_failed > 0:
-                recommendations.append(
-                    "1. Review failed checks above and fix root causes"
-                )
-                recommendations.append(
-                    "2. Run scripts/test_hybrid_integration.py to verify fixes"
-                )
+                recommendations.append("1. Review failed checks above and fix root causes")
+                recommendations.append("2. Run scripts/test_hybrid_integration.py to verify fixes")
                 recommendations.append("3. Check logs for detailed error messages")
                 recommendations.append("4. Re-run this review after fixes")
 
             if any("view" in w.lower() for w in self.warnings):
-                recommendations.append(
-                    "5. Ensure materialized views are created and refreshed"
-                )
+                recommendations.append("5. Ensure materialized views are created and refreshed")
 
             if any("model" in w.lower() for w in self.warnings):
                 recommendations.append("6. Train ML models if not already done")

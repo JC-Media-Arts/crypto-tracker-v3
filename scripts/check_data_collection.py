@@ -22,9 +22,7 @@ console = Console()
 
 def check_data_collection():
     """Check what data we're collecting."""
-    console.print(
-        "\n[bold cyan]Crypto Tracker v3 - Data Collection Status[/bold cyan]\n"
-    )
+    console.print("\n[bold cyan]Crypto Tracker v3 - Data Collection Status[/bold cyan]\n")
 
     # Get settings and connect to Supabase
     try:
@@ -40,10 +38,7 @@ def check_data_collection():
     try:
         # Get recent price data
         response = (
-            client.table("price_data")
-            .select("symbol, timestamp, price")
-            .gte("timestamp", ten_minutes_ago)
-            .execute()
+            client.table("price_data").select("symbol, timestamp, price").gte("timestamp", ten_minutes_ago).execute()
         )
 
         # Process data to get unique symbols and counts
@@ -58,10 +53,7 @@ def check_data_collection():
                 }
 
             symbol_data[symbol]["count"] += 1
-            if (
-                not symbol_data[symbol]["latest_time"]
-                or record["timestamp"] > symbol_data[symbol]["latest_time"]
-            ):
+            if not symbol_data[symbol]["latest_time"] or record["timestamp"] > symbol_data[symbol]["latest_time"]:
                 symbol_data[symbol]["latest_price"] = float(record["price"])
                 symbol_data[symbol]["latest_time"] = record["timestamp"]
 
@@ -82,9 +74,7 @@ def check_data_collection():
         for symbol, data in sorted_symbols[:20]:  # Show first 20
             # Format time
             if data["latest_time"]:
-                last_update = datetime.fromisoformat(
-                    data["latest_time"].replace("Z", "+00:00")
-                )
+                last_update = datetime.fromisoformat(data["latest_time"].replace("Z", "+00:00"))
                 time_ago = (datetime.now(timezone.utc) - last_update).total_seconds()
                 if time_ago < 60:
                     time_str = f"{int(time_ago)}s ago"
@@ -93,9 +83,7 @@ def check_data_collection():
             else:
                 time_str = "N/A"
 
-            table.add_row(
-                symbol, f"${data['latest_price']:,.2f}", str(data["count"]), time_str
-            )
+            table.add_row(symbol, f"${data['latest_price']:,.2f}", str(data["count"]), time_str)
 
         console.print(table)
 
@@ -122,9 +110,7 @@ def check_data_collection():
         missing = [s for s in expected_symbols if s not in collected_symbols]
 
         if missing:
-            console.print(
-                f"\n[yellow]Missing symbols from top 10: {', '.join(missing)}[/yellow]"
-            )
+            console.print(f"\n[yellow]Missing symbols from top 10: {', '.join(missing)}[/yellow]")
         else:
             console.print("\n[green]✓ All top 10 symbols are being collected![/green]")
 

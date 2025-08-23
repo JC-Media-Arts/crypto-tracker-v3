@@ -123,12 +123,8 @@ def demo_position_sizing():
         logger.info(f"Symbol: {scenario['symbol']}")
         logger.info(f"Market Conditions:")
         logger.info(f"  - BTC Regime: {scenario['market_data']['btc_regime']}")
-        logger.info(
-            f"  - Volatility: {scenario['market_data']['btc_volatility_7d']:.1%}"
-        )
-        logger.info(
-            f"  - vs BTC (7d): {scenario['market_data']['symbol_vs_btc_7d']:+.1f}%"
-        )
+        logger.info(f"  - Volatility: {scenario['market_data']['btc_volatility_7d']:.1%}")
+        logger.info(f"  - vs BTC (7d): {scenario['market_data']['symbol_vs_btc_7d']:+.1f}%")
         logger.info(f"  - ML Confidence: {scenario['ml_confidence']:.1%}")
 
         logger.info(f"\nMultipliers Applied:")
@@ -142,9 +138,7 @@ def demo_position_sizing():
         logger.info(f"  - TOTAL:          {total_multiplier:.2f}x")
 
         logger.info(f"\n💰 POSITION SIZE: ${size:.2f}")
-        logger.info(
-            f"   (Base ${config.base_position_usd:.0f} × {total_multiplier:.2f} = ${size:.2f})"
-        )
+        logger.info(f"   (Base ${config.base_position_usd:.0f} × {total_multiplier:.2f} = ${size:.2f})")
         logger.info(f"   Portfolio %: {(size/portfolio_value)*100:.1f}%")
 
         results.append(

@@ -110,9 +110,7 @@ class SingletonWebSocket:
 
                 if self.reconnect_attempts < self.max_reconnect_attempts:
                     wait_time = min(60, 5 * self.reconnect_attempts)
-                    logger.info(
-                        f"Retrying in {wait_time} seconds... (attempt {self.reconnect_attempts})"
-                    )
+                    logger.info(f"Retrying in {wait_time} seconds... (attempt {self.reconnect_attempts})")
                     await asyncio.sleep(wait_time)
                     return await self.connect()
                 else:
@@ -145,9 +143,7 @@ class SingletonWebSocket:
             try:
                 await self.connection.send(json.dumps(subscribe_msg))
                 self.subscribed_symbols.update(batch)
-                logger.info(
-                    f"✅ Subscribed to {len(batch)} symbols (Total: {len(self.subscribed_symbols)})"
-                )
+                logger.info(f"✅ Subscribed to {len(batch)} symbols (Total: {len(self.subscribed_symbols)})")
                 await asyncio.sleep(0.1)  # Small delay between batches
             except Exception as e:
                 logger.error(f"❌ Subscribe failed: {e}")

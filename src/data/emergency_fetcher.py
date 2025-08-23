@@ -59,9 +59,7 @@ class EmergencyDataFetcher:
             logger.error(f"Emergency fetch failed for {symbol}: {e}")
             return None
 
-    async def get_recent_data_emergency(
-        self, symbol: str, hours: int = 24
-    ) -> List[Dict]:
+    async def get_recent_data_emergency(self, symbol: str, hours: int = 24) -> List[Dict]:
         """
         Get recent data with aggressive limits to avoid timeout.
         """

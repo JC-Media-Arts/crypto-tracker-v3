@@ -80,13 +80,7 @@ async def final_production_check():
 
     # 6. Data coverage
     cutoff = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
-    result = (
-        db.client.table("ohlc_data")
-        .select("symbol")
-        .gte("timestamp", cutoff)
-        .limit(10000)
-        .execute()
-    )
+    result = db.client.table("ohlc_data").select("symbol").gte("timestamp", cutoff).limit(10000).execute()
 
     if result.data:
         unique_symbols = set(r["symbol"] for r in result.data)

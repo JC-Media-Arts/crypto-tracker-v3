@@ -31,9 +31,7 @@ class SimpleAdaptiveGridTester:
         self.load_ml_model()
 
         # Initialize position sizer
-        config = PositionSizingConfig(
-            base_position_usd=100.0, max_position_pct=0.05, min_position_usd=25.0
-        )
+        config = PositionSizingConfig(base_position_usd=100.0, max_position_pct=0.05, min_position_usd=25.0)
         self.position_sizer = AdaptivePositionSizer(config)
 
     def load_ml_model(self):
@@ -190,22 +188,14 @@ class SimpleAdaptiveGridTester:
         logger.info(f"  Win Probability: {predictions['win_probability']*100:.1f}%")
 
         # Calculate adaptive position size
-        btc_regime_val = (
-            features_df["btc_regime"].iloc[0]
-            if "btc_regime" in features_df.columns
-            else 0
-        )
+        btc_regime_val = features_df["btc_regime"].iloc[0] if "btc_regime" in features_df.columns else 0
         market_data = {
             "btc_regime": ["BEAR", "NEUTRAL", "BULL"][int(btc_regime_val) + 1],
             "symbol_volatility": (
-                features_df["btc_volatility_7d"].iloc[0]
-                if "btc_volatility_7d" in features_df.columns
-                else 0.04
+                features_df["btc_volatility_7d"].iloc[0] if "btc_volatility_7d" in features_df.columns else 0.04
             ),
             "symbol_vs_btc_7d": (
-                features_df["symbol_vs_btc_7d"].iloc[0]
-                if "symbol_vs_btc_7d" in features_df.columns
-                else 0.0
+                features_df["symbol_vs_btc_7d"].iloc[0] if "symbol_vs_btc_7d" in features_df.columns else 0.0
             ),
             "market_cap_tier": "mid",
         }
@@ -250,12 +240,8 @@ class SimpleAdaptiveGridTester:
         logger.info(f"\n📈 DCA Grid:")
         logger.info(f"  Entry: ${entry_price:.2f}")
         logger.info(f"  Investment: ${grid['total_investment']:.2f}")
-        logger.info(
-            f"  TP: ${grid.get('take_profit', entry_price * 1.1):.2f} (+{predictions['take_profit']*100:.1f}%)"
-        )
-        logger.info(
-            f"  SL: ${grid.get('stop_loss', entry_price * 0.9):.2f} ({predictions['stop_loss']*100:.1f}%)"
-        )
+        logger.info(f"  TP: ${grid.get('take_profit', entry_price * 1.1):.2f} (+{predictions['take_profit']*100:.1f}%)")
+        logger.info(f"  SL: ${grid.get('stop_loss', entry_price * 0.9):.2f} ({predictions['stop_loss']*100:.1f}%)")
 
         logger.info(f"\n  Levels:")
         for i, level in enumerate(grid["levels"], 1):
@@ -264,25 +250,17 @@ class SimpleAdaptiveGridTester:
         # Calculate expected value
         avg_price = grid.get("average_entry", entry_price)
         total_coins = grid["total_investment"] / avg_price
-        tp_price = grid.get(
-            "take_profit", entry_price * (1 + predictions["take_profit"])
-        )
+        tp_price = grid.get("take_profit", entry_price * (1 + predictions["take_profit"]))
         sl_price = grid.get("stop_loss", entry_price * (1 + predictions["stop_loss"]))
         tp_profit = (total_coins * tp_price) - grid["total_investment"]
         sl_loss = (total_coins * sl_price) - grid["total_investment"]
 
-        ev = (predictions["win_probability"] * tp_profit) + (
-            (1 - predictions["win_probability"]) * sl_loss
-        )
+        ev = (predictions["win_probability"] * tp_profit) + ((1 - predictions["win_probability"]) * sl_loss)
         ev_pct = (ev / grid["total_investment"]) * 100
 
         logger.info(f"\n📊 Expected Value:")
-        logger.info(
-            f"  Win: ${tp_profit:.2f} ({tp_profit/grid['total_investment']*100:.1f}%)"
-        )
-        logger.info(
-            f"  Loss: ${sl_loss:.2f} ({sl_loss/grid['total_investment']*100:.1f}%)"
-        )
+        logger.info(f"  Win: ${tp_profit:.2f} ({tp_profit/grid['total_investment']*100:.1f}%)")
+        logger.info(f"  Loss: ${sl_loss:.2f} ({sl_loss/grid['total_investment']*100:.1f}%)")
         logger.info(f"  EV: ${ev:.2f} ({ev_pct:.1f}%)")
         logger.info(f"  Risk/Reward: {abs(tp_profit/sl_loss):.2f}:1")
 
@@ -325,9 +303,7 @@ def main():
     for result in results:
         logger.info(f"\n{result['symbol']} ({result['scenario']}):")
         logger.info(f"  Position: ${result['position_size']:.2f}")
-        logger.info(
-            f"  Confidence: {result['predictions']['win_probability']*100:.0f}%"
-        )
+        logger.info(f"  Confidence: {result['predictions']['win_probability']*100:.0f}%")
         logger.info(f"  Expected Value: ${result['expected_value']:.2f}")
 
     logger.info(f"\n✅ ML-Adaptive Grid Generation Working!")

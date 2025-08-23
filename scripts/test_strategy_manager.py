@@ -192,8 +192,7 @@ class StrategyManagerTest:
         if resolved:
             winner = resolved[0]
             logger.info(
-                f"Winner: {winner.symbol} - {winner.strategy_type.value} "
-                f"(confidence: {winner.confidence:.2f})"
+                f"Winner: {winner.symbol} - {winner.strategy_type.value} " f"(confidence: {winner.confidence:.2f})"
             )
 
     async def test_capital_constraints(self):
@@ -269,12 +268,8 @@ class StrategyManagerTest:
         status = self.manager.get_status()
         logger.info(f"\nUpdated status:")
         logger.info(f"  Active positions: {status['active_positions']}")
-        logger.info(
-            f"  DCA capital used: ${status['capital_allocation']['dca_used']:.2f}"
-        )
-        logger.info(
-            f"  Swing capital used: ${status['capital_allocation']['swing_used']:.2f}"
-        )
+        logger.info(f"  DCA capital used: ${status['capital_allocation']['dca_used']:.2f}")
+        logger.info(f"  Swing capital used: ${status['capital_allocation']['swing_used']:.2f}")
 
     async def test_performance_tracking(self):
         """Test performance tracking and updates"""

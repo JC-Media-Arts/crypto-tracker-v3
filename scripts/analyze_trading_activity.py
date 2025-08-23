@@ -23,15 +23,9 @@ from src.strategies.channel.detector import ChannelDetector
 class TradingActivityAnalyzer:
     def __init__(self):
         self.supabase = SupabaseClient()
-        self.dca_detector = DCADetector(
-            {"drop_threshold": -5.0, "rsi_oversold": 30, "min_volume_ratio": 1.5}
-        )
-        self.swing_detector = SwingDetector(
-            {"breakout_threshold": 2.0, "volume_surge_min": 2.0, "momentum_period": 14}
-        )
-        self.channel_detector = ChannelDetector(
-            {"channel_period": 20, "min_touches": 3, "channel_width_min": 2.0}
-        )
+        self.dca_detector = DCADetector({"drop_threshold": -5.0, "rsi_oversold": 30, "min_volume_ratio": 1.5})
+        self.swing_detector = SwingDetector({"breakout_threshold": 2.0, "volume_surge_min": 2.0, "momentum_period": 14})
+        self.channel_detector = ChannelDetector({"channel_period": 20, "min_touches": 3, "channel_width_min": 2.0})
 
         # Symbols to analyze
         self.symbols = [
@@ -98,9 +92,7 @@ class TradingActivityAnalyzer:
         rsi = self._calculate_rsi(closes) if len(closes) >= 14 else 50
 
         # Volume analysis
-        recent_volume = sum(bar.get("volume", 0) for bar in recent_data) / len(
-            recent_data
-        )
+        recent_volume = sum(bar.get("volume", 0) for bar in recent_data) / len(recent_data)
         avg_volume = sum(bar.get("volume", 0) for bar in data) / len(data)
         volume_ratio = recent_volume / avg_volume if avg_volume > 0 else 1
 
@@ -110,22 +102,12 @@ class TradingActivityAnalyzer:
         volume_threshold = 1.5
 
         # Calculate how close we are
-        drop_distance = (
-            abs(drop_pct - drop_threshold) if drop_pct > drop_threshold else 0
-        )
+        drop_distance = abs(drop_pct - drop_threshold) if drop_pct > drop_threshold else 0
         rsi_distance = abs(rsi - rsi_threshold) if rsi > rsi_threshold else 0
-        volume_distance = (
-            abs(volume_ratio - volume_threshold)
-            if volume_ratio < volume_threshold
-            else 0
-        )
+        volume_distance = abs(volume_ratio - volume_threshold) if volume_ratio < volume_threshold else 0
 
         # Would trigger?
-        would_trigger = (
-            drop_pct <= drop_threshold
-            and rsi <= rsi_threshold
-            and volume_ratio >= volume_threshold
-        )
+        would_trigger = drop_pct <= drop_threshold and rsi <= rsi_threshold and volume_ratio >= volume_threshold
 
         return {
             "status": "analyzed",
@@ -155,11 +137,7 @@ class TradingActivityAnalyzer:
         # Check for breakout above 20-period high
         highs = [bar.get("high", 0) for bar in data[-20:]]
         period_high = max(highs[:-1])  # Exclude current bar
-        breakout_pct = (
-            ((current_price - period_high) / period_high) * 100
-            if period_high > 0
-            else 0
-        )
+        breakout_pct = ((current_price - period_high) / period_high) * 100 if period_high > 0 else 0
 
         # Volume surge
         current_volume = latest.get("volume", 0)
@@ -179,25 +157,13 @@ class TradingActivityAnalyzer:
         momentum_threshold = 3.0  # 3% gain in 5 bars
 
         # Calculate distances
-        breakout_distance = (
-            abs(breakout_pct - breakout_threshold)
-            if breakout_pct < breakout_threshold
-            else 0
-        )
-        volume_distance = (
-            abs(volume_surge - volume_threshold)
-            if volume_surge < volume_threshold
-            else 0
-        )
-        momentum_distance = (
-            abs(momentum - momentum_threshold) if momentum < momentum_threshold else 0
-        )
+        breakout_distance = abs(breakout_pct - breakout_threshold) if breakout_pct < breakout_threshold else 0
+        volume_distance = abs(volume_surge - volume_threshold) if volume_surge < volume_threshold else 0
+        momentum_distance = abs(momentum - momentum_threshold) if momentum < momentum_threshold else 0
 
         # Would trigger?
         would_trigger = (
-            breakout_pct >= breakout_threshold
-            and volume_surge >= volume_threshold
-            and momentum >= momentum_threshold
+            breakout_pct >= breakout_threshold and volume_surge >= volume_threshold and momentum >= momentum_threshold
         )
 
         return {
@@ -231,15 +197,11 @@ class TradingActivityAnalyzer:
         channel_high = np.percentile(highs, 75)
         channel_low = np.percentile(lows, 25)
         channel_mid = (channel_high + channel_low) / 2
-        channel_width = (
-            ((channel_high - channel_low) / channel_mid) * 100 if channel_mid > 0 else 0
-        )
+        channel_width = ((channel_high - channel_low) / channel_mid) * 100 if channel_mid > 0 else 0
 
         # Position in channel (0 = bottom, 1 = top)
         if channel_high > channel_low:
-            position_in_channel = (current_price - channel_low) / (
-                channel_high - channel_low
-            )
+            position_in_channel = (current_price - channel_low) / (channel_high - channel_low)
         else:
             position_in_channel = 0.5
 
@@ -253,9 +215,7 @@ class TradingActivityAnalyzer:
         max_channel_width = 10.0  # Not more than 10% wide (not ranging if too wide)
 
         # Would trigger?
-        would_trigger = min_channel_width <= channel_width <= max_channel_width and (
-            near_top or near_bottom
-        )
+        would_trigger = min_channel_width <= channel_width <= max_channel_width and (near_top or near_bottom)
 
         return {
             "status": "analyzed",
@@ -325,12 +285,8 @@ class TradingActivityAnalyzer:
                     print(f"  ✅ DCA: WOULD TRIGGER NOW!")
                 else:
                     print(f"  ❌ DCA: Not ready")
-                    print(
-                        f"     Drop: {dca_analysis['drop_pct']:.2f}% (need ≤ {dca_analysis['drop_threshold']:.1f}%)"
-                    )
-                    print(
-                        f"     RSI: {dca_analysis['rsi']:.1f} (need ≤ {dca_analysis['rsi_threshold']})"
-                    )
+                    print(f"     Drop: {dca_analysis['drop_pct']:.2f}% (need ≤ {dca_analysis['drop_threshold']:.1f}%)")
+                    print(f"     RSI: {dca_analysis['rsi']:.1f} (need ≤ {dca_analysis['rsi_threshold']})")
                     print(
                         f"     Volume: {dca_analysis['volume_ratio']:.2f}x (need ≥ {dca_analysis['volume_threshold']:.1f}x)"
                     )
@@ -389,19 +345,13 @@ class TradingActivityAnalyzer:
                     position_desc = (
                         "near top"
                         if channel_analysis["near_top"]
-                        else (
-                            "near bottom"
-                            if channel_analysis["near_bottom"]
-                            else "in middle"
-                        )
+                        else ("near bottom" if channel_analysis["near_bottom"] else "in middle")
                     )
                     print(f"  ❌ Channel: Not ready")
                     print(
                         f"     Width: {channel_analysis['channel_width']:.2f}% (need {channel_analysis['min_width']:.1f}-{channel_analysis['max_width']:.1f}%)"
                     )
-                    print(
-                        f"     Position: {position_desc} ({channel_analysis['position_in_channel']:.2f})"
-                    )
+                    print(f"     Position: {position_desc} ({channel_analysis['position_in_channel']:.2f})")
 
                     # Track near misses if channel width is good but position isn't
                     if (
@@ -429,19 +379,13 @@ class TradingActivityAnalyzer:
 
         for strategy in ["DCA", "Swing", "Channel"]:
             if near_misses[strategy]:
-                sorted_misses = sorted(
-                    near_misses[strategy], key=lambda x: x["distance"]
-                )
+                sorted_misses = sorted(near_misses[strategy], key=lambda x: x["distance"])
                 print(f"\n{strategy} Strategy - Top 5 Closest:")
                 for i, miss in enumerate(sorted_misses[:5], 1):
-                    print(
-                        f"  {i}. {miss['symbol']} - Distance score: {miss['distance']:.2f}"
-                    )
+                    print(f"  {i}. {miss['symbol']} - Distance score: {miss['distance']:.2f}")
                     if strategy == "DCA":
                         d = miss["details"]
-                        print(
-                            f"     Just need: Drop to {d['drop_threshold']}% (currently {d['drop_pct']:.2f}%)"
-                        )
+                        print(f"     Just need: Drop to {d['drop_threshold']}% (currently {d['drop_pct']:.2f}%)")
                     elif strategy == "Swing":
                         d = miss["details"]
                         print(
@@ -468,9 +412,7 @@ class TradingActivityAnalyzer:
         btc_data = self.fetch_recent_data("BTC", hours=24)
         if btc_data:
             btc_prices = [bar.get("close", 0) for bar in btc_data]
-            btc_volatility = (
-                np.std(btc_prices) / np.mean(btc_prices) * 100 if btc_prices else 0
-            )
+            btc_volatility = np.std(btc_prices) / np.mean(btc_prices) * 100 if btc_prices else 0
             print(f"BTC 24h Volatility: {btc_volatility:.2f}%")
 
             if btc_volatility < 1:
@@ -486,7 +428,7 @@ class TradingActivityAnalyzer:
 
         print(
             """
-1. CURRENT MARKET: Based on the analysis, the market appears to be in a 
+1. CURRENT MARKET: Based on the analysis, the market appears to be in a
    consolidation phase with limited volatility, which explains fewer triggers.
 
 2. THRESHOLD ADJUSTMENTS: Consider these temporary adjustments for testing:

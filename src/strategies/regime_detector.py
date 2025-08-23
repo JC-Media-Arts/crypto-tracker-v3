@@ -132,22 +132,16 @@ class RegimeDetector:
 
         return regime
 
-    def _log_regime_change(
-        self, new_regime: MarketRegime, btc_1h: float, btc_4h: Optional[float]
-    ):
+    def _log_regime_change(self, new_regime: MarketRegime, btc_1h: float, btc_4h: Optional[float]):
         """Log regime changes with appropriate severity"""
         btc_4h_str = f"{btc_4h:.1f}%" if btc_4h is not None else "N/A"
 
         if new_regime == MarketRegime.PANIC:
             logger.error(f"🚨 MARKET PANIC! BTC 1h: {btc_1h:.1f}%, 4h: {btc_4h_str}")
         elif new_regime == MarketRegime.CAUTION:
-            logger.warning(
-                f"⚠️ MARKET CAUTION! BTC 1h: {btc_1h:.1f}%, 4h: {btc_4h_str}"
-            )
+            logger.warning(f"⚠️ MARKET CAUTION! BTC 1h: {btc_1h:.1f}%, 4h: {btc_4h_str}")
         elif new_regime == MarketRegime.EUPHORIA:
-            logger.warning(
-                f"🚀 MARKET EUPHORIA! BTC 1h: {btc_1h:.1f}%, 4h: {btc_4h_str}"
-            )
+            logger.warning(f"🚀 MARKET EUPHORIA! BTC 1h: {btc_1h:.1f}%, 4h: {btc_4h_str}")
         else:
             logger.info(f"✅ MARKET NORMAL. BTC 1h: {btc_1h:.1f}%, 4h: {btc_4h_str}")
 

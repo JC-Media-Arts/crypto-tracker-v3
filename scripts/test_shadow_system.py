@@ -74,19 +74,13 @@ class ShadowSystemTester:
         try:
             # Check active variations
             active_variations = ShadowConfig.get_active_variations()
-            assert (
-                len(active_variations) == 8
-            ), f"Expected 8 variations, got {len(active_variations)}"
+            assert len(active_variations) == 8, f"Expected 8 variations, got {len(active_variations)}"
 
             # Check database configuration
-            result = (
-                self.supabase.client.table("shadow_configuration").select("*").execute()
-            )
+            result = self.supabase.client.table("shadow_configuration").select("*").execute()
 
             assert result.data, "No shadow configurations in database"
-            assert (
-                len(result.data) >= 8
-            ), f"Expected at least 8 configurations, got {len(result.data)}"
+            assert len(result.data) >= 8, f"Expected at least 8 configurations, got {len(result.data)}"
 
             # Verify each variation
             for var_name in active_variations:
@@ -130,25 +124,16 @@ class ShadowSystemTester:
             )
 
             assert decisions, "No shadow decisions generated"
-            assert (
-                len(decisions) >= 5
-            ), f"Expected at least 5 decisions, got {len(decisions)}"
+            assert len(decisions) >= 5, f"Expected at least 5 decisions, got {len(decisions)}"
 
             # Verify decisions were logged
             await self.shadow_logger.flush()
 
             # Check database
-            result = (
-                self.supabase.client.table("shadow_variations")
-                .select("*")
-                .eq("scan_id", mock_scan_id)
-                .execute()
-            )
+            result = self.supabase.client.table("shadow_variations").select("*").eq("scan_id", mock_scan_id).execute()
 
             assert result.data, "Shadow variations not saved to database"
-            assert (
-                len(result.data) >= 5
-            ), f"Expected at least 5 variations saved, got {len(result.data)}"
+            assert len(result.data) >= 5, f"Expected at least 5 variations saved, got {len(result.data)}"
 
             # Check consensus calculation
             consensus = self.shadow_logger.get_shadow_consensus(decisions)
@@ -218,9 +203,7 @@ class ShadowSystemTester:
             assert "24h" in performance, "Missing 24h timeframe"
 
             # Get top performers
-            top_performers = await self.shadow_analyzer.get_top_performers(
-                "7d", top_n=3
-            )
+            top_performers = await self.shadow_analyzer.get_top_performers("7d", top_n=3)
             logger.info(f"Found {len(top_performers)} top performers")
 
             # Generate recommendations
@@ -268,9 +251,7 @@ class ShadowSystemTester:
             )
 
             # Test safety checks (should pass)
-            results = await self.threshold_manager.process_recommendations(
-                [mock_rec], force=True
-            )
+            results = await self.threshold_manager.process_recommendations([mock_rec], force=True)
 
             assert results, "No adjustment results returned"
             assert len(results) == 1, f"Expected 1 result, got {len(results)}"
@@ -304,9 +285,7 @@ class ShadowSystemTester:
                 logger.info(f"{strategy} Strategy:")
                 logger.info(f"  Real trades: {stats.get('real_trades', 0)}")
                 logger.info(f"  Shadow trades: {stats.get('shadow_trades', 0)}")
-                logger.info(
-                    f"  Effective samples: {stats.get('effective_samples', 0):.1f}"
-                )
+                logger.info(f"  Effective samples: {stats.get('effective_samples', 0):.1f}")
                 logger.info(f"  Can retrain: {should_retrain}")
 
                 # Verify calculation
@@ -337,24 +316,15 @@ class ShadowSystemTester:
             ]
 
             for view_name in views_to_test:
-                result = (
-                    self.supabase.client.table(view_name).select("*").limit(1).execute()
-                )
+                result = self.supabase.client.table(view_name).select("*").limit(1).execute()
                 logger.info(f"  View {view_name}: ✓")
 
             # Test functions
-            result = self.supabase.client.rpc(
-                "get_shadows_ready_for_evaluation"
-            ).execute()
+            result = self.supabase.client.rpc("get_shadows_ready_for_evaluation").execute()
             logger.info(f"  Function get_shadows_ready_for_evaluation: ✓")
 
             # Test shadow weight calculation (if we have outcomes)
-            outcome_result = (
-                self.supabase.client.table("shadow_outcomes")
-                .select("outcome_id")
-                .limit(1)
-                .execute()
-            )
+            outcome_result = self.supabase.client.table("shadow_outcomes").select("outcome_id").limit(1).execute()
 
             if outcome_result.data:
                 outcome_id = outcome_result.data[0]["outcome_id"]

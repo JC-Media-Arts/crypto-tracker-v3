@@ -113,12 +113,8 @@ class IntegrationTester:
             latest = await self.fetcher.get_latest_price("BTC", "1m")
 
             if latest:
-                timestamp = datetime.fromisoformat(
-                    latest["timestamp"].replace("Z", "+00:00")
-                )
-                age_minutes = (
-                    datetime.utcnow() - timestamp.replace(tzinfo=None)
-                ).total_seconds() / 60
+                timestamp = datetime.fromisoformat(latest["timestamp"].replace("Z", "+00:00"))
+                age_minutes = (datetime.utcnow() - timestamp.replace(tzinfo=None)).total_seconds() / 60
 
                 if age_minutes < 5:
                     print(f"  ✅ Data is fresh ({age_minutes:.1f} minutes old)")
@@ -147,9 +143,7 @@ class IntegrationTester:
             success_count = 0
 
             for symbol in symbols:
-                features = await calc.calculate_features_for_symbol(
-                    symbol, lookback_hours=24
-                )
+                features = await calc.calculate_features_for_symbol(symbol, lookback_hours=24)
 
                 if features is not None and not features.empty:
                     success_count += 1
@@ -225,14 +219,10 @@ class IntegrationTester:
                                 "symbol": symbol,
                                 "strategy": "dca",
                                 "confidence": prediction["confidence"],
-                                "predicted_return": prediction.get(
-                                    "predicted_return", 0
-                                ),
+                                "predicted_return": prediction.get("predicted_return", 0),
                             }
                         )
-                        print(
-                            f"  ✅ {symbol} DCA: confidence={prediction['confidence']:.2f}"
-                        )
+                        print(f"  ✅ {symbol} DCA: confidence={prediction['confidence']:.2f}")
                 except Exception:
                     pass
 
@@ -247,14 +237,10 @@ class IntegrationTester:
                                 "symbol": symbol,
                                 "strategy": "swing",
                                 "confidence": prediction["confidence"],
-                                "predicted_return": prediction.get(
-                                    "predicted_return", 0
-                                ),
+                                "predicted_return": prediction.get("predicted_return", 0),
                             }
                         )
-                        print(
-                            f"  ✅ {symbol} Swing: confidence={prediction['confidence']:.2f}"
-                        )
+                        print(f"  ✅ {symbol} Swing: confidence={prediction['confidence']:.2f}")
                 except Exception:
                     pass
 
@@ -293,9 +279,7 @@ class IntegrationTester:
                     signal["position_pct"] = (size / account_balance) * 100
                     sized_signals.append(signal)
 
-                    print(
-                        f"  ✅ {signal['symbol']}: ${size:.2f} ({signal['position_pct']:.1f}% of account)"
-                    )
+                    print(f"  ✅ {signal['symbol']}: ${size:.2f} ({signal['position_pct']:.1f}% of account)")
 
             if sized_signals:
                 return sized_signals
@@ -358,8 +342,7 @@ class IntegrationTester:
                             "symbol": signal["symbol"],
                             "strategy": signal["strategy"],
                             "action": "buy",
-                            "quantity": signal["position_size"]
-                            / 50000,  # Mock BTC price
+                            "quantity": signal["position_size"] / 50000,  # Mock BTC price
                             "price": 50000,
                             "timestamp": datetime.utcnow().isoformat(),
                         }
@@ -368,9 +351,7 @@ class IntegrationTester:
                         print(f"  ✅ Executed: {trade['symbol']} {trade['strategy']}")
 
                     except Exception as e:
-                        print(
-                            f"  ⚠️  Failed to execute {signal['symbol']}: {str(e)[:50]}"
-                        )
+                        print(f"  ⚠️  Failed to execute {signal['symbol']}: {str(e)[:50]}")
 
             return executed_trades if executed_trades else []
 
@@ -509,17 +490,10 @@ class IntegrationTester:
             return False
 
         # Test read
-        read_result = (
-            self.db.client.table("health_metrics")
-            .select("*")
-            .eq("metric_name", "integration_test")
-            .execute()
-        )
+        read_result = self.db.client.table("health_metrics").select("*").eq("metric_name", "integration_test").execute()
 
         # Clean up
-        self.db.client.table("health_metrics").delete().eq(
-            "metric_name", "integration_test"
-        ).execute()
+        self.db.client.table("health_metrics").delete().eq("metric_name", "integration_test").execute()
 
         return read_result.data is not None
 
@@ -586,9 +560,7 @@ async def main():
         print(f"\n{Fore.GREEN}All integration tests passed! ✅")
         return 0
     else:
-        print(
-            f"\n{Fore.YELLOW}Some integration tests failed. Review the results above."
-        )
+        print(f"\n{Fore.YELLOW}Some integration tests failed. Review the results above.")
         return 1
 
 

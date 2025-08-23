@@ -58,9 +58,7 @@ async def test_hybrid_fetcher():
     elapsed = time.time() - start
 
     if ml_data and ml_data["has_data"]:
-        print(
-            f"   ✅ SOL ML data: {len(ml_data['1h'])} hourly, {len(ml_data['15m'])} 15-min records"
-        )
+        print(f"   ✅ SOL ML data: {len(ml_data['1h'])} hourly, {len(ml_data['15m'])} 15-min records")
         print(f"   Time: {elapsed:.3f}s")
     else:
         print(f"   ❌ Failed to get ML data")
@@ -68,9 +66,7 @@ async def test_hybrid_fetcher():
     # Test 4: Batch signals
     print("\n4. Testing get_trading_signals_batch()...")
     start = time.time()
-    signals = await fetcher.get_trading_signals_batch(
-        ["BTC", "ETH", "SOL", "AVAX", "MATIC"]
-    )
+    signals = await fetcher.get_trading_signals_batch(["BTC", "ETH", "SOL", "AVAX", "MATIC"])
     elapsed = time.time() - start
 
     success_count = sum(1 for s in signals.values() if s.get("has_data"))
@@ -192,9 +188,7 @@ async def main():
 
         print("\n⚠️  IMPORTANT REMINDER:")
         print("Set up daily refresh of materialized views:")
-        print(
-            "  1. Add to crontab: 0 2 * * * python3 scripts/refresh_materialized_views.py"
-        )
+        print("  1. Add to crontab: 0 2 * * * python3 scripts/refresh_materialized_views.py")
         print("  2. Or run manually: python3 scripts/refresh_materialized_views.py")
     else:
         print("\n⚠️  Some tests failed. Check the errors above.")

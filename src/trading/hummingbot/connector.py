@@ -66,9 +66,7 @@ class HummingbotConnector:
         try:
             # Check if Hummingbot container exists
             if not self._check_container():
-                logger.error(
-                    "Hummingbot container not found. Please run setup_hummingbot.sh first."
-                )
+                logger.error("Hummingbot container not found. Please run setup_hummingbot.sh first.")
                 return False
 
             # Start container if not running
@@ -116,9 +114,7 @@ class HummingbotConnector:
             return False
 
         try:
-            self.hummingbot_container = self.docker_client.containers.get(
-                self.config["container_name"]
-            )
+            self.hummingbot_container = self.docker_client.containers.get(self.config["container_name"])
             return True
         except NotFound:
             return False
@@ -171,9 +167,7 @@ class HummingbotConnector:
                     .select("*")
                     .eq("symbol", signal["symbol"])
                     .eq("strategy_name", signal.get("strategy", "DCA"))
-                    .gte(
-                        "timestamp", (datetime.now() - timedelta(minutes=5)).isoformat()
-                    )
+                    .gte("timestamp", (datetime.now() - timedelta(minutes=5)).isoformat())
                     .execute()
                 )
 
@@ -183,30 +177,16 @@ class HummingbotConnector:
                         "timestamp": datetime.now().isoformat(),
                         "strategy_name": signal.get("strategy", "DCA"),
                         "symbol": signal["symbol"],
-                        "prediction": (
-                            "TAKE_SETUP"
-                            if signal["status"] == "APPROVED"
-                            else "SKIP_SETUP"
-                        ),
+                        "prediction": ("TAKE_SETUP" if signal["status"] == "APPROVED" else "SKIP_SETUP"),
                         "confidence": signal.get("confidence", 0.5),
-                        "optimal_take_profit": signal.get("ml_predictions", {}).get(
-                            "take_profit_percent", 10.0
-                        ),
-                        "optimal_stop_loss": signal.get("ml_predictions", {}).get(
-                            "stop_loss_percent", -5.0
-                        ),
-                        "position_size_mult": signal.get("ml_predictions", {}).get(
-                            "position_size_multiplier", 1.0
-                        ),
-                        "expected_hold_hours": signal.get("ml_predictions", {}).get(
-                            "hold_time", 24
-                        ),
+                        "optimal_take_profit": signal.get("ml_predictions", {}).get("take_profit_percent", 10.0),
+                        "optimal_stop_loss": signal.get("ml_predictions", {}).get("stop_loss_percent", -5.0),
+                        "position_size_mult": signal.get("ml_predictions", {}).get("position_size_multiplier", 1.0),
+                        "expected_hold_hours": signal.get("ml_predictions", {}).get("hold_time", 24),
                         "features_used": json.dumps(signal.get("setup_data", {})),
                     }
 
-                    self.supabase.client.table("ml_predictions").insert(
-                        prediction_data
-                    ).execute()
+                    self.supabase.client.table("ml_predictions").insert(prediction_data).execute()
 
                     logger.info(f"Synced signal for {signal['symbol']} to database")
 
@@ -279,17 +259,10 @@ class HummingbotConnector:
                     self.supabase.client.table("ml_predictions").update(
                         {
                             "actual_outcome": outcome,
-                            "correct": (
-                                outcome == "WIN" and trade.get("ml_confidence", 0) > 0.5
-                            )
-                            or (
-                                outcome == "LOSS"
-                                and trade.get("ml_confidence", 0) <= 0.5
-                            ),
+                            "correct": (outcome == "WIN" and trade.get("ml_confidence", 0) > 0.5)
+                            or (outcome == "LOSS" and trade.get("ml_confidence", 0) <= 0.5),
                         }
-                    ).eq("symbol", trade["symbol"]).eq(
-                        "timestamp", trade["created_at"]
-                    ).execute()
+                    ).eq("symbol", trade["symbol"]).eq("timestamp", trade["created_at"]).execute()
 
         except Exception as e:
             logger.error(f"Error syncing trade results: {e}")
@@ -300,9 +273,7 @@ class HummingbotConnector:
             "connector_running": self.is_running,
             "container_exists": self._check_container(),
             "container_running": self._is_container_running(),
-            "last_health_check": (
-                self.last_health_check.isoformat() if self.last_health_check else None
-            ),
+            "last_health_check": (self.last_health_check.isoformat() if self.last_health_check else None),
             "signal_generator_active": self.signal_generator.monitoring_active,
             "active_signals": len(self.signal_generator.get_active_signals()),
         }
@@ -330,9 +301,7 @@ class HummingbotConnector:
         """Get performance statistics from Hummingbot."""
         try:
             # Query aggregated performance from database
-            trades = (
-                self.supabase.client.table("hummingbot_trades").select("*").execute()
-            )
+            trades = self.supabase.client.table("hummingbot_trades").select("*").execute()
 
             if not trades.data:
                 return {

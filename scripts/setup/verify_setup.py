@@ -160,9 +160,7 @@ def main():
 
     # Summary
     if all_passed:
-        console.print(
-            "\n[bold green]✅ All checks passed! Your setup is complete.[/bold green]"
-        )
+        console.print("\n[bold green]✅ All checks passed! Your setup is complete.[/bold green]")
         console.print("\nNext steps:")
         console.print("1. Run [cyan]make setup[/cyan] to initialize the database")
         console.print("2. Run [cyan]make backfill[/cyan] to load historical data")
@@ -170,9 +168,7 @@ def main():
         console.print("4. Run [cyan]make run-all[/cyan] to start the system")
         return 0
     else:
-        console.print(
-            "\n[bold red]❌ Some checks failed. Please fix the issues above.[/bold red]"
-        )
+        console.print("\n[bold red]❌ Some checks failed. Please fix the issues above.[/bold red]")
         console.print("\nFor help, see the MASTER_PLAN.md documentation.")
         return 1
 

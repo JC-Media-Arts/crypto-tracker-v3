@@ -64,41 +64,19 @@ SELECT * FROM refresh_ohlc_views();
 
     try:
         # Check ohlc_today
-        result = (
-            supabase.table("ohlc_today")
-            .select("timestamp", count="exact")
-            .limit(1)
-            .execute()
-        )
+        result = supabase.table("ohlc_today").select("timestamp", count="exact").limit(1).execute()
         logger.info(f"ohlc_today: {result.count:,} rows")
 
         # Check ohlc_recent
-        result = (
-            supabase.table("ohlc_recent")
-            .select("timestamp", count="exact")
-            .limit(1)
-            .execute()
-        )
+        result = supabase.table("ohlc_recent").select("timestamp", count="exact").limit(1).execute()
         logger.info(f"ohlc_recent: {result.count:,} rows")
 
         # Get latest timestamps
-        result = (
-            supabase.table("ohlc_today")
-            .select("timestamp")
-            .order("timestamp", desc=True)
-            .limit(1)
-            .execute()
-        )
+        result = supabase.table("ohlc_today").select("timestamp").order("timestamp", desc=True).limit(1).execute()
         if result.data:
             logger.info(f"Latest in ohlc_today: {result.data[0]['timestamp']}")
 
-        result = (
-            supabase.table("ohlc_recent")
-            .select("timestamp")
-            .order("timestamp", desc=True)
-            .limit(1)
-            .execute()
-        )
+        result = supabase.table("ohlc_recent").select("timestamp").order("timestamp", desc=True).limit(1).execute()
         if result.data:
             logger.info(f"Latest in ohlc_recent: {result.data[0]['timestamp']}")
 

@@ -124,9 +124,7 @@ class SwingLabelGenerator:
         df["sma_50"] = df["close"].rolling(window=50).mean()
 
         # Resistance (20-period high)
-        df["resistance"] = (
-            df["high"].rolling(window=self.config["lookback_window"]).max()
-        )
+        df["resistance"] = df["high"].rolling(window=self.config["lookback_window"]).max()
 
         # Support (20-period low)
         df["support"] = df["low"].rolling(window=self.config["lookback_window"]).min()
@@ -158,8 +156,7 @@ class SwingLabelGenerator:
         for i in range(100, len(df) - 48):  # Leave room for outcome
             # Check breakout conditions
             if (
-                df.iloc[i]["close"]
-                > df.iloc[i - 1]["resistance"] * (1 + self.config["breakout_threshold"])
+                df.iloc[i]["close"] > df.iloc[i - 1]["resistance"] * (1 + self.config["breakout_threshold"])
                 and df.iloc[i]["volume_ratio"] > self.config["volume_surge"]
                 and df.iloc[i]["rsi"] > self.config["min_rsi"]
                 and df.iloc[i]["uptrend"]
@@ -182,23 +179,16 @@ class SwingLabelGenerator:
 
                 # Calculate features at setup time
                 features = {
-                    "breakout_strength": (
-                        df.iloc[i]["close"] - df.iloc[i - 1]["resistance"]
-                    )
+                    "breakout_strength": (df.iloc[i]["close"] - df.iloc[i - 1]["resistance"])
                     / df.iloc[i - 1]["resistance"],
                     "volume_ratio": df.iloc[i]["volume_ratio"],
                     "rsi": df.iloc[i]["rsi"],
                     "price_change_24h": df.iloc[i]["price_change_24h"],
-                    "distance_from_sma20": (df.iloc[i]["close"] - df.iloc[i]["sma_20"])
-                    / df.iloc[i]["sma_20"],
-                    "distance_from_sma50": (df.iloc[i]["close"] - df.iloc[i]["sma_50"])
-                    / df.iloc[i]["sma_50"],
+                    "distance_from_sma20": (df.iloc[i]["close"] - df.iloc[i]["sma_20"]) / df.iloc[i]["sma_20"],
+                    "distance_from_sma50": (df.iloc[i]["close"] - df.iloc[i]["sma_50"]) / df.iloc[i]["sma_50"],
                     "volatility": df.iloc[i]["volatility"],
-                    "trend_strength": (df.iloc[i]["sma_20"] - df.iloc[i]["sma_50"])
-                    / df.iloc[i]["sma_50"],
-                    "resistance_tests": self.count_resistance_tests(
-                        df.iloc[i - 20 : i], df.iloc[i - 1]["resistance"]
-                    ),
+                    "trend_strength": (df.iloc[i]["sma_20"] - df.iloc[i]["sma_50"]) / df.iloc[i]["sma_50"],
+                    "resistance_tests": self.count_resistance_tests(df.iloc[i - 20 : i], df.iloc[i - 1]["resistance"]),
                 }
 
                 setup = {
@@ -377,30 +367,16 @@ class SwingLabelGenerator:
 
                 # Calculate statistics
                 wins = sum(1 for s in setups if s["outcome"] in ["WIN", "SMALL_WIN"])
-                losses = sum(
-                    1 for s in setups if s["outcome"] in ["LOSS", "SMALL_LOSS"]
-                )
+                losses = sum(1 for s in setups if s["outcome"] in ["LOSS", "SMALL_LOSS"])
                 win_rate = (wins / len(setups)) * 100 if setups else 0
 
                 avg_win = (
-                    np.mean(
-                        [
-                            s["pnl_percent"]
-                            for s in setups
-                            if s["outcome"] in ["WIN", "SMALL_WIN"]
-                        ]
-                    )
+                    np.mean([s["pnl_percent"] for s in setups if s["outcome"] in ["WIN", "SMALL_WIN"]])
                     if wins > 0
                     else 0
                 )
                 avg_loss = (
-                    np.mean(
-                        [
-                            s["pnl_percent"]
-                            for s in setups
-                            if s["outcome"] in ["LOSS", "SMALL_LOSS"]
-                        ]
-                    )
+                    np.mean([s["pnl_percent"] for s in setups if s["outcome"] in ["LOSS", "SMALL_LOSS"]])
                     if losses > 0
                     else 0
                 )
@@ -421,30 +397,18 @@ class SwingLabelGenerator:
 
         # Overall summary
         summary["total_setups"] = len(all_setups)
-        summary["wins"] = sum(
-            1 for s in all_setups if s["outcome"] in ["WIN", "SMALL_WIN"]
-        )
-        summary["losses"] = sum(
-            1 for s in all_setups if s["outcome"] in ["LOSS", "SMALL_LOSS"]
-        )
-        summary["breakeven"] = sum(
-            1 for s in all_setups if s["outcome"] in ["BREAKEVEN", "TIMEOUT"]
-        )
+        summary["wins"] = sum(1 for s in all_setups if s["outcome"] in ["WIN", "SMALL_WIN"])
+        summary["losses"] = sum(1 for s in all_setups if s["outcome"] in ["LOSS", "SMALL_LOSS"])
+        summary["breakeven"] = sum(1 for s in all_setups if s["outcome"] in ["BREAKEVEN", "TIMEOUT"])
 
-        overall_win_rate = (
-            (summary["wins"] / summary["total_setups"]) * 100
-            if summary["total_setups"] > 0
-            else 0
-        )
+        overall_win_rate = (summary["wins"] / summary["total_setups"]) * 100 if summary["total_setups"] > 0 else 0
 
         logger.info("\n" + "=" * 60)
         logger.info("SWING LABEL GENERATION COMPLETE")
         logger.info("=" * 60)
         logger.info(f"Total setups found: {summary['total_setups']}")
         logger.info(f"Overall win rate: {overall_win_rate:.1f}%")
-        logger.info(
-            f"Wins: {summary['wins']}, Losses: {summary['losses']}, Breakeven: {summary['breakeven']}"
-        )
+        logger.info(f"Wins: {summary['wins']}, Losses: {summary['losses']}, Breakeven: {summary['breakeven']}")
 
         # Save labels
         if all_setups:
@@ -472,9 +436,7 @@ class SwingLabelGenerator:
 
             # Flatten features into columns
             features_df = pd.DataFrame([s["features"] for s in all_setups])
-            df_labels = pd.concat(
-                [df_labels.drop("features", axis=1), features_df], axis=1
-            )
+            df_labels = pd.concat([df_labels.drop("features", axis=1), features_df], axis=1)
 
             csv_file = "data/swing_training_labels.csv"
             df_labels.to_csv(csv_file, index=False)
@@ -491,16 +453,10 @@ class SwingLabelGenerator:
                     "symbol": setup["symbol"],
                     "timestamp": setup["timestamp"],
                     "breakout_detected": True,
-                    "breakout_strength": float(
-                        setup["features"].get("breakout_pct", 0) * 100
-                    ),
+                    "breakout_strength": float(setup["features"].get("breakout_pct", 0) * 100),
                     "volume_surge": float(setup["features"].get("volume_ratio", 1.0)),
                     "momentum_score": float(setup["features"].get("rsi", 50)),
-                    "trend_alignment": (
-                        "UPTREND"
-                        if setup["features"].get("sma_trend", 0) > 0
-                        else "DOWNTREND"
-                    ),
+                    "trend_alignment": ("UPTREND" if setup["features"].get("sma_trend", 0) > 0 else "DOWNTREND"),
                     "outcome": setup["outcome"],
                     "optimal_take_profit": float(setup.get("take_profit", 15.0)),
                     "optimal_stop_loss": float(setup.get("stop_loss", -5.0)),
@@ -522,9 +478,7 @@ class SwingLabelGenerator:
                     if "duplicate" in str(e).lower():
                         skipped_count += 1
                     else:
-                        logger.error(
-                            f"Error saving label for {setup['symbol']} at {setup['timestamp']}: {e}"
-                        )
+                        logger.error(f"Error saving label for {setup['symbol']} at {setup['timestamp']}: {e}")
 
             logger.info(f"Saved {saved_count} labels to strategy_swing_labels table")
             if skipped_count > 0:
@@ -541,14 +495,10 @@ def main():
     # Print top performing symbols
     if summary["by_symbol"]:
         logger.info("\nTop performing symbols by win rate:")
-        sorted_symbols = sorted(
-            summary["by_symbol"].items(), key=lambda x: x[1]["win_rate"], reverse=True
-        )[:10]
+        sorted_symbols = sorted(summary["by_symbol"].items(), key=lambda x: x[1]["win_rate"], reverse=True)[:10]
 
         for symbol, stats in sorted_symbols:
-            logger.info(
-                f"  {symbol}: {stats['win_rate']:.1f}% ({stats['wins']}W/{stats['losses']}L)"
-            )
+            logger.info(f"  {symbol}: {stats['win_rate']:.1f}% ({stats['wins']}W/{stats['losses']}L)")
 
 
 if __name__ == "__main__":

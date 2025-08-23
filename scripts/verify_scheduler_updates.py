@@ -48,9 +48,7 @@ def check_recent_updates():
                 .execute()
             )
 
-            symbols = (
-                list(set([r["symbol"] for r in response.data])) if response.data else []
-            )
+            symbols = list(set([r["symbol"] for r in response.data])) if response.data else []
 
             results[timeframe] = {
                 "count": count,
@@ -89,9 +87,7 @@ def check_data_freshness():
                 )
 
                 if response.data:
-                    latest = datetime.fromisoformat(
-                        response.data[0]["timestamp"].replace("Z", "+00:00")
-                    )
+                    latest = datetime.fromisoformat(response.data[0]["timestamp"].replace("Z", "+00:00"))
                     age_minutes = (now - latest).total_seconds() / 60
                     freshness[symbol][timeframe] = {
                         "latest": latest.isoformat(),
@@ -119,9 +115,7 @@ def main():
         if "error" not in data:
             logger.info(f"\n{timeframe}:")
             logger.info(f"  Records added: {data['count']}")
-            logger.info(
-                f"  Symbols updated: {', '.join(data['symbols_sample']) if data['symbols_sample'] else 'None'}"
-            )
+            logger.info(f"  Symbols updated: {', '.join(data['symbols_sample']) if data['symbols_sample'] else 'None'}")
             if data["latest"]:
                 logger.info(f"  Latest timestamp: {data['latest']}")
         else:
@@ -153,15 +147,10 @@ def main():
     logger.info("\n" + "=" * 60)
 
     # Check if scheduler is working
-    if (
-        updates.get("1m", {}).get("count", 0) > 0
-        or updates.get("15m", {}).get("count", 0) > 0
-    ):
+    if updates.get("1m", {}).get("count", 0) > 0 or updates.get("15m", {}).get("count", 0) > 0:
         logger.success("✅ SCHEDULER IS WORKING! Data is being updated.")
     else:
-        logger.warning(
-            "⚠️ No recent updates found. Scheduler may need more time or there may be an issue."
-        )
+        logger.warning("⚠️ No recent updates found. Scheduler may need more time or there may be an issue.")
 
     logger.info("=" * 60)
 

@@ -33,9 +33,7 @@ def get_database_url():
         print("❌ Password is required")
         sys.exit(1)
 
-    db_url = (
-        f"postgresql://postgres:{password}@db.{project_ref}.supabase.co:5432/postgres"
-    )
+    db_url = f"postgresql://postgres:{password}@db.{project_ref}.supabase.co:5432/postgres"
     return db_url
 
 

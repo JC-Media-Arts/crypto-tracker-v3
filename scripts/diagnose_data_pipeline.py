@@ -156,23 +156,12 @@ def diagnose_database_state():
     for tf in timeframes:
         try:
             # Count records for this timeframe
-            result = (
-                supabase.table("ohlc_data")
-                .select("symbol", count="exact")
-                .eq("timeframe", tf)
-                .limit(1)
-                .execute()
-            )
+            result = supabase.table("ohlc_data").select("symbol", count="exact").eq("timeframe", tf).limit(1).execute()
 
             count = result.count if hasattr(result, "count") else 0
 
             # Get unique symbols for this timeframe
-            symbol_result = (
-                supabase.table("ohlc_data")
-                .select("symbol")
-                .eq("timeframe", tf)
-                .execute()
-            )
+            symbol_result = supabase.table("ohlc_data").select("symbol").eq("timeframe", tf).execute()
 
             if symbol_result.data:
                 tf_symbols = set(row["symbol"] for row in symbol_result.data)
@@ -205,9 +194,7 @@ def diagnose_database_state():
 
             # Show sample of recent updates
             for row in result.data[:5]:
-                print(
-                    f"   {row['symbol']:6s} {row['timeframe']:4s} - {row['timestamp']}"
-                )
+                print(f"   {row['symbol']:6s} {row['timeframe']:4s} - {row['timestamp']}")
         else:
             print("❌ No updates in last 24 hours")
 
@@ -260,9 +247,7 @@ def check_polygon_api():
                 print(f"   Reset at: {reset}")
                 break
             else:
-                print(
-                    f"❌ {symbol}: HTTP {response.status_code} - {response.text[:100]}"
-                )
+                print(f"❌ {symbol}: HTTP {response.status_code} - {response.text[:100]}")
 
         except Exception as e:
             print(f"❌ {symbol}: Error - {e}")

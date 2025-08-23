@@ -55,9 +55,7 @@ def main():
     for table in tables:
         try:
             count_result = supabase.table(table).select("*", count="exact").execute()
-            print(
-                f"{table}: {count_result.count if hasattr(count_result, 'count') else 'Unknown'} rows"
-            )
+            print(f"{table}: {count_result.count if hasattr(count_result, 'count') else 'Unknown'} rows")
         except Exception as e:
             print(f"{table}: Error - {e}")
 
@@ -71,12 +69,7 @@ def main():
 
         # Check coverage for each timeframe
         for timeframe in ["1m", "15m", "1h", "4h", "1d"]:
-            tf_result = (
-                supabase.table("ohlc_data")
-                .select("symbol, timestamp")
-                .eq("timeframe", timeframe)
-                .execute()
-            )
+            tf_result = supabase.table("ohlc_data").select("symbol, timestamp").eq("timeframe", timeframe).execute()
             tf_symbols = set(row["symbol"] for row in tf_result.data)
             print(f"\n{timeframe} timeframe:")
             print(f"  Symbols with data: {len(tf_symbols)}")
@@ -115,9 +108,7 @@ def main():
     # 5. ML Features status
     print("\n=== 5. ML FEATURES STATUS ===")
     try:
-        features_result = (
-            supabase.table("ml_features").select("symbol, timestamp").execute()
-        )
+        features_result = supabase.table("ml_features").select("symbol, timestamp").execute()
         if features_result.data:
             feature_symbols = set(row["symbol"] for row in features_result.data)
             print(f"Symbols with features: {len(feature_symbols)}")
@@ -135,9 +126,7 @@ def main():
             labels_result = supabase.table(table_name).select("symbol").execute()
             if labels_result.data:
                 label_symbols = set(row["symbol"] for row in labels_result.data)
-                print(
-                    f"{strategy.upper()}: {len(label_symbols)} symbols, {len(labels_result.data)} total labels"
-                )
+                print(f"{strategy.upper()}: {len(label_symbols)} symbols, {len(labels_result.data)} total labels")
         except Exception as e:
             print(f"{strategy.upper()}: Error - {e}")
 
@@ -146,24 +135,15 @@ def main():
     try:
         # Check scan history
         scan_cutoff = (datetime.utcnow() - timedelta(hours=24)).isoformat()
-        scans_result = (
-            supabase.table("scan_history")
-            .select("*")
-            .gte("timestamp", scan_cutoff)
-            .execute()
-        )
+        scans_result = supabase.table("scan_history").select("*").gte("timestamp", scan_cutoff).execute()
 
         if scans_result.data:
             print(f"Scans in last 24h: {len(scans_result.data)}")
-            strategies = set(
-                row.get("strategy") for row in scans_result.data if row.get("strategy")
-            )
+            strategies = set(row.get("strategy") for row in scans_result.data if row.get("strategy"))
             print(f"Active strategies: {', '.join(strategies)}")
 
             # Count signals
-            with_signals = [
-                s for s in scans_result.data if s.get("signal_strength", 0) > 0
-            ]
+            with_signals = [s for s in scans_result.data if s.get("signal_strength", 0) > 0]
             print(f"Scans with signals: {len(with_signals)}")
     except Exception as e:
         print(f"Error checking trading activity: {e}")
@@ -174,23 +154,15 @@ def main():
         shadow_scans = supabase.table("shadow_testing_scans").select("*").execute()
         shadow_trades = supabase.table("shadow_testing_trades").select("*").execute()
 
-        print(
-            f"Shadow scans recorded: {len(shadow_scans.data) if shadow_scans.data else 0}"
-        )
-        print(
-            f"Shadow trades recorded: {len(shadow_trades.data) if shadow_trades.data else 0}"
-        )
+        print(f"Shadow scans recorded: {len(shadow_scans.data) if shadow_scans.data else 0}")
+        print(f"Shadow trades recorded: {len(shadow_trades.data) if shadow_trades.data else 0}")
 
         if shadow_trades.data:
             # Get recent trades
-            recent_trades = sorted(
-                shadow_trades.data, key=lambda x: x.get("entry_time", ""), reverse=True
-            )[:5]
+            recent_trades = sorted(shadow_trades.data, key=lambda x: x.get("entry_time", ""), reverse=True)[:5]
             print("\nLast 5 shadow trades:")
             for trade in recent_trades:
-                print(
-                    f"  {trade.get('symbol')}: {trade.get('strategy')} - Status: {trade.get('status')}"
-                )
+                print(f"  {trade.get('symbol')}: {trade.get('strategy')} - Status: {trade.get('status')}")
     except Exception as e:
         print(f"Error checking shadow testing: {e}")
 

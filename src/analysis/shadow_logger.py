@@ -195,9 +195,7 @@ class ShadowLogger:
                 # Isolated variations test specific parameter values
                 return await self._evaluate_isolated(
                     variation_name=variation["variation_name"],
-                    test_parameter=var_config.get("parameters", {}).get(
-                        "test_parameter"
-                    ),
+                    test_parameter=var_config.get("parameters", {}).get("test_parameter"),
                     test_values=var_config.get("parameters", {}).get("test_values", []),
                     ml_predictions=ml_predictions,
                     ml_confidence=ml_confidence,
@@ -207,9 +205,7 @@ class ShadowLogger:
                 )
 
         except Exception as e:
-            logger.error(
-                f"Error evaluating variation {variation.get('variation_name')}: {e}"
-            )
+            logger.error(f"Error evaluating variation {variation.get('variation_name')}: {e}")
             return None
 
     def _evaluate_champion(
@@ -259,28 +255,16 @@ class ShadowLogger:
 
         # Handle specific scenario logic
         if variation_name == "BEAR_MARKET":
-            params["confidence_threshold"] = scenario_params.get(
-                "confidence_threshold", 0.55
-            )
-            params["position_size_multiplier"] = scenario_params.get(
-                "position_size_multiplier", 1.5
-            )
+            params["confidence_threshold"] = scenario_params.get("confidence_threshold", 0.55)
+            params["position_size_multiplier"] = scenario_params.get("position_size_multiplier", 1.5)
             params["stop_loss_percent"] = scenario_params.get("stop_loss_percent", 0.06)
-            params["take_profit_multiplier"] = scenario_params.get(
-                "take_profit_multiplier", 1.2
-            )
+            params["take_profit_multiplier"] = scenario_params.get("take_profit_multiplier", 1.2)
 
         elif variation_name == "BULL_MARKET":
-            params["confidence_threshold"] = scenario_params.get(
-                "confidence_threshold", 0.65
-            )
-            params["position_size_multiplier"] = scenario_params.get(
-                "position_size_multiplier", 0.5
-            )
+            params["confidence_threshold"] = scenario_params.get("confidence_threshold", 0.65)
+            params["position_size_multiplier"] = scenario_params.get("position_size_multiplier", 0.5)
             params["stop_loss_percent"] = scenario_params.get("stop_loss_percent", 0.04)
-            params["take_profit_multiplier"] = scenario_params.get(
-                "take_profit_multiplier", 0.8
-            )
+            params["take_profit_multiplier"] = scenario_params.get("take_profit_multiplier", 0.8)
 
         elif variation_name == "ML_TRUST":
             params["confidence_threshold"] = 0.50  # Lower threshold, trust ML
@@ -288,22 +272,16 @@ class ShadowLogger:
             params["take_profit_multiplier"] = 1.0  # Use ML exactly
 
         elif variation_name == "QUICK_EXITS":
-            params["take_profit_multiplier"] = scenario_params.get(
-                "take_profit_multiplier", 0.8
-            )
+            params["take_profit_multiplier"] = scenario_params.get("take_profit_multiplier", 0.8)
             params["max_hold_hours"] = scenario_params.get("max_hold_hours", 24)
 
         elif variation_name == "VOLATILITY_SIZED":
             # Calculate volatility-based sizing
             volatility = features.get("volatility_24h", 0.03)
             if volatility < scenario_params.get("vol_threshold_low", 0.02):
-                params["position_size_multiplier"] = scenario_params.get(
-                    "low_vol_multiplier", 1.5
-                )
+                params["position_size_multiplier"] = scenario_params.get("low_vol_multiplier", 1.5)
             elif volatility > scenario_params.get("vol_threshold_high", 0.05):
-                params["position_size_multiplier"] = scenario_params.get(
-                    "high_vol_multiplier", 0.5
-                )
+                params["position_size_multiplier"] = scenario_params.get("high_vol_multiplier", 0.5)
             else:
                 params["position_size_multiplier"] = 1.0
 
@@ -339,9 +317,7 @@ class ShadowLogger:
             shadow_entry_price=current_price,
             shadow_take_profit=take_profit,
             shadow_stop_loss=stop_loss,
-            shadow_hold_hours=params.get(
-                "max_hold_hours", ml_predictions.get("hold_hours", 24)
-            ),
+            shadow_hold_hours=params.get("max_hold_hours", ml_predictions.get("hold_hours", 24)),
             parameters_used=params,
         )
 
@@ -418,26 +394,12 @@ class ShadowLogger:
             "stop_loss_percent": params.get("stop_loss_percent", 0.05) * 100,
             "take_profit_multiplier": params.get("take_profit_multiplier", 1.0),
             # Strategy-specific parameters
-            "dca_drop_threshold": (
-                params.get("dca_drop_threshold") if strategy_name == "DCA" else None
-            ),
-            "dca_grid_levels": (
-                params.get("grid_levels", 5) if strategy_name == "DCA" else None
-            ),
-            "dca_grid_spacing": (
-                params.get("grid_spacing", 0.01) * 100
-                if strategy_name == "DCA"
-                else None
-            ),
-            "swing_breakout_threshold": (
-                params.get("breakout_threshold") if strategy_name == "SWING" else None
-            ),
-            "swing_volume_multiplier": (
-                params.get("volume_multiplier") if strategy_name == "SWING" else None
-            ),
-            "channel_boundary_percent": (
-                params.get("boundary_percent") if strategy_name == "CHANNEL" else None
-            ),
+            "dca_drop_threshold": (params.get("dca_drop_threshold") if strategy_name == "DCA" else None),
+            "dca_grid_levels": (params.get("grid_levels", 5) if strategy_name == "DCA" else None),
+            "dca_grid_spacing": (params.get("grid_spacing", 0.01) * 100 if strategy_name == "DCA" else None),
+            "swing_breakout_threshold": (params.get("breakout_threshold") if strategy_name == "SWING" else None),
+            "swing_volume_multiplier": (params.get("volume_multiplier") if strategy_name == "SWING" else None),
+            "channel_boundary_percent": (params.get("boundary_percent") if strategy_name == "CHANNEL" else None),
             # Shadow decision
             "would_take_trade": decision.would_take_trade,
             "shadow_confidence": decision.shadow_confidence,
@@ -465,11 +427,7 @@ class ShadowLogger:
             return
 
         try:
-            result = (
-                self.supabase.client.table("shadow_variations")
-                .insert(self.batch)
-                .execute()
-            )
+            result = self.supabase.client.table("shadow_variations").insert(self.batch).execute()
             logger.debug(f"Flushed {len(self.batch)} shadow variations to database")
             self.batch = []
         except Exception as e:
@@ -498,14 +456,10 @@ class ShadowLogger:
             "shadows_taking": len(taking_trade),
             "total_shadows": len(decisions),
             "avg_confidence": (
-                sum(d.shadow_confidence for d in taking_trade) / len(taking_trade)
-                if taking_trade
-                else 0
+                sum(d.shadow_confidence for d in taking_trade) / len(taking_trade) if taking_trade else 0
             ),
             "variations_taking": [d.variation_name for d in taking_trade],
-            "variations_skipping": [
-                d.variation_name for d in decisions if not d.would_take_trade
-            ],
+            "variations_skipping": [d.variation_name for d in decisions if not d.would_take_trade],
         }
 
     async def log_quick_decision(

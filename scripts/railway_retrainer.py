@@ -73,9 +73,7 @@ async def railway_retrain():
                 "results": "\n".join(summary_lines),
             }
 
-            await slack.send_notification(
-                NotificationType.DAILY_REPORT, title, message, details, color
-            )
+            await slack.send_notification(NotificationType.DAILY_REPORT, title, message, details, color)
 
         logger.info("=" * 60)
         logger.info(f"Retraining complete. {models_updated} models updated.")
@@ -108,9 +106,7 @@ def main():
 
     # Check if we're in Railway environment
     if os.getenv("RAILWAY_ENVIRONMENT"):
-        logger.info(
-            f"Running in Railway environment: {os.getenv('RAILWAY_ENVIRONMENT')}"
-        )
+        logger.info(f"Running in Railway environment: {os.getenv('RAILWAY_ENVIRONMENT')}")
     else:
         logger.info("Running locally (not in Railway)")
 

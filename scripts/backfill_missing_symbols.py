@@ -141,24 +141,18 @@ class SimpleBackfiller:
         # Get symbols that already have data
         try:
             result = self.supabase.table("ohlc_data").select("symbol").execute()
-            existing = (
-                set(row["symbol"] for row in result.data) if result.data else set()
-            )
+            existing = set(row["symbol"] for row in result.data) if result.data else set()
 
             # Return symbols that need backfilling
             missing = [s for s in all_symbols if s not in existing]
-            logger.info(
-                f"Found {len(missing)} symbols to backfill out of {len(all_symbols)}"
-            )
+            logger.info(f"Found {len(missing)} symbols to backfill out of {len(all_symbols)}")
             return missing
 
         except Exception as e:
             logger.error(f"Error checking existing symbols: {e}")
             return all_symbols
 
-    def fetch_ohlc_for_symbol(
-        self, symbol: str, timeframe: str = "1d", days_back: int = 30
-    ) -> List[Dict]:
+    def fetch_ohlc_for_symbol(self, symbol: str, timeframe: str = "1d", days_back: int = 30) -> List[Dict]:
         """Fetch OHLC data for a single symbol"""
 
         ticker = f"X:{symbol}USD"
@@ -197,9 +191,7 @@ class SimpleBackfiller:
                             {
                                 "symbol": symbol,
                                 "timeframe": timeframe,
-                                "timestamp": datetime.fromtimestamp(
-                                    bar["t"] / 1000
-                                ).isoformat(),
+                                "timestamp": datetime.fromtimestamp(bar["t"] / 1000).isoformat(),
                                 "open": bar["o"],
                                 "high": bar["h"],
                                 "low": bar["l"],
@@ -248,9 +240,7 @@ class SimpleBackfiller:
                 logger.error(f"Error saving to database: {e}")
             return 0
 
-    def backfill_symbol(
-        self, symbol: str, timeframes: List[str] = None, days_back: int = 30
-    ):
+    def backfill_symbol(self, symbol: str, timeframes: List[str] = None, days_back: int = 30):
         """Backfill a single symbol with multiple timeframes"""
 
         if timeframes is None:
@@ -300,9 +290,7 @@ class SimpleBackfiller:
         # Limit number of symbols to avoid rate limiting
         symbols_to_process = missing_symbols[:max_symbols]
 
-        logger.info(
-            f"Will backfill {len(symbols_to_process)} symbols: {', '.join(symbols_to_process)}"
-        )
+        logger.info(f"Will backfill {len(symbols_to_process)} symbols: {', '.join(symbols_to_process)}")
 
         total_bars = 0
         successful = 0
@@ -330,9 +318,7 @@ class SimpleBackfiller:
         logger.info(f"Total bars saved: {total_bars:,}")
 
         if len(missing_symbols) > max_symbols:
-            logger.info(
-                f"\n⚠️  {len(missing_symbols) - max_symbols} symbols still need backfilling"
-            )
+            logger.info(f"\n⚠️  {len(missing_symbols) - max_symbols} symbols still need backfilling")
             logger.info("Run this script again to continue")
 
 
@@ -347,9 +333,7 @@ def main():
         default=5,
         help="Number of symbols to backfill (default: 5)",
     )
-    parser.add_argument(
-        "--days", type=int, default=90, help="Days of history to fetch (default: 90)"
-    )
+    parser.add_argument("--days", type=int, default=90, help="Days of history to fetch (default: 90)")
 
     args = parser.parse_args()
 

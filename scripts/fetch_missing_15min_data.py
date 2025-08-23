@@ -136,9 +136,7 @@ class Missing15MinFetcher:
                 logger.info(f"Fetched {len(bars)} bars for {symbol}")
                 return bars
             else:
-                logger.warning(
-                    f"No data available for {symbol} from {from_date} to {to_date}"
-                )
+                logger.warning(f"No data available for {symbol} from {from_date} to {to_date}")
                 return []
 
         except Exception as e:
@@ -156,9 +154,7 @@ class Missing15MinFetcher:
             for bar in bars:
                 records.append(
                     {
-                        "timestamp": datetime.fromtimestamp(
-                            bar.timestamp / 1000, tz=tz.utc
-                        ).isoformat(),
+                        "timestamp": datetime.fromtimestamp(bar.timestamp / 1000, tz=tz.utc).isoformat(),
                         "symbol": symbol,
                         "timeframe": "15m",
                         "open": float(bar.open),
@@ -166,16 +162,8 @@ class Missing15MinFetcher:
                         "low": float(bar.low),
                         "close": float(bar.close),
                         "volume": float(bar.volume) if bar.volume else 0,
-                        "vwap": (
-                            float(bar.vwap)
-                            if hasattr(bar, "vwap") and bar.vwap
-                            else None
-                        ),
-                        "trades": (
-                            int(bar.transactions)
-                            if hasattr(bar, "transactions")
-                            else None
-                        ),
+                        "vwap": (float(bar.vwap) if hasattr(bar, "vwap") and bar.vwap else None),
+                        "trades": (int(bar.transactions) if hasattr(bar, "transactions") else None),
                     }
                 )
 

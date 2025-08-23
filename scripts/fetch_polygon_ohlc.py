@@ -156,11 +156,7 @@ class PolygonOHLCFetcher:
         for i in range(0, len(records), batch_size):
             batch = records[i : i + batch_size]
             try:
-                result = (
-                    self.supabase.client.table("ohlc_data")
-                    .upsert(batch, on_conflict="timestamp,symbol")
-                    .execute()
-                )
+                result = self.supabase.client.table("ohlc_data").upsert(batch, on_conflict="timestamp,symbol").execute()
 
                 if result.data:
                     saved_count += len(result.data)
@@ -169,9 +165,7 @@ class PolygonOHLCFetcher:
 
         return saved_count
 
-    def fetch_all_symbols(
-        self, symbols: List[str], days_back: int = 180
-    ) -> Dict[str, int]:
+    def fetch_all_symbols(self, symbols: List[str], days_back: int = 180) -> Dict[str, int]:
         """
         Fetch OHLC data for multiple symbols.
 

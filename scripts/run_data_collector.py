@@ -74,9 +74,7 @@ if __name__ == "__main__":
     )
 
     # Also log to file
-    logger.add(
-        "logs/data_collector.log", rotation="1 day", retention="7 days", level="DEBUG"
-    )
+    logger.add("logs/data_collector.log", rotation="1 day", retention="7 days", level="DEBUG")
 
     # Run the async main function
     try:

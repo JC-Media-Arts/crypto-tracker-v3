@@ -48,17 +48,13 @@ async def wait_until_next_training_time():
     target_time = datetime_time(2, 0)  # 2 AM UTC
 
     # Calculate next 2 AM
-    next_run = now.replace(
-        hour=target_time.hour, minute=target_time.minute, second=0, microsecond=0
-    )
+    next_run = now.replace(hour=target_time.hour, minute=target_time.minute, second=0, microsecond=0)
     if now >= next_run:
         # If it's already past 2 AM today, schedule for tomorrow
         next_run = next_run.replace(day=next_run.day + 1)
 
     wait_seconds = (next_run - now).total_seconds()
-    logger.info(
-        f"Next training scheduled for {next_run}. Waiting {wait_seconds/3600:.1f} hours..."
-    )
+    logger.info(f"Next training scheduled for {next_run}. Waiting {wait_seconds/3600:.1f} hours...")
 
     await asyncio.sleep(wait_seconds)
 

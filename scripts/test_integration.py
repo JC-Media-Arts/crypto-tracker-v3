@@ -144,9 +144,7 @@ class IntegrationTest:
 
                 signal["ml_predictions"] = ml_result
                 enhanced_signals.append(signal)
-                logger.info(
-                    f"  🤖 ML enhanced {signal['symbol']} ({signal['strategy']})"
-                )
+                logger.info(f"  🤖 ML enhanced {signal['symbol']} ({signal['strategy']})")
 
             self.components_status["ML Models"] = True
             return enhanced_signals
@@ -173,16 +171,12 @@ class IntegrationTest:
                 if len(sigs) > 1:
                     # Higher confidence wins
                     winner = max(sigs, key=lambda x: x["confidence"])
-                    logger.info(
-                        f"  ⚔️ Conflict resolved for {symbol}: {winner['strategy']} wins"
-                    )
+                    logger.info(f"  ⚔️ Conflict resolved for {symbol}: {winner['strategy']} wins")
                     resolved.append(winner)
                 else:
                     resolved.append(sigs[0])
 
-            logger.info(
-                f"  ✅ Resolved {len(resolved)} signals from {len(signals)} total"
-            )
+            logger.info(f"  ✅ Resolved {len(resolved)} signals from {len(signals)} total")
             self.components_status["Strategy Manager"] = True
             return resolved
 
@@ -231,13 +225,9 @@ class IntegrationTest:
                 if current_exposure + signal["position_size"] <= max_risk:
                     approved.append(signal)
                     current_exposure += signal["position_size"]
-                    logger.info(
-                        f"  ✅ Approved {signal['symbol']} (exposure: ${current_exposure})"
-                    )
+                    logger.info(f"  ✅ Approved {signal['symbol']} (exposure: ${current_exposure})")
                 else:
-                    logger.info(
-                        f"  ❌ Rejected {signal['symbol']} (would exceed max risk)"
-                    )
+                    logger.info(f"  ❌ Rejected {signal['symbol']} (would exceed max risk)")
 
             self.components_status["Risk Management"] = True
             return approved
@@ -261,9 +251,7 @@ class IntegrationTest:
             # In production, would actually check API
             # For now, mark as successful if we have signals
             if signals:
-                logger.info(
-                    f"  ✅ Ready to execute {len(signals)} trades via Hummingbot"
-                )
+                logger.info(f"  ✅ Ready to execute {len(signals)} trades via Hummingbot")
                 self.components_status["Hummingbot API"] = True
 
             return True
@@ -337,10 +325,7 @@ class IntegrationTest:
                 )
                 if "ml_predictions" in signal:
                     ml = signal["ml_predictions"]
-                    logger.info(
-                        f"  ML: TP={ml.get('take_profit', 'N/A')}%, "
-                        f"SL={ml.get('stop_loss', 'N/A')}%"
-                    )
+                    logger.info(f"  ML: TP={ml.get('take_profit', 'N/A')}%, " f"SL={ml.get('stop_loss', 'N/A')}%")
 
         logger.info("\n✅ Integration test complete!")
         return all_passed

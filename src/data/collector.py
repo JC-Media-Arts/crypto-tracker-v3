@@ -22,15 +22,11 @@ class DataCollector:
     def __init__(self):
         """Initialize the data collector."""
         self.settings = get_settings()
-        self.polygon_client = PolygonWebSocketClient(
-            on_message_callback=self._on_price_update
-        )
+        self.polygon_client = PolygonWebSocketClient(on_message_callback=self._on_price_update)
         self.db_client = SupabaseClient()
 
         # Batch processing with bounded buffer to prevent memory leaks
-        self.price_buffer = deque(
-            maxlen=1000
-        )  # Automatically drops old items when full
+        self.price_buffer = deque(maxlen=1000)  # Automatically drops old items when full
         self.buffer_lock = asyncio.Lock()  # Thread-safe buffer operations
         self.buffer_size = self.settings.buffer_size
         self.last_db_flush = time.time()
@@ -74,9 +70,7 @@ class DataCollector:
             elif len(self.price_buffer) >= self.buffer_size:
                 self._flush_to_database()
 
-    def _should_store_price(
-        self, symbol: str, price: float, timestamp: datetime
-    ) -> bool:
+    def _should_store_price(self, symbol: str, price: float, timestamp: datetime) -> bool:
         """Determine if price should be stored (avoid storing unchanged prices)."""
         if symbol not in self.last_prices:
             return True
@@ -271,8 +265,6 @@ class DataCollector:
             "buffer_size": len(self.price_buffer),
             "symbols_tracked": len(self.last_prices),
             "uptime_seconds": (
-                (datetime.now(timezone.utc) - self.start_time).total_seconds()
-                if self.start_time
-                else 0
+                (datetime.now(timezone.utc) - self.start_time).total_seconds() if self.start_time else 0
             ),
         }

@@ -86,9 +86,7 @@ def verify_railway_json():
                     if "healthcheckPath" not in service_config:
                         issues.append(f"{service} missing healthcheckPath")
                     elif service_config["healthcheckPath"] != "/health":
-                        print(
-                            f"   ⚠️  Health check path: {service_config['healthcheckPath']}"
-                        )
+                        print(f"   ⚠️  Health check path: {service_config['healthcheckPath']}")
 
             else:
                 issues.append(f"Missing service: {service}")

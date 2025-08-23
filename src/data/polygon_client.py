@@ -170,9 +170,7 @@ class PolygonWebSocketClient:
         all_symbols.sort()  # Sort alphabetically for consistency
 
         logger.info(f"Subscribing to ALL {len(all_symbols)} crypto symbols")
-        logger.info(
-            "Polygon confirmed: no symbol limit within a single WebSocket connection"
-        )
+        logger.info("Polygon confirmed: no symbol limit within a single WebSocket connection")
         return all_symbols
 
     def _on_open(self, ws):
@@ -196,9 +194,7 @@ class PolygonWebSocketClient:
 
         try:
             ws.send(json.dumps(subscribe_message))
-            logger.info(
-                f"Subscribed to {len(self.symbols)} symbols: {', '.join(self.symbols)}"
-            )
+            logger.info(f"Subscribed to {len(self.symbols)} symbols: {', '.join(self.symbols)}")
         except Exception as e:
             logger.error(f"Failed to subscribe: {e}")
 
@@ -255,9 +251,7 @@ class PolygonWebSocketClient:
             error_msg = msg.get("message", "Unknown error")
             logger.error(f"Polygon error: {error_msg}")
             if "Maximum number of websocket connections exceeded" in error_msg:
-                logger.error(
-                    "Connection limit reached! Check for other running instances."
-                )
+                logger.error("Connection limit reached! Check for other running instances.")
         elif msg.get("message"):
             # Log any messages from Polygon
             logger.info(f"Polygon message: {msg.get('message')}")
@@ -298,9 +292,7 @@ class PolygonWebSocketClient:
             self.max_reconnect_delay,
         )
 
-        logger.info(
-            f"Reconnecting in {delay} seconds... (attempt {self.reconnect_attempts})"
-        )
+        logger.info(f"Reconnecting in {delay} seconds... (attempt {self.reconnect_attempts})")
         time.sleep(delay)
 
         if self.is_running:
@@ -347,8 +339,7 @@ class PolygonWebSocketClient:
         return {
             **self.stats,
             "buffer_size": len(self.message_buffer),
-            "is_connected": self.ws is not None
-            and self.stats["connected_since"] is not None,
+            "is_connected": self.ws is not None and self.stats["connected_since"] is not None,
         }
 
     def get_buffer_data(self) -> List[Dict]:

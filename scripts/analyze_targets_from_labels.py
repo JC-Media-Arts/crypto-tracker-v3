@@ -39,9 +39,7 @@ def analyze_targets():
         for target in [3, 5, 7, 10]:
             hit_target = (wins["pnl_pct"] >= target).sum()
             pct = (hit_target / len(df)) * 100
-            print(
-                f"  Would hit {target}% target: {hit_target}/{len(df)} ({pct:.1f}% of all setups)"
-            )
+            print(f"  Would hit {target}% target: {hit_target}/{len(df)} ({pct:.1f}% of all setups)")
 
     print(f"\nLosses: {len(losses)} setups")
     if len(losses) > 0:
@@ -52,9 +50,7 @@ def analyze_targets():
     print(f"\nBreakeven: {len(breakeven)} setups")
     if len(breakeven) > 0:
         print(f"  Average P&L: {breakeven['pnl_pct'].mean():.2f}%")
-        print(
-            f"  Range: {breakeven['pnl_pct'].min():.2f}% to {breakeven['pnl_pct'].max():.2f}%"
-        )
+        print(f"  Range: {breakeven['pnl_pct'].min():.2f}% to {breakeven['pnl_pct'].max():.2f}%")
 
     # Analyze by drop size
     print("\n" + "=" * 80)
@@ -136,12 +132,12 @@ def analyze_targets():
     print(
         """
     Based on this analysis, ML should:
-    
+
     1. CLASSIFY SETUPS INTO TIERS:
        - Tier A: High confidence → 7-10% take profit
-       - Tier B: Medium confidence → 5% take profit  
+       - Tier B: Medium confidence → 5% take profit
        - Tier C: Low confidence → 3% take profit or skip
-    
+
     2. FEATURES TO CONSIDER:
        - Drop magnitude (bigger drops = bigger bounces?)
        - RSI level (more oversold = stronger bounce?)
@@ -149,12 +145,12 @@ def analyze_targets():
        - Time of day/week (weekend drops different?)
        - Market regime (bull vs bear market)
        - Support levels nearby
-    
+
     3. DYNAMIC ADJUSTMENTS:
        - BTC/ETH: Conservative 3-5% targets
        - Mid-caps: Moderate 5-7% targets
        - Small-caps: Aggressive 7-10% targets
-       
+
     4. MULTI-OUTPUT MODEL:
        Instead of just WIN/LOSS, predict:
        - Optimal take profit (3%, 5%, 7%, 10%)

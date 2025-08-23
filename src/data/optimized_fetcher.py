@@ -49,18 +49,14 @@ class OptimizedDataFetcher:
                 .execute()
             )
 
-            logger.debug(
-                f"Fetched {len(result.data)} records for {symbol} (last {hours} hours)"
-            )
+            logger.debug(f"Fetched {len(result.data)} records for {symbol} (last {hours} hours)")
             return result.data
 
         except Exception as e:
             logger.error(f"Error fetching recent prices for {symbol}: {e}")
             return []
 
-    async def get_data_for_ml(
-        self, symbols: List[str], days: int = 30
-    ) -> Dict[str, List[Dict]]:
+    async def get_data_for_ml(self, symbols: List[str], days: int = 30) -> Dict[str, List[Dict]]:
         """
         Batch fetch for ML features - optimized for multiple symbols.
 
@@ -128,9 +124,7 @@ class OptimizedDataFetcher:
 
         return all_data
 
-    async def get_latest_price(
-        self, symbol: str, timeframe: str = "1m"
-    ) -> Optional[Dict]:
+    async def get_latest_price(self, symbol: str, timeframe: str = "1m") -> Optional[Dict]:
         """
         Get the most recent price for a symbol.
         Optimized for single record retrieval.
@@ -201,9 +195,7 @@ class OptimizedDataFetcher:
             elif days_ago <= 30:
                 logger.debug(f"Using 30-day partial index for {symbol}")
             else:
-                logger.warning(
-                    f"Querying historical data beyond partial indexes for {symbol}"
-                )
+                logger.warning(f"Querying historical data beyond partial indexes for {symbol}")
 
             result = (
                 self.db.client.table("ohlc_data")
@@ -262,9 +254,7 @@ class OptimizedDataFetcher:
                 signal_data[symbol] = {
                     "15m": recent_15m.data,
                     "1h": recent_1h.data,
-                    "latest_price": (
-                        recent_15m.data[0]["close"] if recent_15m.data else None
-                    ),
+                    "latest_price": (recent_15m.data[0]["close"] if recent_15m.data else None),
                 }
 
             except Exception as e:

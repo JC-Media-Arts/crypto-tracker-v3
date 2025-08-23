@@ -28,9 +28,7 @@ def main():
         # Query the ml_features table
         response = (
             supabase.client.table("ml_features")
-            .select(
-                "symbol, timestamp, price_change_5m, price_change_1h, rsi_14, volume_ratio"
-            )
+            .select("symbol, timestamp, price_change_5m, price_change_1h, rsi_14, volume_ratio")
             .order("timestamp", desc=True)
             .limit(50)
             .execute()

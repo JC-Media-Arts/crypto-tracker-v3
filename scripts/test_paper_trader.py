@@ -53,9 +53,7 @@ class MockSupabaseClient:
     def execute(self):
         # Return mock price data
         if hasattr(self, "symbol") and self.symbol in self.mock_prices:
-            return type(
-                "obj", (object,), {"data": [{"close": self.mock_prices[self.symbol]}]}
-            )()
+            return type("obj", (object,), {"data": [{"close": self.mock_prices[self.symbol]}]})()
         return type("obj", (object,), {"data": []})()
 
 
@@ -185,15 +183,11 @@ async def test_paper_trader():
     position.update_price(105.0)
 
     print(f"   New unrealized P&L: ${position.unrealized_pnl:.2f}")
-    print(
-        f"   P&L %: {(position.unrealized_pnl / (position.entry_price * position.quantity) * 100):.1f}%"
-    )
+    print(f"   P&L %: {(position.unrealized_pnl / (position.entry_price * position.quantity) * 100):.1f}%")
 
     # Test 8: Close position with profit
     print("\n8. Closing position...")
-    close_result = await trader.close_position(
-        position_id=position_id, reason="TAKE_PROFIT", exit_price=105.0
-    )
+    close_result = await trader.close_position(position_id=position_id, reason="TAKE_PROFIT", exit_price=105.0)
 
     if close_result["success"]:
         print(f"✅ Position closed")

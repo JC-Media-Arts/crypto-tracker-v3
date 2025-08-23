@@ -153,9 +153,7 @@ def main():
         # Check if process is still running
         import subprocess
 
-        result = subprocess.run(
-            ["pgrep", "-f", "fetch_all_historical"], capture_output=True, text=True
-        )
+        result = subprocess.run(["pgrep", "-f", "fetch_all_historical"], capture_output=True, text=True)
         if result.returncode != 0:
             print("\n⚠️  Fetch process has stopped!")
             break

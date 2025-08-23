@@ -176,9 +176,7 @@ class BackfillVerifier:
                     print("✅ All expected symbols have data!")
 
                 if unexpected:
-                    print(
-                        f"\n⚠️  Unexpected symbols found: {', '.join(sorted(unexpected))}"
-                    )
+                    print(f"\n⚠️  Unexpected symbols found: {', '.join(sorted(unexpected))}")
 
         except Exception as e:
             print(f"❌ Error checking symbol coverage: {e}")
@@ -202,9 +200,7 @@ class BackfillVerifier:
 
             incomplete = []
 
-            for symbol in self.expected_symbols[
-                :10
-            ]:  # Check first 10 symbols as sample
+            for symbol in self.expected_symbols[:10]:  # Check first 10 symbols as sample
                 try:
                     result = (
                         self.supabase.table("ohlc_data")
@@ -256,9 +252,7 @@ class BackfillVerifier:
                     )
 
                     if result.data and len(result.data) > 1:
-                        timestamps = pd.to_datetime(
-                            [row["timestamp"] for row in result.data]
-                        )
+                        timestamps = pd.to_datetime([row["timestamp"] for row in result.data])
 
                         # Expected frequency
                         freq_map = {
@@ -331,9 +325,7 @@ class BackfillVerifier:
                     null_count = df.isnull().sum().sum()
 
                     # Check for negative values
-                    negative_count = (
-                        (df[["open", "high", "low", "close", "volume"]] < 0).sum().sum()
-                    )
+                    negative_count = (df[["open", "high", "low", "close", "volume"]] < 0).sum().sum()
 
                     if invalid_ohlc > 0 or null_count > 0 or negative_count > 0:
                         print(f"❌ {symbol}: Quality issues found")
@@ -381,16 +373,8 @@ class BackfillVerifier:
                     .execute()
                 )
 
-                symbols_1h = (
-                    set(row["symbol"] for row in result_1h.data)
-                    if result_1h.data
-                    else set()
-                )
-                symbols_24h = (
-                    set(row["symbol"] for row in result_24h.data)
-                    if result_24h.data
-                    else set()
-                )
+                symbols_1h = set(row["symbol"] for row in result_1h.data) if result_1h.data else set()
+                symbols_24h = set(row["symbol"] for row in result_24h.data) if result_24h.data else set()
 
                 self.results["update_status"][timeframe] = {
                     "last_hour": len(symbols_1h),
@@ -418,28 +402,20 @@ class BackfillVerifier:
         print("=" * 80)
 
         # Calculate scores
-        coverage_score = (
-            self.results["symbols_with_data"] / self.results["total_symbols"]
-        ) * 100
+        coverage_score = (self.results["symbols_with_data"] / self.results["total_symbols"]) * 100
 
         print(f"\n📊 OVERALL RESULTS:")
         print(f"  Symbol Coverage: {coverage_score:.1f}%")
-        print(
-            f"  Symbols with data: {self.results['symbols_with_data']}/{self.results['total_symbols']}"
-        )
+        print(f"  Symbols with data: {self.results['symbols_with_data']}/{self.results['total_symbols']}")
 
         if self.results["missing_symbols"]:
             print(f"  Missing symbols: {len(self.results['missing_symbols'])}")
 
         if self.results["data_gaps"]:
-            print(
-                f"  Symbols with gaps: {len(set(g['symbol'] for g in self.results['data_gaps']))}"
-            )
+            print(f"  Symbols with gaps: {len(set(g['symbol'] for g in self.results['data_gaps']))}")
 
         if self.results["quality_issues"]:
-            print(
-                f"  Quality issues found: {len(self.results['quality_issues'])} symbols"
-            )
+            print(f"  Quality issues found: {len(self.results['quality_issues'])} symbols")
 
         # Update status
         if self.results["update_status"]:
@@ -460,9 +436,7 @@ class BackfillVerifier:
         # Recommendations
         if self.results["missing_symbols"]:
             print(f"\n📝 RECOMMENDATIONS:")
-            print(
-                f"  1. Re-run backfill for missing symbols: {', '.join(self.results['missing_symbols'][:5])}"
-            )
+            print(f"  1. Re-run backfill for missing symbols: {', '.join(self.results['missing_symbols'][:5])}")
 
         if self.results["data_gaps"]:
             print(f"  2. Fill gaps using incremental updater")
@@ -475,10 +449,7 @@ class BackfillVerifier:
 
     def save_report(self):
         """Save detailed report to file"""
-        report_file = (
-            Path("data")
-            / f"backfill_verification_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
-        )
+        report_file = Path("data") / f"backfill_verification_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
         report_file.parent.mkdir(exist_ok=True)
 
         with open(report_file, "w") as f:
@@ -497,9 +468,7 @@ class BackfillVerifier:
             if self.results["data_gaps"]:
                 f.write(f"\nData Gaps Found:\n")
                 for gap in self.results["data_gaps"]:
-                    f.write(
-                        f"  - {gap['symbol']} {gap['timeframe']}: {gap['gaps']} gaps\n"
-                    )
+                    f.write(f"  - {gap['symbol']} {gap['timeframe']}: {gap['gaps']} gaps\n")
 
             if self.results["quality_issues"]:
                 f.write(f"\nQuality Issues:\n")

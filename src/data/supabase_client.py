@@ -17,9 +17,7 @@ class SupabaseClient:
     def __init__(self):
         """Initialize Supabase client."""
         self.settings = get_settings()
-        self.client: Client = create_client(
-            self.settings.supabase_url, self.settings.supabase_key
-        )
+        self.client: Client = create_client(self.settings.supabase_url, self.settings.supabase_key)
         logger.info("Supabase client initialized")
 
     def insert_price_data(self, data: List[Dict[str, Any]]) -> int:
@@ -43,9 +41,7 @@ class SupabaseClient:
             total_chunks = (len(data) + BATCH_SIZE - 1) // BATCH_SIZE
 
             if total_chunks > 1:
-                logger.debug(
-                    f"Processing batch {chunk_num}/{total_chunks} ({len(chunk)} records)"
-                )
+                logger.debug(f"Processing batch {chunk_num}/{total_chunks} ({len(chunk)} records)")
 
             try:
                 # Try batch insert for this chunk
@@ -54,11 +50,7 @@ class SupabaseClient:
                 total_inserted += len(chunk)
             except Exception as e:
                 # If batch fails due to duplicates or gateway errors, insert one by one
-                if (
-                    "duplicate key value" in str(e)
-                    or "502" in str(e)
-                    or "Bad Gateway" in str(e)
-                ):
+                if "duplicate key value" in str(e) or "502" in str(e) or "Bad Gateway" in str(e):
                     successful = 0
                     failed = 0
 
@@ -73,9 +65,7 @@ class SupabaseClient:
                                 failed += 1
                             else:
                                 # Log unexpected errors
-                                logger.warning(
-                                    f"Unexpected error inserting {record['symbol']}: {single_error}"
-                                )
+                                logger.warning(f"Unexpected error inserting {record['symbol']}: {single_error}")
                                 failed += 1
 
                     if successful > 0:
@@ -85,9 +75,7 @@ class SupabaseClient:
 
                     # Don't raise error for duplicates - this is normal operation
                     if successful == 0 and failed == len(chunk):
-                        logger.debug(
-                            f"Batch {chunk_num}: All {failed} records were duplicates (this is normal)"
-                        )
+                        logger.debug(f"Batch {chunk_num}: All {failed} records were duplicates (this is normal)")
 
                     total_inserted += successful
                 else:
@@ -96,9 +84,7 @@ class SupabaseClient:
                     raise
 
         if len(data) > BATCH_SIZE:
-            logger.info(
-                f"Total inserted across all batches: {total_inserted}/{len(data)} records"
-            )
+            logger.info(f"Total inserted across all batches: {total_inserted}/{len(data)} records")
 
         return total_inserted
 
@@ -153,9 +139,7 @@ class SupabaseClient:
             logger.error(f"Failed to get latest prices: {e}")
             return {}
 
-    def get_price_history(
-        self, symbol: str, start_time: datetime, end_time: Optional[datetime] = None
-    ) -> List[Dict]:
+    def get_price_history(self, symbol: str, start_time: datetime, end_time: Optional[datetime] = None) -> List[Dict]:
         """Get price history for a symbol within a time range."""
         try:
             query = (
@@ -194,19 +178,13 @@ class SupabaseClient:
                         if "duplicate key value" in str(single_error):
                             failed += 1
                         else:
-                            logger.warning(
-                                f"Unexpected error inserting feature for {record['symbol']}: {single_error}"
-                            )
+                            logger.warning(f"Unexpected error inserting feature for {record['symbol']}: {single_error}")
                             failed += 1
 
                 if successful > 0:
-                    logger.debug(
-                        f"Inserted {successful} new ML feature records, skipped {failed} duplicates"
-                    )
+                    logger.debug(f"Inserted {successful} new ML feature records, skipped {failed} duplicates")
                 elif failed == len(features):
-                    logger.debug(
-                        f"All {failed} ML feature records were duplicates (this is normal)"
-                    )
+                    logger.debug(f"All {failed} ML feature records were duplicates (this is normal)")
             else:
                 logger.error(f"Failed to save ML features: {e}")
                 raise
@@ -271,19 +249,12 @@ class SupabaseClient:
             logger.error(f"Failed to get recent predictions: {e}")
             return []
 
-    def update_prediction_result(
-        self, prediction_id: int, actual_move: float, correct: bool
-    ) -> None:
+    def update_prediction_result(self, prediction_id: int, actual_move: float, correct: bool) -> None:
         """Update a prediction with its actual result."""
         try:
             data = {"actual_move": actual_move, "correct": correct}
 
-            _ = (
-                self.client.table("ml_predictions")
-                .update(data)
-                .eq("prediction_id", prediction_id)
-                .execute()
-            )
+            _ = self.client.table("ml_predictions").update(data).eq("prediction_id", prediction_id).execute()
 
             logger.debug(f"Updated prediction {prediction_id} with result")
 
@@ -293,12 +264,7 @@ class SupabaseClient:
     def get_system_config(self, key: str) -> Optional[Any]:
         """Get a system configuration value."""
         try:
-            response = (
-                self.client.table("system_config")
-                .select("config_value")
-                .eq("config_key", key)
-                .execute()
-            )
+            response = self.client.table("system_config").select("config_value").eq("config_key", key).execute()
 
             if response.data:
                 return response.data[0]["config_value"]
@@ -317,12 +283,7 @@ class SupabaseClient:
                 "updated_at": datetime.now(timezone.utc).isoformat(),
             }
 
-            _ = (
-                self.client.table("system_config")
-                .update(data)
-                .eq("config_key", key)
-                .execute()
-            )
+            _ = self.client.table("system_config").update(data).eq("config_key", key).execute()
 
             logger.info(f"Updated system config: {key}")
 

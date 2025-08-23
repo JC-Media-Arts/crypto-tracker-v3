@@ -57,9 +57,7 @@ async def main():
                 failed = len(results) - successful
 
                 elapsed = time.time() - start_time
-                logger.info(
-                    f"Feature calculation complete in {elapsed:.1f}s - Success: {successful}, Failed: {failed}"
-                )
+                logger.info(f"Feature calculation complete in {elapsed:.1f}s - Success: {successful}, Failed: {failed}")
             else:
                 logger.warning("No symbols have enough data yet. Waiting...")
 

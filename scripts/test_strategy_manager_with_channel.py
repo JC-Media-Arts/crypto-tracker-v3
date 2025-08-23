@@ -219,8 +219,7 @@ class StrategyManagerTest:
                     "high": price + abs(np.random.randn() * 10),
                     "low": price - abs(np.random.randn() * 10),
                     "close": price,
-                    "volume": 1000000
-                    * (2 if i > 95 else 1),  # Volume surge on breakout
+                    "volume": 1000000 * (2 if i > 95 else 1),  # Volume surge on breakout
                 }
             )
         market_data["ETH"] = list(reversed(eth_data))
@@ -308,21 +307,13 @@ class StrategyManagerTest:
         # Apply capital constraints
         logger.info("\n💰 Applying capital constraints...")
         logger.info(f"  Total capital: ${self.config['total_capital']}")
-        logger.info(
-            f"  DCA allocation: ${self.config['total_capital'] * self.config['dca_allocation']:.0f}"
-        )
-        logger.info(
-            f"  Swing allocation: ${self.config['total_capital'] * self.config['swing_allocation']:.0f}"
-        )
-        logger.info(
-            f"  Channel allocation: ${self.config['total_capital'] * self.config['channel_allocation']:.0f}"
-        )
+        logger.info(f"  DCA allocation: ${self.config['total_capital'] * self.config['dca_allocation']:.0f}")
+        logger.info(f"  Swing allocation: ${self.config['total_capital'] * self.config['swing_allocation']:.0f}")
+        logger.info(f"  Channel allocation: ${self.config['total_capital'] * self.config['channel_allocation']:.0f}")
 
         # Capital constraints are already applied in resolve_conflicts
         final_signals = resolved_signals
-        logger.info(
-            f"  After capital constraints: {len(final_signals)} signals approved"
-        )
+        logger.info(f"  After capital constraints: {len(final_signals)} signals approved")
 
         # Execute signals
         logger.info("\n🚀 Executing signals...")
@@ -348,9 +339,7 @@ class StrategyManagerTest:
                 self.manager.update_performance(
                     strategy=StrategyType[result["strategy"]],
                     symbol=result["symbol"],
-                    outcome=(
-                        "WIN" if np.random.rand() > 0.5 else "LOSS"
-                    ),  # Random for test
+                    outcome=("WIN" if np.random.rand() > 0.5 else "LOSS"),  # Random for test
                     pnl=np.random.randn() * 10,
                 )
 
@@ -374,9 +363,7 @@ class StrategyManagerTest:
         logger.info(
             f"  Channel used: ${self.manager.allocation.channel_used:.2f} / ${self.config['total_capital'] * self.config['channel_allocation']:.0f}"
         )
-        logger.info(
-            f"  Total available: ${self.manager.allocation.total_available:.2f}"
-        )
+        logger.info(f"  Total available: ${self.manager.allocation.total_available:.2f}")
 
     async def run_all_tests(self):
         """Run all tests"""

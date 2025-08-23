@@ -33,17 +33,9 @@ def analyze_backfill_errors():
                         error_match = re.search(r"Error.*?: (.+)$", line)
                         if error_match:
                             error_msg = error_match.group(1).strip()
-                            timestamp_match = re.search(
-                                r"^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})", line
-                            )
-                            timestamp = (
-                                timestamp_match.group(1)
-                                if timestamp_match
-                                else "Unknown"
-                            )
-                            symbol_errors[symbol].append(
-                                {"timestamp": timestamp, "error": error_msg}
-                            )
+                            timestamp_match = re.search(r"^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})", line)
+                            timestamp = timestamp_match.group(1) if timestamp_match else "Unknown"
+                            symbol_errors[symbol].append({"timestamp": timestamp, "error": error_msg})
 
                     # Check for connection errors
                     if "ConnectionTerminated" in line or "502 Bad Gateway" in line:
@@ -112,6 +104,4 @@ if __name__ == "__main__":
         print("\n💡 RECOMMENDATION:")
         print("-" * 60)
         print("After the current backfill completes, you may want to re-run:")
-        print(
-            f"python scripts/backfill_historical_data.py --symbols {' '.join(problematic)} --months 12"
-        )
+        print(f"python scripts/backfill_historical_data.py --symbols {' '.join(problematic)} --months 12")

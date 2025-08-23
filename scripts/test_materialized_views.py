@@ -43,9 +43,7 @@ def test_views():
 
         if result.data:
             print(f"   ✅ SUCCESS in {elapsed:.3f}s")
-            print(
-                f"   Latest BTC: ${result.data[0]['close']:,.2f} at {result.data[0]['timestamp']}"
-            )
+            print(f"   Latest BTC: ${result.data[0]['close']:,.2f} at {result.data[0]['timestamp']}")
             test_results.append(("ohlc_today latest", True, elapsed))
         else:
             print(f"   ⚠️ No data found")
@@ -58,12 +56,7 @@ def test_views():
     print("\n2. Testing multi-symbol query on ohlc_today...")
     start = time.time()
     try:
-        result = (
-            supabase.table("ohlc_today")
-            .select("symbol")
-            .eq("timeframe", "15m")
-            .execute()
-        )
+        result = supabase.table("ohlc_today").select("symbol").eq("timeframe", "15m").execute()
         elapsed = time.time() - start
 
         unique_symbols = set(r["symbol"] for r in result.data)
@@ -114,9 +107,7 @@ def test_views():
         )
         elapsed = time.time() - start
 
-        print(
-            f"   ✅ Retrieved {len(result.data)} records for 5 symbols in {elapsed:.3f}s"
-        )
+        print(f"   ✅ Retrieved {len(result.data)} records for 5 symbols in {elapsed:.3f}s")
         test_results.append(("ohlc_recent multi", True, elapsed))
     except Exception as e:
         print(f"   ❌ FAILED: {e}")
@@ -127,11 +118,7 @@ def test_views():
     try:
         # This query checks if indexes exist
         result = (
-            supabase.rpc(
-                "get_indexes", {"table_names": ["ohlc_today", "ohlc_recent"]}
-            ).execute()
-            if False
-            else None
+            supabase.rpc("get_indexes", {"table_names": ["ohlc_today", "ohlc_recent"]}).execute() if False else None
         )  # RPC might not exist
 
         # Alternative: Just verify we can query quickly
@@ -151,9 +138,7 @@ def test_views():
             print(f"   ✅ Indexes appear to be working (query took {elapsed:.3f}s)")
             test_results.append(("index check", True, elapsed))
         else:
-            print(
-                f"   ⚠️ Query slower than expected ({elapsed:.3f}s) - indexes may not be created"
-            )
+            print(f"   ⚠️ Query slower than expected ({elapsed:.3f}s) - indexes may not be created")
             test_results.append(("index check", False, elapsed))
     except Exception as e:
         print(f"   ⚠️ Could not verify indexes: {e}")
@@ -193,46 +178,24 @@ def test_views():
 
     try:
         # Check latest in main table
-        result_main = (
-            supabase.table("ohlc_data")
-            .select("timestamp")
-            .order("timestamp", desc=True)
-            .limit(1)
-            .execute()
-        )
+        result_main = supabase.table("ohlc_data").select("timestamp").order("timestamp", desc=True).limit(1).execute()
 
         # Check latest in views
-        result_today = (
-            supabase.table("ohlc_today")
-            .select("timestamp")
-            .order("timestamp", desc=True)
-            .limit(1)
-            .execute()
-        )
+        result_today = supabase.table("ohlc_today").select("timestamp").order("timestamp", desc=True).limit(1).execute()
 
         result_recent = (
-            supabase.table("ohlc_recent")
-            .select("timestamp")
-            .order("timestamp", desc=True)
-            .limit(1)
-            .execute()
+            supabase.table("ohlc_recent").select("timestamp").order("timestamp", desc=True).limit(1).execute()
         )
 
         if result_main.data and result_today.data:
-            main_time = datetime.fromisoformat(
-                result_main.data[0]["timestamp"].replace("Z", "+00:00")
-            )
-            today_time = datetime.fromisoformat(
-                result_today.data[0]["timestamp"].replace("Z", "+00:00")
-            )
+            main_time = datetime.fromisoformat(result_main.data[0]["timestamp"].replace("Z", "+00:00"))
+            today_time = datetime.fromisoformat(result_today.data[0]["timestamp"].replace("Z", "+00:00"))
 
             lag = (main_time - today_time).total_seconds() / 60
 
             print(f"Latest in main table:  {result_main.data[0]['timestamp']}")
             print(f"Latest in ohlc_today:  {result_today.data[0]['timestamp']}")
-            print(
-                f"Latest in ohlc_recent: {result_recent.data[0]['timestamp'] if result_recent.data else 'N/A'}"
-            )
+            print(f"Latest in ohlc_recent: {result_recent.data[0]['timestamp'] if result_recent.data else 'N/A'}")
 
             if abs(lag) < 60:
                 print(f"\n✅ Views are up to date (lag: {abs(lag):.1f} minutes)")
@@ -257,9 +220,7 @@ if __name__ == "__main__":
         print("\n✅ All tests passed! Your views are ready for production.")
     else:
         print("\n⚠️ Some tests failed. Check the issues above.")
-        print(
-            "\nMake sure you've created all indexes from migrations/015_individual_indexes.sql"
-        )
+        print("\nMake sure you've created all indexes from migrations/015_individual_indexes.sql")
 
     print("\nNext steps:")
     print("1. Create remaining indexes one by one")

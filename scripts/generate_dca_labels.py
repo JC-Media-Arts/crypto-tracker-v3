@@ -40,9 +40,7 @@ class DCALabelGenerator:
         self.config = self.detector.config
         self.grid_calculator = GridCalculator(self.config)
 
-    def generate_labels(
-        self, symbols: List[str], lookback_days: int = 180
-    ) -> pd.DataFrame:
+    def generate_labels(self, symbols: List[str], lookback_days: int = 180) -> pd.DataFrame:
         """
         Generate DCA labels from historical data.
 
@@ -106,9 +104,7 @@ class DCALabelGenerator:
                 .execute()
             )
 
-            logger.info(
-                f"Fetched {len(result.data) if result.data else 0} records for {symbol}"
-            )
+            logger.info(f"Fetched {len(result.data) if result.data else 0} records for {symbol}")
 
             # If we hit the limit, we need to paginate or use smaller chunks
             if len(result.data) == 1000:
@@ -118,9 +114,7 @@ class DCALabelGenerator:
                 current_start = start_date
 
                 while current_start < end_date:
-                    current_end = min(
-                        current_start + timedelta(hours=chunk_hours), end_date
-                    )
+                    current_end = min(current_start + timedelta(hours=chunk_hours), end_date)
 
                     chunk_result = (
                         self.supabase.client.table("price_data")
@@ -144,12 +138,8 @@ class DCALabelGenerator:
                 result.data = all_data
                 logger.info(f"Total records after chunking: {len(result.data)}")
 
-            if (
-                not result.data or len(result.data) < 1440
-            ):  # Need at least 1 day of data
-                logger.warning(
-                    f"Insufficient data for {symbol}: only {len(result.data) if result.data else 0} records"
-                )
+            if not result.data or len(result.data) < 1440:  # Need at least 1 day of data
+                logger.warning(f"Insufficient data for {symbol}: only {len(result.data) if result.data else 0} records")
                 return setups
 
             df = pd.DataFrame(result.data)
@@ -177,10 +167,7 @@ class DCALabelGenerator:
                 if drop_pct <= -5.0:  # 5% drop threshold
                     # Calculate additional features
                     rsi = self.calculate_rsi(df["price"].iloc[max(0, i - 100) : i + 1])
-                    volume_ratio = (
-                        window_data["volume"].mean()
-                        / df["volume"].iloc[max(0, i - 1440) : i].mean()
-                    )
+                    volume_ratio = window_data["volume"].mean() / df["volume"].iloc[max(0, i - 1440) : i].mean()
 
                     setup = {
                         "symbol": symbol,
@@ -276,9 +263,7 @@ class DCALabelGenerator:
             take_profit = avg_entry * 1.10  # 10% profit from average entry
             # Stop loss should be below the lowest grid level
             lowest_grid = setup_price * 0.92  # 8% below setup price
-            stop_loss = (
-                lowest_grid * 0.97
-            )  # 3% below lowest grid (total -11% from setup)
+            stop_loss = lowest_grid * 0.97  # 3% below lowest grid (total -11% from setup)
 
             # Check outcome
             max_price = df["price"].max()
@@ -363,16 +348,8 @@ class DCALabelGenerator:
                 "breakeven": (df["label"] == "BREAKEVEN").sum(),
                 "skipped": (df["label"] == "SKIP").sum(),
                 "win_rate": (df["label"] == "WIN").mean(),
-                "avg_win_pnl": (
-                    df[df["label"] == "WIN"]["pnl_pct"].mean()
-                    if any(df["label"] == "WIN")
-                    else 0
-                ),
-                "avg_loss_pnl": (
-                    df[df["label"] == "LOSS"]["pnl_pct"].mean()
-                    if any(df["label"] == "LOSS")
-                    else 0
-                ),
+                "avg_win_pnl": (df[df["label"] == "WIN"]["pnl_pct"].mean() if any(df["label"] == "WIN") else 0),
+                "avg_loss_pnl": (df[df["label"] == "LOSS"]["pnl_pct"].mean() if any(df["label"] == "LOSS") else 0),
                 "avg_time_to_exit": df["time_to_exit"].mean(),
             }
 
@@ -381,11 +358,7 @@ class DCALabelGenerator:
             print("=" * 60)
             for key, value in summary.items():
                 if "rate" in key or "pnl" in key:
-                    print(
-                        f"{key:20}: {value:.2%}"
-                        if "rate" in key
-                        else f"{key:20}: {value:.2f}%"
-                    )
+                    print(f"{key:20}: {value:.2%}" if "rate" in key else f"{key:20}: {value:.2f}%")
                 else:
                     print(f"{key:20}: {value:.1f}")
 
@@ -459,9 +432,7 @@ def main():
                     if "duplicate" in str(e).lower():
                         skipped_count += 1
                     else:
-                        logger.error(
-                            f"Error saving label for {row['symbol']} at {row['setup_time']}: {e}"
-                        )
+                        logger.error(f"Error saving label for {row['symbol']} at {row['setup_time']}: {e}")
 
         print(f"Saved {saved_count} labels to strategy_dca_labels table")
         if skipped_count > 0:

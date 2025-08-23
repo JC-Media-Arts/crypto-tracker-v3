@@ -47,22 +47,16 @@ def main():
 
             # Try calculating features for this symbol
             try:
-                features_df = calculator.calculate_features_for_symbol(
-                    symbol, lookback_hours=24
-                )
+                features_df = calculator.calculate_features_for_symbol(symbol, lookback_hours=24)
                 if features_df is not None and not features_df.empty:
-                    print(
-                        f"  - Test calculation: ✅ Success ({len(features_df)} features)"
-                    )
+                    print(f"  - Test calculation: ✅ Success ({len(features_df)} features)")
                     print(f"  - Latest features: {features_df.columns.tolist()[:5]}...")
                 else:
                     print("  - Test calculation: ❌ Failed")
             except Exception as e:
                 print(f"  - Test calculation: ❌ Error: {e}")
         else:
-            print(
-                f"  - Status: ❌ Need {calculator.min_periods - data_count} more data points"
-            )
+            print(f"  - Status: ❌ Need {calculator.min_periods - data_count} more data points")
 
     print("\n" + "=" * 60)
     print(f"SUMMARY: {len(ready_symbols)}/{len(symbols)} symbols ready for ML features")

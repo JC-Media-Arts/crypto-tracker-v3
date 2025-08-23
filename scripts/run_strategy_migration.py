@@ -30,9 +30,7 @@ def run_migration():
     supabase: Client = create_client(url, key)
 
     # Read migration file
-    migration_file = (
-        Path(__file__).parent.parent / "migrations" / "002_strategy_tables.sql"
-    )
+    migration_file = Path(__file__).parent.parent / "migrations" / "002_strategy_tables.sql"
 
     if not migration_file.exists():
         print(f"❌ Error: Migration file not found: {migration_file}")
@@ -80,9 +78,7 @@ def run_migration():
             if strategies.data:
                 print(f"\n📋 Found {len(strategies.data)} strategy configurations:")
                 for strategy in strategies.data:
-                    print(
-                        f"  - {strategy['strategy_name']}: {'Active' if strategy['is_active'] else 'Inactive'}"
-                    )
+                    print(f"  - {strategy['strategy_name']}: {'Active' if strategy['is_active'] else 'Inactive'}")
             else:
                 print("\n⚠️  No strategy configurations found")
         except Exception as e:
@@ -92,9 +88,7 @@ def run_migration():
 
     except Exception as e:
         print(f"❌ Error running migration: {e}")
-        print(
-            "\n💡 Note: If you see 'function supabase.exec_sql does not exist', you may need to:"
-        )
+        print("\n💡 Note: If you see 'function supabase.exec_sql does not exist', you may need to:")
         print("   1. Run the migration directly in Supabase SQL editor")
         print("   2. Or use the Supabase migrations feature")
         print(f"\n📄 Migration file location: {migration_file}")

@@ -96,9 +96,7 @@ class FifteenMinuteFetcher:
             logger.error(f"Error checking {symbol}: {e}")
             return False, 0
 
-    def fetch_batch(
-        self, symbol: str, start_date: datetime, end_date: datetime
-    ) -> List[Dict]:
+    def fetch_batch(self, symbol: str, start_date: datetime, end_date: datetime) -> List[Dict]:
         """Fetch a batch of 15-minute OHLC data"""
         try:
             ticker = f"X:{symbol}USD"
@@ -120,9 +118,7 @@ class FifteenMinuteFetcher:
             for bar in bars:
                 data.append(
                     {
-                        "timestamp": pd.Timestamp(
-                            bar.timestamp, unit="ms", tz="UTC"
-                        ).isoformat(),
+                        "timestamp": pd.Timestamp(bar.timestamp, unit="ms", tz="UTC").isoformat(),
                         "symbol": symbol,
                         "timeframe": "15m",
                         "open": float(bar.open),
@@ -130,16 +126,8 @@ class FifteenMinuteFetcher:
                         "low": float(bar.low),
                         "close": float(bar.close),
                         "volume": float(bar.volume) if bar.volume else 0,
-                        "vwap": (
-                            float(bar.vwap)
-                            if hasattr(bar, "vwap") and bar.vwap
-                            else None
-                        ),
-                        "trades": (
-                            int(bar.transactions)
-                            if hasattr(bar, "transactions")
-                            else None
-                        ),
+                        "vwap": (float(bar.vwap) if hasattr(bar, "vwap") and bar.vwap else None),
+                        "trades": (int(bar.transactions) if hasattr(bar, "transactions") else None),
                     }
                 )
 
@@ -199,9 +187,7 @@ class FifteenMinuteFetcher:
 
             if data:
                 all_data.extend(data)
-                logger.info(
-                    f"Progress: {current_date.date()} to {batch_end.date()} - {len(data)} bars"
-                )
+                logger.info(f"Progress: {current_date.date()} to {batch_end.date()} - {len(data)} bars")
 
             current_date = batch_end + timedelta(days=1)
             time.sleep(0.2)  # Rate limiting
@@ -249,9 +235,7 @@ class FifteenMinuteFetcher:
         logger.info("15-MINUTE DATA COMPLETE")
         logger.info("=" * 80)
 
-        successful = sum(
-            1 for r in self.results.values() if r.get("status") == "completed"
-        )
+        successful = sum(1 for r in self.results.values() if r.get("status") == "completed")
         skipped = sum(1 for r in self.results.values() if r.get("status") == "skipped")
         failed = sum(1 for r in self.results.values() if r.get("status") == "failed")
 

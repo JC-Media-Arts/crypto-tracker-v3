@@ -49,12 +49,7 @@ async def test_evaluation():
     print(f"   Variation: {shadow['variation_name']}")
 
     # Get scan details
-    scan_result = (
-        client.client.table("scan_history")
-        .select("*")
-        .eq("scan_id", shadow["scan_id"])
-        .execute()
-    )
+    scan_result = client.client.table("scan_history").select("*").eq("scan_id", shadow["scan_id"]).execute()
 
     if scan_result.data:
         scan = scan_result.data[0]
@@ -75,11 +70,7 @@ async def test_evaluation():
 
         # Check if any outcomes were created
         outcomes = (
-            client.client.table("shadow_outcomes")
-            .select("*")
-            .order("evaluated_at", desc=True)
-            .limit(5)
-            .execute()
+            client.client.table("shadow_outcomes").select("*").order("evaluated_at", desc=True).limit(5).execute()
         )
 
         if outcomes.data:

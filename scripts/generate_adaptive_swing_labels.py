@@ -124,9 +124,7 @@ class AdaptiveSwingLabelGenerator:
         else:
             return "volatile"
 
-    def get_adaptive_targets(
-        self, symbol: str, volatility: float, market_condition: str
-    ) -> Dict:
+    def get_adaptive_targets(self, symbol: str, volatility: float, market_condition: str) -> Dict:
         """Get adaptive targets based on symbol and market conditions"""
         category = self.get_symbol_category(symbol, volatility)
 
@@ -192,9 +190,7 @@ class AdaptiveSwingLabelGenerator:
         df["sma_50"] = df["close"].rolling(window=50).mean()
 
         # Resistance and support
-        df["resistance"] = (
-            df["high"].rolling(window=self.config["lookback_window"]).max()
-        )
+        df["resistance"] = df["high"].rolling(window=self.config["lookback_window"]).max()
         df["support"] = df["low"].rolling(window=self.config["lookback_window"]).min()
 
         # Volatility
@@ -231,9 +227,9 @@ class AdaptiveSwingLabelGenerator:
             for volume_surge in self.config["volume_surges"]:
                 for i in range(100, len(df) - 72):  # Leave room for 72-hour outcome
                     # Basic breakout conditions
-                    price_above_resistance = df.iloc[i]["close"] > df.iloc[i - 1][
-                        "resistance"
-                    ] * (1 + breakout_threshold)
+                    price_above_resistance = df.iloc[i]["close"] > df.iloc[i - 1]["resistance"] * (
+                        1 + breakout_threshold
+                    )
                     volume_confirmed = df.iloc[i]["volume_ratio"] > volume_surge
                     rsi_positive = df.iloc[i]["rsi"] > self.config["min_rsi"]
 
@@ -241,18 +237,11 @@ class AdaptiveSwingLabelGenerator:
                     above_sma20 = df.iloc[i]["close"] > df.iloc[i]["sma_20"]
                     macd_positive = df.iloc[i]["macd"] > df.iloc[i]["macd_signal"]
 
-                    if (
-                        price_above_resistance
-                        and volume_confirmed
-                        and rsi_positive
-                        and above_sma20
-                    ):
+                    if price_above_resistance and volume_confirmed and rsi_positive and above_sma20:
                         # Get adaptive targets
                         volatility = df.iloc[i]["volatility"]
                         market_condition = self.calculate_market_condition(df, i)
-                        targets = self.get_adaptive_targets(
-                            symbol, volatility, market_condition
-                        )
+                        targets = self.get_adaptive_targets(symbol, volatility, market_condition)
 
                         entry_price = df.iloc[i]["close"]
                         entry_time = df.iloc[i]["timestamp"]
@@ -270,27 +259,16 @@ class AdaptiveSwingLabelGenerator:
 
                         # Calculate features
                         features = {
-                            "breakout_strength": (
-                                df.iloc[i]["close"] - df.iloc[i - 1]["resistance"]
-                            )
+                            "breakout_strength": (df.iloc[i]["close"] - df.iloc[i - 1]["resistance"])
                             / df.iloc[i - 1]["resistance"],
                             "volume_ratio": df.iloc[i]["volume_ratio"],
                             "rsi": df.iloc[i]["rsi"],
                             "price_change_24h": df.iloc[i]["price_change_24h"],
-                            "distance_from_sma20": (
-                                df.iloc[i]["close"] - df.iloc[i]["sma_20"]
-                            )
-                            / df.iloc[i]["sma_20"],
-                            "distance_from_sma50": (
-                                df.iloc[i]["close"] - df.iloc[i]["sma_50"]
-                            )
-                            / df.iloc[i]["sma_50"],
+                            "distance_from_sma20": (df.iloc[i]["close"] - df.iloc[i]["sma_20"]) / df.iloc[i]["sma_20"],
+                            "distance_from_sma50": (df.iloc[i]["close"] - df.iloc[i]["sma_50"]) / df.iloc[i]["sma_50"],
                             "volatility": volatility,
-                            "macd_histogram": df.iloc[i]["macd"]
-                            - df.iloc[i]["macd_signal"],
-                            "bb_position": (
-                                df.iloc[i]["close"] - df.iloc[i]["bb_lower"]
-                            )
+                            "macd_histogram": df.iloc[i]["macd"] - df.iloc[i]["macd_signal"],
+                            "bb_position": (df.iloc[i]["close"] - df.iloc[i]["bb_lower"])
                             / (df.iloc[i]["bb_upper"] - df.iloc[i]["bb_lower"]),
                             "atr_ratio": df.iloc[i]["atr"] / df.iloc[i]["close"],
                             "breakout_threshold_used": breakout_threshold,
@@ -313,9 +291,7 @@ class AdaptiveSwingLabelGenerator:
                             "max_profit": outcome["max_profit"],
                             "max_loss": outcome["max_loss"],
                             "market_condition": market_condition,
-                            "symbol_category": self.get_symbol_category(
-                                symbol, volatility
-                            ),
+                            "symbol_category": self.get_symbol_category(symbol, volatility),
                             "features": features,
                         }
 
@@ -411,9 +387,7 @@ class AdaptiveSwingLabelGenerator:
 
         return atr
 
-    def calculate_bollinger_bands(
-        self, prices: pd.Series, period: int = 20, std: int = 2
-    ):
+    def calculate_bollinger_bands(self, prices: pd.Series, period: int = 20, std: int = 2):
         """Calculate Bollinger Bands"""
         middle = prices.rolling(window=period).mean()
         std_dev = prices.rolling(window=period).std()
@@ -457,9 +431,7 @@ class AdaptiveSwingLabelGenerator:
             "by_symbol": {},
         }
 
-        logger.info(
-            f"Generating adaptive swing labels for {len(self.symbols)} symbols..."
-        )
+        logger.info(f"Generating adaptive swing labels for {len(self.symbols)} symbols...")
 
         for symbol in self.symbols:
             logger.info(f"Processing {symbol}...")
@@ -476,9 +448,7 @@ class AdaptiveSwingLabelGenerator:
                 logger.info(f"  Found {len(setups)} setups for {symbol}")
 
                 wins = sum(1 for s in setups if s["outcome"] in ["WIN", "SMALL_WIN"])
-                losses = sum(
-                    1 for s in setups if s["outcome"] in ["LOSS", "SMALL_LOSS"]
-                )
+                losses = sum(1 for s in setups if s["outcome"] in ["LOSS", "SMALL_LOSS"])
                 win_rate = (wins / len(setups)) * 100 if setups else 0
 
                 logger.info(f"  Win rate: {win_rate:.1f}% ({wins}W/{losses}L)")
@@ -505,18 +475,10 @@ class AdaptiveSwingLabelGenerator:
                 summary["by_category"][category]["losses"] += 1
 
         summary["total_setups"] = len(all_setups)
-        summary["wins"] = sum(
-            1 for s in all_setups if s["outcome"] in ["WIN", "SMALL_WIN"]
-        )
-        summary["losses"] = sum(
-            1 for s in all_setups if s["outcome"] in ["LOSS", "SMALL_LOSS"]
-        )
+        summary["wins"] = sum(1 for s in all_setups if s["outcome"] in ["WIN", "SMALL_WIN"])
+        summary["losses"] = sum(1 for s in all_setups if s["outcome"] in ["LOSS", "SMALL_LOSS"])
 
-        overall_win_rate = (
-            (summary["wins"] / summary["total_setups"]) * 100
-            if summary["total_setups"] > 0
-            else 0
-        )
+        overall_win_rate = (summary["wins"] / summary["total_setups"]) * 100 if summary["total_setups"] > 0 else 0
 
         logger.info("\n" + "=" * 60)
         logger.info("ADAPTIVE SWING LABEL GENERATION COMPLETE")
@@ -548,9 +510,7 @@ class AdaptiveSwingLabelGenerator:
             # Save CSV
             df_labels = pd.DataFrame(all_setups)
             features_df = pd.DataFrame([s["features"] for s in all_setups])
-            df_labels = pd.concat(
-                [df_labels.drop("features", axis=1), features_df], axis=1
-            )
+            df_labels = pd.concat([df_labels.drop("features", axis=1), features_df], axis=1)
 
             csv_file = "data/adaptive_swing_labels.csv"
             df_labels.to_csv(csv_file, index=False)
@@ -570,9 +530,7 @@ def main():
         for category, stats in summary["by_category"].items():
             if stats["total"] > 0:
                 win_rate = (stats["wins"] / stats["total"]) * 100
-                logger.info(
-                    f"  {category}: {win_rate:.1f}% ({stats['wins']}W/{stats['losses']}L)"
-                )
+                logger.info(f"  {category}: {win_rate:.1f}% ({stats['wins']}W/{stats['losses']}L)")
 
 
 if __name__ == "__main__":

@@ -45,9 +45,7 @@ ORDER BY indexname;
 print("\n🔍 Checking indexes on ohlc_data table...")
 
 try:
-    result = subprocess.run(
-        ["psql", conn_str, "-c", sql, "-t"], capture_output=True, text=True, timeout=10
-    )
+    result = subprocess.run(["psql", conn_str, "-c", sql, "-t"], capture_output=True, text=True, timeout=10)
 
     if result.returncode == 0:
         output = result.stdout.strip()

@@ -187,9 +187,7 @@ class AdaptiveDCALabelGenerator:
             return df
         return pd.DataFrame()
 
-    def find_dca_setups(
-        self, symbol: str, df: pd.DataFrame, threshold: float
-    ) -> List[Dict]:
+    def find_dca_setups(self, symbol: str, df: pd.DataFrame, threshold: float) -> List[Dict]:
         """Find DCA setups with given threshold."""
         if df.empty or len(df) < 48:
             return []
@@ -199,9 +197,7 @@ class AdaptiveDCALabelGenerator:
         # Calculate indicators
         df["volume_ma"] = df["volume"].rolling(window=96, min_periods=1).mean()
         df["volume_ratio"] = df["volume"] / df["volume_ma"]
-        df["high_4h"] = (
-            df["high"].rolling(window=16, min_periods=1).max()
-        )  # 16 * 15min = 4 hours
+        df["high_4h"] = df["high"].rolling(window=16, min_periods=1).max()  # 16 * 15min = 4 hours
 
         i = 48  # Start after we have enough history
         while i < len(df):
@@ -232,9 +228,7 @@ class AdaptiveDCALabelGenerator:
 
         return setups
 
-    def simulate_outcome(
-        self, df: pd.DataFrame, setup: Dict, take_profit: float, stop_loss: float
-    ) -> Dict:
+    def simulate_outcome(self, df: pd.DataFrame, setup: Dict, take_profit: float, stop_loss: float) -> Dict:
         """Simulate the outcome of a DCA setup."""
         setup_idx = df[df["timestamp"] == setup["timestamp"]].index[0]
 
@@ -276,11 +270,7 @@ class AdaptiveDCALabelGenerator:
 
         return {
             **setup,
-            "outcome": (
-                "BREAKEVEN"
-                if abs(final_pct) < 2
-                else ("BREAKEVEN_POS" if final_pct > 0 else "BREAKEVEN_NEG")
-            ),
+            "outcome": ("BREAKEVEN" if abs(final_pct) < 2 else ("BREAKEVEN_POS" if final_pct > 0 else "BREAKEVEN_NEG")),
             "exit_price": final_price,
             "pnl_pct": final_pct,
             "exit_timestamp": df.iloc[setup_idx + max_look_forward]["timestamp"],
@@ -291,9 +281,7 @@ class AdaptiveDCALabelGenerator:
         tier_config = self.get_tier_for_symbol(symbol)
 
         if not tier_config or tier_config.get("threshold") is None:
-            logger.info(
-                f"Skipping {symbol}: {tier_config.get('reason', 'No configuration')}"
-            )
+            logger.info(f"Skipping {symbol}: {tier_config.get('reason', 'No configuration')}")
             return []
 
         logger.info(f"\nProcessing {symbol} (threshold: {tier_config['threshold']}%)")
@@ -314,9 +302,7 @@ class AdaptiveDCALabelGenerator:
         # Simulate outcomes
         labels = []
         for setup in setups:
-            label = self.simulate_outcome(
-                df, setup, tier_config["take_profit"], tier_config["stop_loss"]
-            )
+            label = self.simulate_outcome(df, setup, tier_config["take_profit"], tier_config["stop_loss"])
             label["threshold"] = tier_config["threshold"]
             label["take_profit_target"] = tier_config["take_profit"]
             label["stop_loss_target"] = tier_config["stop_loss"]
@@ -329,9 +315,7 @@ class AdaptiveDCALabelGenerator:
         total = len(outcomes)
         win_rate = (wins / total * 100) if total > 0 else 0
 
-        logger.info(
-            f"{symbol} Results: {wins} wins, {losses} losses, {win_rate:.1f}% win rate"
-        )
+        logger.info(f"{symbol} Results: {wins} wins, {losses} losses, {win_rate:.1f}% win rate")
 
         return labels
 
@@ -369,11 +353,7 @@ class AdaptiveDCALabelGenerator:
                 lambda s: (
                     "large"
                     if s in self.market_tiers["large_cap"]["symbols"]
-                    else (
-                        "mid"
-                        if s in self.market_tiers["mid_cap"]["symbols"]
-                        else "small"
-                    )
+                    else ("mid" if s in self.market_tiers["mid_cap"]["symbols"] else "small")
                 )
             )
 
@@ -450,18 +430,12 @@ def main():
             sym_win_rate = (sym_wins / sym_total * 100) if sym_total > 0 else 0
 
             if sym_total >= 10:  # Only include symbols with enough setups
-                symbol_stats.append(
-                    {"symbol": symbol, "setups": sym_total, "win_rate": sym_win_rate}
-                )
+                symbol_stats.append({"symbol": symbol, "setups": sym_total, "win_rate": sym_win_rate})
 
-        symbol_stats = sorted(symbol_stats, key=lambda x: x["win_rate"], reverse=True)[
-            :10
-        ]
+        symbol_stats = sorted(symbol_stats, key=lambda x: x["win_rate"], reverse=True)[:10]
 
         for stat in symbol_stats:
-            logger.info(
-                f"  {stat['symbol']}: {stat['setups']} setups, {stat['win_rate']:.1f}% win rate"
-            )
+            logger.info(f"  {stat['symbol']}: {stat['setups']} setups, {stat['win_rate']:.1f}% win rate")
     else:
         logger.warning("No labels generated")
 

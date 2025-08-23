@@ -74,22 +74,16 @@ class KrakenPaperTradingTest:
         # Add Kraken credentials to master account
         endpoint = f"/accounts/add-credential/{self.account_name}/{self.connector}"
 
-        async with self.session.post(
-            f"{self.base_url}{endpoint}", json=credentials, auth=self.auth
-        ) as response:
+        async with self.session.post(f"{self.base_url}{endpoint}", json=credentials, auth=self.auth) as response:
             if response.status in [200, 201]:
                 logger.info(f"✅ Kraken credentials added to {self.account_name}")
                 return True
             elif response.status == 409:
-                logger.info(
-                    f"ℹ️  Kraken credentials already exist for {self.account_name}"
-                )
+                logger.info(f"ℹ️  Kraken credentials already exist for {self.account_name}")
                 return True
             else:
                 error = await response.text()
-                logger.error(
-                    f"❌ Failed to add credentials: {response.status} - {error}"
-                )
+                logger.error(f"❌ Failed to add credentials: {response.status} - {error}")
                 return False
 
     async def start_trading_bot(self):
@@ -136,9 +130,7 @@ class KrakenPaperTradingTest:
         # Start the bot
         endpoint = "/bot-orchestration/start-bot"
 
-        async with self.session.post(
-            f"{self.base_url}{endpoint}", json=bot_config, auth=self.auth
-        ) as response:
+        async with self.session.post(f"{self.base_url}{endpoint}", json=bot_config, auth=self.auth) as response:
             if response.status in [200, 201]:
                 data = await response.json()
                 logger.info(f"✅ Bot started: {bot_config['bot_name']}")
@@ -194,11 +186,7 @@ class KrakenPaperTradingTest:
             logger.info(f"   Volume Spike: {scenario['volume_spike']}x")
 
             # Determine if DCA should trigger
-            should_dca = (
-                scenario["rsi"] < 30
-                and scenario["price_drop_1h"] < -3.0
-                and scenario["volume_spike"] > 2.0
-            )
+            should_dca = scenario["rsi"] < 30 and scenario["price_drop_1h"] < -3.0 and scenario["volume_spike"] > 2.0
 
             action = "EXECUTE_DCA_GRID" if should_dca else "NO_ACTION"
 
@@ -214,13 +202,9 @@ class KrakenPaperTradingTest:
                     )
                     logger.info(f"   📈 Grid Orders:")
                     for i, order in enumerate(grid, 1):
-                        logger.info(
-                            f"      Level {i}: ${order['price']:,.2f} x {order['size']:.6f}"
-                        )
+                        logger.info(f"      Level {i}: ${order['price']:,.2f} x {order['size']:.6f}")
             else:
-                logger.error(
-                    f"   ❌ Wrong: Got {action}, Expected {scenario['expected_action']}"
-                )
+                logger.error(f"   ❌ Wrong: Got {action}, Expected {scenario['expected_action']}")
 
     async def test_swing_strategy(self):
         """Test Swing/Momentum strategy execution"""
@@ -286,16 +270,10 @@ class KrakenPaperTradingTest:
                     # Calculate position size
                     position_size = self.paper_balance["USD"] * 0.03  # 3% position
                     logger.info(f"   💰 Position Size: ${position_size:,.2f}")
-                    logger.info(
-                        f"   🎯 Take Profit: ${scenario['current_price'] * 1.10:,.2f} (+10%)"
-                    )
-                    logger.info(
-                        f"   🛑 Stop Loss: ${scenario['current_price'] * 0.95:,.2f} (-5%)"
-                    )
+                    logger.info(f"   🎯 Take Profit: ${scenario['current_price'] * 1.10:,.2f} (+10%)")
+                    logger.info(f"   🛑 Stop Loss: ${scenario['current_price'] * 0.95:,.2f} (-5%)")
             else:
-                logger.error(
-                    f"   ❌ Wrong: Got {action}, Expected {scenario['expected_action']}"
-                )
+                logger.error(f"   ❌ Wrong: Got {action}, Expected {scenario['expected_action']}")
 
     async def test_risk_management(self):
         """Test risk management and position limits"""
@@ -332,33 +310,23 @@ class KrakenPaperTradingTest:
         # Max exposure check
         max_exposure = 30.0  # 30% max
         if exposure_pct <= max_exposure:
-            logger.info(
-                f"  ✅ Total exposure within limit ({exposure_pct:.1f}% <= {max_exposure}%)"
-            )
+            logger.info(f"  ✅ Total exposure within limit ({exposure_pct:.1f}% <= {max_exposure}%)")
         else:
-            logger.warning(
-                f"  ⚠️  Total exposure exceeds limit ({exposure_pct:.1f}% > {max_exposure}%)"
-            )
+            logger.warning(f"  ⚠️  Total exposure exceeds limit ({exposure_pct:.1f}% > {max_exposure}%)")
 
         # Single position limit check
         max_single = 10.0  # 10% max per position
         for pos in test_positions:
             pos_pct = (pos["value"] / self.paper_balance["USD"]) * 100
             if pos_pct > max_single:
-                logger.warning(
-                    f"  ⚠️  {pos['symbol']} exceeds single position limit ({pos_pct:.1f}% > {max_single}%)"
-                )
+                logger.warning(f"  ⚠️  {pos['symbol']} exceeds single position limit ({pos_pct:.1f}% > {max_single}%)")
 
         # Position count check
         max_positions = 10
         if len(test_positions) <= max_positions:
-            logger.info(
-                f"  ✅ Position count within limit ({len(test_positions)} <= {max_positions})"
-            )
+            logger.info(f"  ✅ Position count within limit ({len(test_positions)} <= {max_positions})")
         else:
-            logger.warning(
-                f"  ⚠️  Too many positions ({len(test_positions)} > {max_positions})"
-            )
+            logger.warning(f"  ⚠️  Too many positions ({len(test_positions)} > {max_positions})")
 
     async def test_exit_strategies(self):
         """Test take profit and stop loss execution"""
@@ -394,9 +362,7 @@ class KrakenPaperTradingTest:
         ]
 
         for pos in test_positions:
-            pnl_pct = (
-                (pos["current_price"] - pos["entry_price"]) / pos["entry_price"]
-            ) * 100
+            pnl_pct = ((pos["current_price"] - pos["entry_price"]) / pos["entry_price"]) * 100
 
             logger.info(f"\n📊 {pos['symbol']} Position:")
             logger.info(f"   Entry: ${pos['entry_price']:,.2f}")
@@ -419,9 +385,7 @@ class KrakenPaperTradingTest:
             if action == pos["expected_action"]:
                 logger.info(f"   ✅ Correct exit decision")
             else:
-                logger.error(
-                    f"   ❌ Wrong: Got {action}, Expected {pos['expected_action']}"
-                )
+                logger.error(f"   ❌ Wrong: Got {action}, Expected {pos['expected_action']}")
 
     async def test_ml_integration(self):
         """Test ML model integration and predictions"""
@@ -488,9 +452,7 @@ class KrakenPaperTradingTest:
             if decision == scenario["expected_decision"]:
                 logger.info(f"   ✅ Correct ML-based decision")
             else:
-                logger.error(
-                    f"   ❌ Wrong: Got {decision}, Expected {scenario['expected_decision']}"
-                )
+                logger.error(f"   ❌ Wrong: Got {decision}, Expected {scenario['expected_decision']}")
 
     async def monitor_bot_performance(self):
         """Monitor bot performance and statistics"""
@@ -501,9 +463,7 @@ class KrakenPaperTradingTest:
         # Get bot status
         endpoint = f"/bot-orchestration/kraken_ml_dca_swing_bot/status"
 
-        async with self.session.get(
-            f"{self.base_url}{endpoint}", auth=self.auth
-        ) as response:
+        async with self.session.get(f"{self.base_url}{endpoint}", auth=self.auth) as response:
             if response.status == 200:
                 status = await response.json()
                 logger.info(f"Bot Status: {status}")
@@ -513,23 +473,17 @@ class KrakenPaperTradingTest:
         # Get portfolio state
         endpoint = "/portfolio/state"
 
-        async with self.session.get(
-            f"{self.base_url}{endpoint}", auth=self.auth
-        ) as response:
+        async with self.session.get(f"{self.base_url}{endpoint}", auth=self.auth) as response:
             if response.status == 200:
                 portfolio = await response.json()
                 logger.info(f"\nPortfolio State:")
                 logger.info(f"  Total Value: ${portfolio.get('total_value', 0):,.2f}")
-                logger.info(
-                    f"  Available Balance: ${portfolio.get('available_balance', 0):,.2f}"
-                )
+                logger.info(f"  Available Balance: ${portfolio.get('available_balance', 0):,.2f}")
                 logger.info(f"  Position Count: {portfolio.get('position_count', 0)}")
             else:
                 logger.info(f"Portfolio state not available: {response.status}")
 
-    def _calculate_dca_grid(
-        self, symbol: str, current_price: float, total_investment: float
-    ) -> List[Dict]:
+    def _calculate_dca_grid(self, symbol: str, current_price: float, total_investment: float) -> List[Dict]:
         """Calculate DCA grid orders"""
         num_orders = 5
         price_range = 0.08  # 8% range
@@ -541,9 +495,7 @@ class KrakenPaperTradingTest:
             order_value = total_investment / num_orders
             order_size = order_value / order_price
 
-            orders.append(
-                {"price": order_price, "size": order_size, "value": order_value}
-            )
+            orders.append({"price": order_price, "size": order_size, "value": order_value})
 
         return orders
 
@@ -590,9 +542,7 @@ class KrakenPaperTradingTest:
             logger.info("✅ ML integration tested")
 
             logger.info("\n🚀 READY FOR PAPER TRADING WITH KRAKEN!")
-            logger.info(
-                "When ready for live trading, simply update the API credentials"
-            )
+            logger.info("When ready for live trading, simply update the API credentials")
 
         except Exception as e:
             logger.error(f"Test error: {e}")

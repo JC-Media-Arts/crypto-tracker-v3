@@ -35,9 +35,7 @@ class SystemValidator:
         """Run exhaustive system validation."""
         print(f"{Fore.CYAN}{'='*60}")
         print(f"{Fore.CYAN}COMPLETE SYSTEM VALIDATION")
-        print(
-            f"{Fore.CYAN}Time: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}"
-        )
+        print(f"{Fore.CYAN}Time: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}")
         print(f"{Fore.CYAN}{'='*60}\n")
 
         # 1. Data Pipeline Validation (7 tests)
@@ -101,24 +99,14 @@ class SystemValidator:
 
             db = SupabaseClient()
 
-            result = (
-                db.client.table("ohlc_data")
-                .select("timestamp")
-                .order("timestamp", desc=True)
-                .limit(1)
-                .execute()
-            )
+            result = db.client.table("ohlc_data").select("timestamp").order("timestamp", desc=True).limit(1).execute()
 
             if result.data:
-                latest = datetime.fromisoformat(
-                    result.data[0]["timestamp"].replace("Z", "+00:00")
-                )
+                latest = datetime.fromisoformat(result.data[0]["timestamp"].replace("Z", "+00:00"))
                 age_seconds = (datetime.now(timezone.utc) - latest).total_seconds()
 
                 if age_seconds > 300:  # More than 5 minutes old
-                    self.warnings.append(
-                        "WebSocket may be disconnected - data is stale"
-                    )
+                    self.warnings.append("WebSocket may be disconnected - data is stale")
                     return False
 
                 return True
@@ -205,9 +193,7 @@ class SystemValidator:
                 )
 
                 if result.data:
-                    latest = datetime.fromisoformat(
-                        result.data[0]["timestamp"].replace("Z", "+00:00")
-                    )
+                    latest = datetime.fromisoformat(result.data[0]["timestamp"].replace("Z", "+00:00"))
 
                     # Different freshness thresholds for different timeframes
                     if tf == "1m":
@@ -257,11 +243,7 @@ class SystemValidator:
                         issues += 1
                     if record["volume"] and record["volume"] < 0:
                         issues += 1
-                    if (
-                        record["high"]
-                        and record["low"]
-                        and record["high"] < record["low"]
-                    ):
+                    if record["high"] and record["low"] and record["high"] < record["low"]:
                         issues += 1
 
                 if issues > 0:
@@ -283,9 +265,7 @@ class SystemValidator:
             calc = FeatureCalculator()
 
             # Try calculating features even with potential gaps
-            features = await calc.calculate_features_for_symbol(
-                "BTC", lookback_hours=72
-            )
+            features = await calc.calculate_features_for_symbol("BTC", lookback_hours=72)
 
             return features is not None and not features.empty
 
@@ -300,9 +280,7 @@ class SystemValidator:
             db = SupabaseClient()
 
             # All timestamps should be in UTC
-            result = (
-                db.client.table("ohlc_data").select("timestamp").limit(10).execute()
-            )
+            result = db.client.table("ohlc_data").select("timestamp").limit(10).execute()
 
             if result.data:
                 for record in result.data:
@@ -350,9 +328,7 @@ class SystemValidator:
             # Calculate features for multiple symbols
             symbols = ["BTC", "ETH", "SOL"]
             for symbol in symbols:
-                features = await calc.calculate_features_for_symbol(
-                    symbol, lookback_hours=72
-                )
+                features = await calc.calculate_features_for_symbol(symbol, lookback_hours=72)
 
                 if features is None or features.empty:
                     self.warnings.append(f"Failed to calculate features for {symbol}")
@@ -363,11 +339,7 @@ class SystemValidator:
                     self.warnings.append(f"NaN values in features for {symbol}")
                     return False
 
-                if (
-                    not features.replace([float("inf"), float("-inf")], float("nan"))
-                    .dropna()
-                    .equals(features)
-                ):
+                if not features.replace([float("inf"), float("-inf")], float("nan")).dropna().equals(features):
                     self.warnings.append(f"Infinite values in features for {symbol}")
                     return False
 
@@ -391,13 +363,9 @@ class SystemValidator:
 
             if result1 and result2:
                 # Confidence should be similar (within 5%)
-                conf_diff = abs(
-                    result1.get("confidence", 0) - result2.get("confidence", 0)
-                )
+                conf_diff = abs(result1.get("confidence", 0) - result2.get("confidence", 0))
                 if conf_diff > 0.05:
-                    self.warnings.append(
-                        f"Inconsistent predictions: {conf_diff:.3f} difference"
-                    )
+                    self.warnings.append(f"Inconsistent predictions: {conf_diff:.3f} difference")
                     return False
                 return True
 
@@ -443,12 +411,7 @@ class SystemValidator:
         """Test feature importance tracking."""
         try:
             # Check if training results exist with feature importance
-            model_path = (
-                Path(__file__).parent.parent
-                / "models"
-                / "dca"
-                / "training_results.json"
-            )
+            model_path = Path(__file__).parent.parent / "models" / "dca" / "training_results.json"
 
             if model_path.exists():
                 with open(model_path, "r") as f:
@@ -807,14 +770,10 @@ class SystemValidator:
             successes = sum(1 for r in results if r and not isinstance(r, Exception))
 
             self.performance_metrics["concurrent_queries_duration"] = duration
-            self.performance_metrics[
-                "concurrent_queries_success_rate"
-            ] = successes / len(tasks)
+            self.performance_metrics["concurrent_queries_success_rate"] = successes / len(tasks)
 
             if successes < len(tasks) * 0.95:  # 95% success rate
-                self.warnings.append(
-                    f"Only {successes}/{len(tasks)} concurrent queries succeeded"
-                )
+                self.warnings.append(f"Only {successes}/{len(tasks)} concurrent queries succeeded")
                 return False
 
             if duration > 10:  # Should complete within 10 seconds
@@ -870,16 +829,12 @@ class SystemValidator:
             start = time.time()
             tasks = []
             for symbol in symbols:
-                tasks.append(
-                    calc.calculate_features_for_symbol(symbol, lookback_hours=72)
-                )
+                tasks.append(calc.calculate_features_for_symbol(symbol, lookback_hours=72))
 
             results = await asyncio.gather(*tasks, return_exceptions=True)
             duration = time.time() - start
 
-            successes = sum(
-                1 for r in results if r is not None and not isinstance(r, Exception)
-            )
+            successes = sum(1 for r in results if r is not None and not isinstance(r, Exception))
 
             self.performance_metrics["batch_processing_duration"] = duration
 
@@ -912,9 +867,7 @@ class SystemValidator:
             self.performance_metrics["memory_increase_under_load"] = memory_increase
 
             if memory_increase > 20:  # More than 20% increase
-                self.warnings.append(
-                    f"Memory increased by {memory_increase:.1f}% under load"
-                )
+                self.warnings.append(f"Memory increased by {memory_increase:.1f}% under load")
                 return False
 
             return True
@@ -935,9 +888,7 @@ class SystemValidator:
             # Try to use all connections
             tasks = []
             for client in clients:
-                tasks.append(
-                    client.client.table("ohlc_data").select("*").limit(1).execute()
-                )
+                tasks.append(client.client.table("ohlc_data").select("*").limit(1).execute())
 
             results = await asyncio.gather(*tasks, return_exceptions=True)
 
@@ -955,9 +906,7 @@ class SystemValidator:
             # We already see WebSocket connection limit in terminal
             # This is a known issue
 
-            self.warnings.append(
-                "WebSocket connection limit reached - need to handle this"
-            )
+            self.warnings.append("WebSocket connection limit reached - need to handle this")
             return False  # This is a real issue we need to fix
 
         except Exception:
@@ -1030,9 +979,7 @@ class SystemValidator:
             calc = FeatureCalculator()
 
             # Should handle partial data gracefully
-            features = await calc.calculate_features_for_symbol(
-                "UNKNOWN_SYMBOL", lookback_hours=24
-            )
+            features = await calc.calculate_features_for_symbol("UNKNOWN_SYMBOL", lookback_hours=24)
 
             # Should return None or empty, not crash
             return features is None or features.empty
@@ -1139,9 +1086,7 @@ class SystemValidator:
             calc = FeatureCalculator()
 
             # Features should handle NaN values
-            features = await calc.calculate_features_for_symbol(
-                "BTC", lookback_hours=72
-            )
+            features = await calc.calculate_features_for_symbol("BTC", lookback_hours=72)
 
             if features is not None and not features.empty:
                 # Should not have NaN values after calculation
@@ -1169,9 +1114,7 @@ class SystemValidator:
         passed_tests = sum(1 for v in self.test_results.values() if v)
         pass_rate = (passed_tests / total_tests * 100) if total_tests > 0 else 0
 
-        print(
-            f"\n{Fore.GREEN}Tests Passed: {passed_tests}/{total_tests} ({pass_rate:.1f}%)"
-        )
+        print(f"\n{Fore.GREEN}Tests Passed: {passed_tests}/{total_tests} ({pass_rate:.1f}%)")
 
         # Group results by category
         categories = {
@@ -1204,9 +1147,7 @@ class SystemValidator:
             elif category == "Edge Cases":
                 prefix = "EC"
 
-            cat_tests = [
-                v for k, v in self.test_results.items() if k.startswith(prefix)
-            ]
+            cat_tests = [v for k, v in self.test_results.items() if k.startswith(prefix)]
             cat_passed = sum(1 for v in cat_tests if v)
             cat_rate = (cat_passed / len(cat_tests) * 100) if cat_tests else 0
 
@@ -1219,9 +1160,7 @@ class SystemValidator:
             else:
                 status_color = Fore.RED
 
-            print(
-                f"  {status_color}{category}: {cat_passed}/{len(cat_tests)} ({cat_rate:.0f}%)"
-            )
+            print(f"  {status_color}{category}: {cat_passed}/{len(cat_tests)} ({cat_rate:.0f}%)")
 
         # Overall Health Score
         health_score = self.calculate_health_score(category_scores)
@@ -1270,9 +1209,7 @@ class SystemValidator:
 
         return round(total_score)
 
-    def save_detailed_report(
-        self, health_score: int, category_scores: Dict[str, float]
-    ):
+    def save_detailed_report(self, health_score: int, category_scores: Dict[str, float]):
         """Save detailed report to file."""
         report = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -1300,23 +1237,15 @@ class SystemValidator:
 
         # WebSocket issue (we saw this in terminal)
         if not self.test_results.get("DP_WebSocket connection stable", True):
-            recommendations.append(
-                "CRITICAL: Fix WebSocket connection limit issue - contact Polygon support"
-            )
+            recommendations.append("CRITICAL: Fix WebSocket connection limit issue - contact Polygon support")
 
         # ML issues
-        ml_failures = [
-            k for k, v in self.test_results.items() if k.startswith("ML_") and not v
-        ]
+        ml_failures = [k for k, v in self.test_results.items() if k.startswith("ML_") and not v]
         if ml_failures:
-            recommendations.append(
-                "Review ML model performance and retrain if necessary"
-            )
+            recommendations.append("Review ML model performance and retrain if necessary")
 
         # Risk management
-        rm_failures = [
-            k for k, v in self.test_results.items() if k.startswith("RM_") and not v
-        ]
+        rm_failures = [k for k, v in self.test_results.items() if k.startswith("RM_") and not v]
         if rm_failures:
             recommendations.append("Strengthen risk management controls")
 

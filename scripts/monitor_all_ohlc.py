@@ -44,13 +44,7 @@ def main():
 
     for tf in timeframes:
         # Get symbols with data for this timeframe
-        result = (
-            s.client.table("ohlc_data")
-            .select("symbol")
-            .eq("timeframe", tf)
-            .limit(50000)
-            .execute()
-        )
+        result = s.client.table("ohlc_data").select("symbol").eq("timeframe", tf).limit(50000).execute()
 
         if result.data:
             symbols = set(r["symbol"] for r in result.data)

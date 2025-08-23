@@ -20,9 +20,7 @@ def run_sql_command(connection_string, sql_command, description):
     start_time = time.time()
 
     # Add psql to PATH
-    os.environ["PATH"] = "/opt/homebrew/opt/postgresql@16/bin:" + os.environ.get(
-        "PATH", ""
-    )
+    os.environ["PATH"] = "/opt/homebrew/opt/postgresql@16/bin:" + os.environ.get("PATH", "")
 
     # Use psql to run the command
     cmd = ["psql", connection_string, "-c", sql_command]

@@ -23,9 +23,7 @@ daily = (
 
 print("Latest 5 daily bars for BTC:")
 for bar in daily.data:
-    print(
-        f"  {bar['timestamp'][:10]}: O={bar['open']:.0f} H={bar['high']:.0f} L={bar['low']:.0f} C={bar['close']:.0f}"
-    )
+    print(f"  {bar['timestamp'][:10]}: O={bar['open']:.0f} H={bar['high']:.0f} L={bar['low']:.0f} C={bar['close']:.0f}")
 
 # Check hourly data
 hourly = (
@@ -44,19 +42,11 @@ for bar in hourly.data:
 
 # Get counts
 daily_count = (
-    s.client.table("ohlc_data")
-    .select("timestamp", count="exact")
-    .eq("symbol", "BTC")
-    .eq("timeframe", "1d")
-    .execute()
+    s.client.table("ohlc_data").select("timestamp", count="exact").eq("symbol", "BTC").eq("timeframe", "1d").execute()
 )
 
 hourly_count = (
-    s.client.table("ohlc_data")
-    .select("timestamp", count="exact")
-    .eq("symbol", "BTC")
-    .eq("timeframe", "1h")
-    .execute()
+    s.client.table("ohlc_data").select("timestamp", count="exact").eq("symbol", "BTC").eq("timeframe", "1h").execute()
 )
 
 print(f"\nTotal bars in database:")

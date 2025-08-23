@@ -21,11 +21,7 @@ def run_migration():
         sql = f.read()
 
     # Split into individual statements (Supabase can be picky)
-    statements = [
-        s.strip()
-        for s in sql.split(";")
-        if s.strip() and not s.strip().startswith("--")
-    ]
+    statements = [s.strip() for s in sql.split(";") if s.strip() and not s.strip().startswith("--")]
 
     logger.info(f"Running {len(statements)} SQL statements from {migration_file}")
 
@@ -34,26 +30,16 @@ def run_migration():
 
     # Execute each statement
     for i, statement in enumerate(statements, 1):
-        if (
-            "CREATE TABLE" in statement
-            or "CREATE INDEX" in statement
-            or "CREATE OR REPLACE VIEW" in statement
-        ):
+        if "CREATE TABLE" in statement or "CREATE INDEX" in statement or "CREATE OR REPLACE VIEW" in statement:
             try:
                 # Use RPC to execute raw SQL
-                result = client.client.rpc(
-                    "exec_sql", {"query": statement + ";"}
-                ).execute()
+                result = client.client.rpc("exec_sql", {"query": statement + ";"}).execute()
                 logger.success(f"Statement {i}/{len(statements)} executed successfully")
             except Exception as e:
                 # Try alternative approach - direct execution
                 logger.warning(f"RPC failed, trying direct approach for statement {i}")
-                logger.info(
-                    f"Please run this statement manually in Supabase SQL Editor:"
-                )
-                logger.info(
-                    statement[:200] + "..." if len(statement) > 200 else statement
-                )
+                logger.info(f"Please run this statement manually in Supabase SQL Editor:")
+                logger.info(statement[:200] + "..." if len(statement) > 200 else statement)
 
     # Verify table creation
     try:

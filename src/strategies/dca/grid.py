@@ -50,14 +50,10 @@ class GridCalculator:
         grid_params = self._adjust_for_confidence(ml_confidence)
 
         # Calculate grid levels
-        levels = self._calculate_levels(
-            current_price, support_levels, grid_params["levels"], grid_params["spacing"]
-        )
+        levels = self._calculate_levels(current_price, support_levels, grid_params["levels"], grid_params["spacing"])
 
         # Calculate position sizes
-        sizes = self._calculate_sizes(
-            total_capital, grid_params["levels"], ml_confidence
-        )
+        sizes = self._calculate_sizes(total_capital, grid_params["levels"], ml_confidence)
 
         # Create grid structure
         grid = {
@@ -86,13 +82,9 @@ class GridCalculator:
         # Calculate average entry and risk levels
         grid["average_entry"] = self._calculate_average_entry(grid["levels"])
         grid["stop_loss"] = grid["average_entry"] * (1 + self.config["stop_loss"] / 100)
-        grid["take_profit"] = grid["average_entry"] * (
-            1 + self.config["take_profit"] / 100
-        )
+        grid["take_profit"] = grid["average_entry"] * (1 + self.config["take_profit"] / 100)
 
-        logger.info(
-            f"Created DCA grid with {len(levels)} levels, confidence: {ml_confidence:.2f}"
-        )
+        logger.info(f"Created DCA grid with {len(levels)} levels, confidence: {ml_confidence:.2f}")
 
         return grid
 
@@ -170,9 +162,7 @@ class GridCalculator:
 
         return levels
 
-    def _calculate_sizes(
-        self, total_capital: float, num_levels: int, confidence: float
-    ) -> List[float]:
+    def _calculate_sizes(self, total_capital: float, num_levels: int, confidence: float) -> List[float]:
         """
         Calculate position sizes for each level.
 
@@ -242,17 +232,13 @@ class GridCalculator:
                 )
 
         # Check stop loss distance
-        stop_distance = (
-            abs(grid["stop_loss"] - grid["average_entry"]) / grid["average_entry"]
-        )
+        stop_distance = abs(grid["stop_loss"] - grid["average_entry"]) / grid["average_entry"]
         if stop_distance > 0.15:  # Max 15% stop
             return False, f"Stop loss too far: {stop_distance:.1%}"
 
         return True, "Grid validated successfully"
 
-    def update_grid_level(
-        self, grid: Dict, level_index: int, status: str, filled_at: str = None
-    ) -> Dict:
+    def update_grid_level(self, grid: Dict, level_index: int, status: str, filled_at: str = None) -> Dict:
         """
         Update status of a grid level.
 
@@ -275,11 +261,7 @@ class GridCalculator:
                 filled_levels = [l for l in grid["levels"] if l["status"] == "FILLED"]
                 if filled_levels:
                     grid["average_entry"] = self._calculate_average_entry(filled_levels)
-                    grid["stop_loss"] = grid["average_entry"] * (
-                        1 + self.config["stop_loss"] / 100
-                    )
-                    grid["take_profit"] = grid["average_entry"] * (
-                        1 + self.config["take_profit"] / 100
-                    )
+                    grid["stop_loss"] = grid["average_entry"] * (1 + self.config["stop_loss"] / 100)
+                    grid["take_profit"] = grid["average_entry"] * (1 + self.config["take_profit"] / 100)
 
         return grid

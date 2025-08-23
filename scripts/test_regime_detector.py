@@ -194,9 +194,7 @@ class RegimeDetectorTest:
         logger.info(f"Position multiplier: {stats['position_multiplier']}")
 
         # Should trigger CAUTION due to 4h change even if 1h is small
-        assert (
-            regime == MarketRegime.CAUTION
-        ), f"Expected CAUTION from 4h trigger, got {regime}"
+        assert regime == MarketRegime.CAUTION, f"Expected CAUTION from 4h trigger, got {regime}"
         logger.info("✅ 4-hour trigger test passed")
 
     def test_disabled_mode(self):
@@ -218,9 +216,7 @@ class RegimeDetectorTest:
         logger.info(f"Regime (disabled): {regime.value}")
         logger.info(f"Position multiplier (disabled): {multiplier}")
 
-        assert (
-            regime == MarketRegime.NORMAL
-        ), "Disabled detector should always return NORMAL"
+        assert regime == MarketRegime.NORMAL, "Disabled detector should always return NORMAL"
         assert multiplier == 1.0, "Disabled detector should not affect position sizing"
         logger.info("✅ Disabled mode test passed")
 

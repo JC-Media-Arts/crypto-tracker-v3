@@ -24,9 +24,7 @@ class TrainingDataEnricher:
         self.supabase = supabase_client
         self.btc_cache = {}  # Cache BTC data to avoid repeated queries
 
-    def fetch_btc_data(
-        self, timestamp: datetime, lookback_days: int = 210
-    ) -> pd.DataFrame:
+    def fetch_btc_data(self, timestamp: datetime, lookback_days: int = 210) -> pd.DataFrame:
         """Fetch BTC OHLC data around a specific timestamp."""
         # Round to nearest day for caching
         cache_key = timestamp.date()
@@ -100,9 +98,7 @@ class TrainingDataEnricher:
 
         # Calculate SMAs
         btc_data["sma50"] = btc_data["close"].rolling(window=50, min_periods=50).mean()
-        btc_data["sma200"] = (
-            btc_data["close"].rolling(window=200, min_periods=200).mean()
-        )
+        btc_data["sma200"] = btc_data["close"].rolling(window=200, min_periods=200).mean()
 
         # Get latest values
         latest = btc_data.iloc[-1]
@@ -219,30 +215,20 @@ class TrainingDataEnricher:
 
         # Convert symbol data to DataFrame
         symbol_df = pd.DataFrame(symbol_result.data)
-        symbol_df["timestamp"] = pd.to_datetime(
-            symbol_df["timestamp"], format="ISO8601"
-        )
+        symbol_df["timestamp"] = pd.to_datetime(symbol_df["timestamp"], format="ISO8601")
         symbol_df = symbol_df.sort_values("timestamp")
 
         # Calculate relative performance
         if len(symbol_df) >= 7 and len(btc_data) >= 7:
-            symbol_7d_return = (
-                symbol_df["close"].iloc[-1] / symbol_df["close"].iloc[-7] - 1
-            ) * 100
-            btc_7d_return = (
-                btc_data["close"].iloc[-1] / btc_data["close"].iloc[-7] - 1
-            ) * 100
+            symbol_7d_return = (symbol_df["close"].iloc[-1] / symbol_df["close"].iloc[-7] - 1) * 100
+            btc_7d_return = (btc_data["close"].iloc[-1] / btc_data["close"].iloc[-7] - 1) * 100
             vs_btc_7d = symbol_7d_return - btc_7d_return
         else:
             vs_btc_7d = None
 
         if len(symbol_df) >= 30 and len(btc_data) >= 30:
-            symbol_30d_return = (
-                symbol_df["close"].iloc[-1] / symbol_df["close"].iloc[-30] - 1
-            ) * 100
-            btc_30d_return = (
-                btc_data["close"].iloc[-1] / btc_data["close"].iloc[-30] - 1
-            ) * 100
+            symbol_30d_return = (symbol_df["close"].iloc[-1] / symbol_df["close"].iloc[-30] - 1) * 100
+            btc_30d_return = (btc_data["close"].iloc[-1] / btc_data["close"].iloc[-30] - 1) * 100
             vs_btc_30d = symbol_30d_return - btc_30d_return
 
             # Calculate correlation
@@ -250,9 +236,7 @@ class TrainingDataEnricher:
             btc_returns = btc_data["close"].pct_change().iloc[-30:]
 
             # Align the data
-            merged = pd.DataFrame(
-                {"symbol": symbol_returns.values, "btc": btc_returns.values}
-            ).dropna()
+            merged = pd.DataFrame({"symbol": symbol_returns.values, "btc": btc_returns.values}).dropna()
 
             if len(merged) >= 10:
                 correlation = merged["symbol"].corr(merged["btc"])
@@ -285,15 +269,11 @@ class TrainingDataEnricher:
 
         for i in range(0, len(df), batch_size):
             batch = df.iloc[i : min(i + batch_size, len(df))]
-            logger.info(
-                f"Processing batch {i//batch_size + 1}/{(len(df)-1)//batch_size + 1}"
-            )
+            logger.info(f"Processing batch {i//batch_size + 1}/{(len(df)-1)//batch_size + 1}")
 
             for idx, row in batch.iterrows():
                 timestamp = (
-                    row["timestamp"].replace(tzinfo=tz.UTC)
-                    if row["timestamp"].tzinfo is None
-                    else row["timestamp"]
+                    row["timestamp"].replace(tzinfo=tz.UTC) if row["timestamp"].tzinfo is None else row["timestamp"]
                 )
                 symbol = row["symbol"]
 
@@ -319,15 +299,9 @@ class TrainingDataEnricher:
         enriched_df = pd.DataFrame(enriched_data)
 
         # Add derived features
-        enriched_df["is_high_volatility"] = (
-            enriched_df["btc_volatility_7d"] > 50
-        ).astype(int)
-        enriched_df["is_oversold"] = (enriched_df["btc_sma50_distance"] < -5).astype(
-            int
-        )
-        enriched_df["is_overbought"] = (enriched_df["btc_sma50_distance"] > 10).astype(
-            int
-        )
+        enriched_df["is_high_volatility"] = (enriched_df["btc_volatility_7d"] > 50).astype(int)
+        enriched_df["is_oversold"] = (enriched_df["btc_sma50_distance"] < -5).astype(int)
+        enriched_df["is_overbought"] = (enriched_df["btc_sma50_distance"] > 10).astype(int)
 
         # Add day of week and hour features
         enriched_df["day_of_week"] = enriched_df["timestamp"].dt.dayofweek
@@ -361,12 +335,8 @@ class TrainingDataEnricher:
 
         # Volatility stats
         logger.info("\nVolatility Statistics:")
-        logger.info(
-            f"  Mean 7-day volatility: {enriched_df['btc_volatility_7d'].mean():.1f}%"
-        )
-        logger.info(
-            f"  Mean 30-day volatility: {enriched_df['btc_volatility_30d'].mean():.1f}%"
-        )
+        logger.info(f"  Mean 7-day volatility: {enriched_df['btc_volatility_7d'].mean():.1f}%")
+        logger.info(f"  Mean 30-day volatility: {enriched_df['btc_volatility_30d'].mean():.1f}%")
 
         # High volatility win rate
         if "outcome" in enriched_df.columns:

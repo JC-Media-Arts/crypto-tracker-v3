@@ -19,9 +19,7 @@ from src.strategies.swing.analyzer import SwingAnalyzer
 from src.data.supabase_client import SupabaseClient
 
 # Configure logging
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 
@@ -162,14 +160,10 @@ class SwingStrategyTest:
             status = "✅" if passed else "❌"
 
             logger.info(f"\n{scenario['name']}:")
-            logger.info(
-                f"  Price: {scenario['current_price']} (Resistance: {scenario['resistance']})"
-            )
+            logger.info(f"  Price: {scenario['current_price']} (Resistance: {scenario['resistance']})")
             logger.info(f"  Volume Ratio: {scenario['volume_ratio']}x")
             logger.info(f"  RSI: {scenario['rsi']}")
-            logger.info(
-                f"  {status} Detection: {is_breakout} (Expected: {scenario['expected']})"
-            )
+            logger.info(f"  {status} Detection: {is_breakout} (Expected: {scenario['expected']})")
 
             self.test_results["detection_tests"][scenario["name"]] = {
                 "passed": passed,
@@ -218,9 +212,7 @@ class SwingStrategyTest:
             logger.info(f"  RSI: {case['rsi']}")
             logger.info(f"  MACD Cross: {case['macd_cross']}")
             logger.info(f"  Momentum: {case['momentum']:.2%}")
-            logger.info(
-                f"  {status} Score: {score} (Expected: ~{case['expected_score']})"
-            )
+            logger.info(f"  {status} Score: {score} (Expected: ~{case['expected_score']})")
 
             self.test_results["detection_tests"][f"momentum_{case['name']}"] = {
                 "passed": passed,
@@ -325,18 +317,12 @@ class SwingStrategyTest:
         # Test risk/reward calculation
         risk_reward = self.analyzer._calculate_risk_reward(mock_setup)
         logger.info(f"\nRisk/Reward Analysis:")
-        logger.info(
-            f"  Risk: ${risk_reward['risk']:,.2f} ({risk_reward['risk_pct']:.1f}%)"
-        )
-        logger.info(
-            f"  Reward: ${risk_reward['reward']:,.2f} ({risk_reward['reward_pct']:.1f}%)"
-        )
+        logger.info(f"  Risk: ${risk_reward['risk']:,.2f} ({risk_reward['risk_pct']:.1f}%)")
+        logger.info(f"  Reward: ${risk_reward['reward']:,.2f} ({risk_reward['reward_pct']:.1f}%)")
         logger.info(f"  Ratio: {risk_reward['ratio']:.2f}:1")
 
         # Test expected value
-        expected_value = self.analyzer._calculate_expected_value(
-            mock_setup, risk_reward
-        )
+        expected_value = self.analyzer._calculate_expected_value(mock_setup, risk_reward)
         logger.info(f"\nExpected Value: {expected_value:.2f}%")
 
         # Validate results
@@ -411,8 +397,7 @@ class SwingStrategyTest:
         df = pd.DataFrame(
             {
                 "close": [scenario["current_price"]] * size,
-                "high": [scenario["resistance"]] * (size - 1)
-                + [scenario["current_price"]],
+                "high": [scenario["resistance"]] * (size - 1) + [scenario["current_price"]],
                 "low": [scenario["resistance"] * 0.95] * size,
                 "volume": [1000] * size,
                 "volume_sma": [1000 / scenario["volume_ratio"]] * size,
@@ -490,9 +475,7 @@ class SwingStrategyTest:
                     passed_tests += category_passed
                     pass_rate = (category_passed / category_total) * 100
 
-                    status = (
-                        "✅" if pass_rate == 100 else "⚠️" if pass_rate >= 70 else "❌"
-                    )
+                    status = "✅" if pass_rate == 100 else "⚠️" if pass_rate >= 70 else "❌"
                     logger.info(
                         f"\n{status} {category.upper()}: {category_passed}/{category_total} passed ({pass_rate:.1f}%)"
                     )
@@ -500,9 +483,7 @@ class SwingStrategyTest:
         if total_tests > 0:
             overall_pass_rate = (passed_tests / total_tests) * 100
             logger.info(f"\n" + "=" * 60)
-            logger.info(
-                f"OVERALL: {passed_tests}/{total_tests} tests passed ({overall_pass_rate:.1f}%)"
-            )
+            logger.info(f"OVERALL: {passed_tests}/{total_tests} tests passed ({overall_pass_rate:.1f}%)")
 
             if overall_pass_rate == 100:
                 logger.info("🎉 ALL TESTS PASSED! Swing strategy ready for deployment.")

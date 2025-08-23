@@ -202,9 +202,7 @@ class HistoricalOHLCFetcher:
 
         return tier1 + tier2 + tier3 + tier4
 
-    def check_existing_data(
-        self, symbol: str, timeframe: str
-    ) -> Tuple[Optional[datetime], int]:
+    def check_existing_data(self, symbol: str, timeframe: str) -> Tuple[Optional[datetime], int]:
         """
         Check what data already exists for a symbol/timeframe.
         Returns: (latest_timestamp, total_bars)
@@ -232,15 +230,9 @@ class HistoricalOHLCFetcher:
                     .execute()
                 )
 
-                total_bars = (
-                    count_result.count
-                    if hasattr(count_result, "count")
-                    else len(count_result.data)
-                )
+                total_bars = count_result.count if hasattr(count_result, "count") else len(count_result.data)
 
-                logger.info(
-                    f"Found existing data for {symbol} {timeframe}: {total_bars} bars, latest: {latest}"
-                )
+                logger.info(f"Found existing data for {symbol} {timeframe}: {total_bars} bars, latest: {latest}")
                 return latest, total_bars
 
         except Exception as e:
@@ -248,9 +240,7 @@ class HistoricalOHLCFetcher:
 
         return None, 0
 
-    def fetch_ohlc_batch(
-        self, symbol: str, timeframe: str, from_date: str, to_date: str
-    ) -> Optional[pd.DataFrame]:
+    def fetch_ohlc_batch(self, symbol: str, timeframe: str, from_date: str, to_date: str) -> Optional[pd.DataFrame]:
         """
         Fetch a batch of OHLC bars from Polygon.
         """
@@ -273,15 +263,11 @@ class HistoricalOHLCFetcher:
             data = response.json()
 
             if data.get("status") != "OK":
-                logger.warning(
-                    f"API returned status {data.get('status')} for {symbol} {timeframe}"
-                )
+                logger.warning(f"API returned status {data.get('status')} for {symbol} {timeframe}")
                 return None
 
             if "results" not in data or not data["results"]:
-                logger.info(
-                    f"No data available for {symbol} {timeframe} from {from_date} to {to_date}"
-                )
+                logger.info(f"No data available for {symbol} {timeframe} from {from_date} to {to_date}")
                 return None
 
             # Convert to DataFrame
@@ -314,9 +300,7 @@ class HistoricalOHLCFetcher:
             if "trades" not in df.columns:
                 df["trades"] = 0
 
-            logger.info(
-                f"Fetched {len(df)} bars for {symbol} {timeframe} from {from_date} to {to_date}"
-            )
+            logger.info(f"Fetched {len(df)} bars for {symbol} {timeframe} from {from_date} to {to_date}")
             self.stats["total_bars_fetched"] += len(df)
 
             return df
@@ -374,9 +358,7 @@ class HistoricalOHLCFetcher:
         self.stats["total_bars_saved"] += saved_count
         return saved_count
 
-    def fetch_timeframe_for_symbol(
-        self, symbol: str, timeframe: str, force_refetch: bool = False
-    ) -> Dict:
+    def fetch_timeframe_for_symbol(self, symbol: str, timeframe: str, force_refetch: bool = False) -> Dict:
         """
         Fetch all historical data for a symbol/timeframe combination.
         """
@@ -419,9 +401,7 @@ class HistoricalOHLCFetcher:
 
         while current_start < end_date:
             # Calculate batch end
-            batch_end = min(
-                current_start + timedelta(days=config["batch_days"]), end_date
-            )
+            batch_end = min(current_start + timedelta(days=config["batch_days"]), end_date)
 
             # Format dates for API
             from_str = current_start.strftime("%Y-%m-%d")
@@ -449,18 +429,14 @@ class HistoricalOHLCFetcher:
             "total_bars": existing_bars + total_fetched,
         }
 
-    def fetch_all_timeframes_for_symbol(
-        self, symbol: str, timeframes: List[str] = None
-    ) -> Dict:
+    def fetch_all_timeframes_for_symbol(self, symbol: str, timeframes: List[str] = None) -> Dict:
         """
         Fetch all timeframes for a single symbol.
         Processes in priority order (daily first, then hourly, etc.)
         """
         if timeframes is None:
             # Sort by priority (daily first)
-            timeframes = sorted(
-                BACKFILL_CONFIG.keys(), key=lambda x: BACKFILL_CONFIG[x]["priority"]
-            )
+            timeframes = sorted(BACKFILL_CONFIG.keys(), key=lambda x: BACKFILL_CONFIG[x]["priority"])
 
         results = {}
 
@@ -469,16 +445,12 @@ class HistoricalOHLCFetcher:
             results[tf] = result
 
             # Log progress
-            logger.info(
-                f"Progress for {symbol}: {tf} complete with {result['new_bars']} new bars"
-            )
+            logger.info(f"Progress for {symbol}: {tf} complete with {result['new_bars']} new bars")
 
         self.stats["symbols_completed"] += 1
         return results
 
-    def fetch_all_symbols(
-        self, symbols: List[str] = None, timeframes: List[str] = None
-    ) -> Dict:
+    def fetch_all_symbols(self, symbols: List[str] = None, timeframes: List[str] = None) -> Dict:
         """
         Fetch data for all symbols and timeframes.
         """
@@ -497,9 +469,7 @@ class HistoricalOHLCFetcher:
 
             # Print summary for this symbol
             total_new = sum(r["new_bars"] for r in results.values())
-            logger.info(
-                f"Completed {symbol}: {total_new} new bars across all timeframes"
-            )
+            logger.info(f"Completed {symbol}: {total_new} new bars across all timeframes")
 
         return all_results
 
@@ -517,17 +487,11 @@ class HistoricalOHLCFetcher:
 
 def main():
     """Main execution function."""
-    parser = argparse.ArgumentParser(
-        description="Fetch historical OHLC data from Polygon"
-    )
-    parser.add_argument(
-        "--timeframe", type=str, help="Specific timeframe (1m, 15m, 1h, 1d)"
-    )
+    parser = argparse.ArgumentParser(description="Fetch historical OHLC data from Polygon")
+    parser.add_argument("--timeframe", type=str, help="Specific timeframe (1m, 15m, 1h, 1d)")
     parser.add_argument("--symbol", type=str, help="Specific symbol to fetch")
     parser.add_argument("--all-symbols", action="store_true", help="Fetch all symbols")
-    parser.add_argument(
-        "--test", action="store_true", help="Test mode - only fetch BTC"
-    )
+    parser.add_argument("--test", action="store_true", help="Test mode - only fetch BTC")
 
     args = parser.parse_args()
 
@@ -569,9 +533,7 @@ def main():
         # Convert to serializable format
         serializable_results = {}
         for symbol, tfs in results.items():
-            serializable_results[symbol] = {
-                tf: {k: v for k, v in data.items()} for tf, data in tfs.items()
-            }
+            serializable_results[symbol] = {tf: {k: v for k, v in data.items()} for tf, data in tfs.items()}
         json.dump(serializable_results, f, indent=2)
         print(f"\nResults saved to data/backfill_results.json")
 

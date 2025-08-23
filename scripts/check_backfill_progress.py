@@ -33,12 +33,7 @@ def check_backfill_progress():
 
     for symbol in symbols:
         # Get count and date range for each symbol
-        response = (
-            supabase.client.table("price_data")
-            .select("*", count="exact")
-            .eq("symbol", symbol)
-            .execute()
-        )
+        response = supabase.client.table("price_data").select("*", count="exact").eq("symbol", symbol).execute()
         count = response.count
 
         if count > 0:
@@ -79,9 +74,7 @@ def check_backfill_progress():
             print(f"{symbol:<10} {'0':>11} {'No data':<35} -")
 
     print("-" * 80)
-    print(
-        f"TOTAL: {symbols_with_data}/{len(symbols)} symbols, {total_records:,} records"
-    )
+    print(f"TOTAL: {symbols_with_data}/{len(symbols)} symbols, {total_records:,} records")
     print("=" * 80)
 
     # Check if backfill is still running

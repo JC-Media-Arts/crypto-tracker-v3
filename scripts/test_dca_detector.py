@@ -77,15 +77,11 @@ def test_dca_detection():
             print(f"  Total Investment: ${grid['total_investment']:.2f}")
             print(f"  Average Entry: ${grid['average_entry']:.4f}")
             print(f"  Stop Loss: ${grid['stop_loss']:.4f} ({config['stop_loss']}%)")
-            print(
-                f"  Take Profit: ${grid['take_profit']:.4f} (+{config['take_profit']}%)"
-            )
+            print(f"  Take Profit: ${grid['take_profit']:.4f} (+{config['take_profit']}%)")
 
             print("\n  Grid Details:")
             for level in grid["levels"]:
-                print(
-                    f"    Level {level['level']}: ${level['price']:.4f} - Size: ${level['size']:.2f}"
-                )
+                print(f"    Level {level['level']}: ${level['price']:.4f} - Size: ${level['size']:.2f}")
 
     # Check BTC regime
     print("\n" + "=" * 80)
@@ -98,11 +94,7 @@ def test_dca_detection():
     # Get latest regime data
     try:
         result = (
-            supabase_client.client.table("market_regimes")
-            .select("*")
-            .order("timestamp", desc=True)
-            .limit(1)
-            .execute()
+            supabase_client.client.table("market_regimes").select("*").order("timestamp", desc=True).limit(1).execute()
         )
 
         if result.data:

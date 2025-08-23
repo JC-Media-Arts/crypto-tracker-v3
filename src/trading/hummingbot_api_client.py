@@ -142,9 +142,7 @@ class HummingbotAPIClient:
             ) as response:
                 if response.status == 200:
                     data = await response.json()
-                    logger.info(
-                        f"Order placed: {order.symbol} {order.side} {order.amount}@{order.price}"
-                    )
+                    logger.info(f"Order placed: {order.symbol} {order.side} {order.amount}@{order.price}")
                     return data
                 else:
                     logger.error(f"Failed to place order: {response.status}")
@@ -270,25 +268,19 @@ async def main():
 
     async with HummingbotAPIClient() as client:
         # Create a bot
-        bot = await client.create_bot(
-            bot_name="ml_dca_bot", exchange="binance_paper_trade"
-        )
+        bot = await client.create_bot(bot_name="ml_dca_bot", exchange="binance_paper_trade")
 
         if bot:
             bot_id = bot.get("id")
 
             # Place an order
-            order = HummingbotOrder(
-                symbol="BTC-USDT", side="buy", price=65000, amount=0.001
-            )
+            order = HummingbotOrder(symbol="BTC-USDT", side="buy", price=65000, amount=0.001)
             await client.place_order(bot_id, order)
 
             # Check positions
             positions = await client.get_positions(bot_id)
             for pos in positions:
-                print(
-                    f"Position: {pos.symbol} {pos.amount} @ {pos.entry_price}, PnL: {pos.pnl}"
-                )
+                print(f"Position: {pos.symbol} {pos.amount} @ {pos.entry_price}, PnL: {pos.pnl}")
 
             # Get balance
             balance = await client.get_balance(bot_id)

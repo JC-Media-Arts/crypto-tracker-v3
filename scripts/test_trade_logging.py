@@ -124,9 +124,7 @@ async def test_trade_logging():
     print("\n6. Checking ML training feedback...")
 
     try:
-        result = (
-            supabase.client.table("ml_training_feedback").select("*").limit(5).execute()
-        )
+        result = supabase.client.table("ml_training_feedback").select("*").limit(5).execute()
 
         if result.data:
             print(f"Found {len(result.data)} feedback records")
@@ -145,17 +143,13 @@ async def test_trade_logging():
     print("\n7. Checking prediction accuracy...")
 
     try:
-        result = (
-            supabase.client.table("prediction_accuracy_analysis").select("*").execute()
-        )
+        result = supabase.client.table("prediction_accuracy_analysis").select("*").execute()
 
         if result.data:
             print("Prediction Accuracy by Strategy:")
             for record in result.data:
                 print(f"  {record['strategy_name']}:")
-                print(
-                    f"    - Predicted Win Rate: {record.get('avg_predicted_win_prob', 0):.1%}"
-                )
+                print(f"    - Predicted Win Rate: {record.get('avg_predicted_win_prob', 0):.1%}")
                 print(f"    - Actual Win Rate: {record.get('actual_win_rate', 0):.1%}")
                 print(f"    - Avg ML Confidence: {record.get('avg_confidence', 0):.2f}")
         else:

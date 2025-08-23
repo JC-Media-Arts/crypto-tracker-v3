@@ -170,16 +170,12 @@ class MissingOHLCFetcher:
                 if not has_data:
                     missing[tf].append(symbol)
                 elif count < 100:  # Less than 100 bars is probably incomplete
-                    logger.warning(
-                        f"{symbol} {tf} has only {count} bars - may be incomplete"
-                    )
+                    logger.warning(f"{symbol} {tf} has only {count} bars - may be incomplete")
                     missing[tf].append(symbol)
 
         return missing
 
-    def fetch_ohlc_batch(
-        self, symbol: str, timeframe: str, start_date: datetime, end_date: datetime
-    ) -> List[Dict]:
+    def fetch_ohlc_batch(self, symbol: str, timeframe: str, start_date: datetime, end_date: datetime) -> List[Dict]:
         """Fetch a batch of OHLC data from Polygon"""
         try:
             ticker = f"X:{symbol}USD"
@@ -213,9 +209,7 @@ class MissingOHLCFetcher:
             for bar in bars:
                 data.append(
                     {
-                        "timestamp": pd.Timestamp(
-                            bar.timestamp, unit="ms", tz="UTC"
-                        ).isoformat(),
+                        "timestamp": pd.Timestamp(bar.timestamp, unit="ms", tz="UTC").isoformat(),
                         "symbol": symbol,
                         "timeframe": timeframe,
                         "open": float(bar.open),
@@ -223,23 +217,13 @@ class MissingOHLCFetcher:
                         "low": float(bar.low),
                         "close": float(bar.close),
                         "volume": float(bar.volume) if bar.volume else 0,
-                        "vwap": (
-                            float(bar.vwap)
-                            if hasattr(bar, "vwap") and bar.vwap
-                            else None
-                        ),
-                        "trades": (
-                            int(bar.transactions)
-                            if hasattr(bar, "transactions")
-                            else None
-                        ),
+                        "vwap": (float(bar.vwap) if hasattr(bar, "vwap") and bar.vwap else None),
+                        "trades": (int(bar.transactions) if hasattr(bar, "transactions") else None),
                     }
                 )
 
             if not data:
-                logger.info(
-                    f"No data available for {symbol} {timeframe} from {start_date.date()} to {end_date.date()}"
-                )
+                logger.info(f"No data available for {symbol} {timeframe} from {start_date.date()} to {end_date.date()}")
             else:
                 logger.info(f"Fetched {len(data)} bars for {symbol} {timeframe}")
 
@@ -262,17 +246,11 @@ class MissingOHLCFetcher:
 
             for retry in range(max_retries):
                 try:
-                    result = (
-                        self.supabase.client.table("ohlc_data").upsert(batch).execute()
-                    )
-                    logger.success(
-                        f"Saved {len(batch)} bars (batch {i//batch_size + 1})"
-                    )
+                    result = self.supabase.client.table("ohlc_data").upsert(batch).execute()
+                    logger.success(f"Saved {len(batch)} bars (batch {i//batch_size + 1})")
                     break
                 except Exception as e:
-                    logger.error(
-                        f"Error saving batch (attempt {retry+1}/{max_retries}): {e}"
-                    )
+                    logger.error(f"Error saving batch (attempt {retry+1}/{max_retries}): {e}")
                     if retry == max_retries - 1:
                         return False
                     time.sleep(2**retry)  # Exponential backoff
@@ -307,9 +285,7 @@ class MissingOHLCFetcher:
             if data:
                 if self.save_batch(data):
                     total_saved += len(data)
-                    logger.info(
-                        f"Progress: {current_date.date()} to {batch_end.date()} - {len(data)} bars saved"
-                    )
+                    logger.info(f"Progress: {current_date.date()} to {batch_end.date()} - {len(data)} bars saved")
                 else:
                     logger.error(f"Failed to save batch for {symbol} {timeframe}")
 
@@ -318,9 +294,7 @@ class MissingOHLCFetcher:
             # Small delay to avoid overwhelming the API
             time.sleep(0.1)
 
-        logger.success(
-            f"Completed {symbol} {timeframe}: {total_saved} total bars saved"
-        )
+        logger.success(f"Completed {symbol} {timeframe}: {total_saved} total bars saved")
         return total_saved
 
     def fetch_missing_data(self):
@@ -388,18 +362,8 @@ class MissingOHLCFetcher:
         logger.info("BACKFILL COMPLETE")
         logger.info("=" * 80)
 
-        successful = sum(
-            1
-            for s in self.results.values()
-            for tf in s.values()
-            if tf.get("status") == "completed"
-        )
-        failed = sum(
-            1
-            for s in self.results.values()
-            for tf in s.values()
-            if tf.get("status") == "failed"
-        )
+        successful = sum(1 for s in self.results.values() for tf in s.values() if tf.get("status") == "completed")
+        failed = sum(1 for s in self.results.values() for tf in s.values() if tf.get("status") == "failed")
 
         logger.info(f"Successful: {successful}")
         logger.info(f"Failed: {failed}")

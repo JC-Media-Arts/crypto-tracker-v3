@@ -79,15 +79,11 @@ class DCABacktester:
         self.capital = self.config.initial_capital
         self.peak_capital = self.capital
 
-    def load_enriched_labels(
-        self, path: str = "data/dca_labels_enriched.csv"
-    ) -> pd.DataFrame:
+    def load_enriched_labels(self, path: str = "data/dca_labels_enriched.csv") -> pd.DataFrame:
         """Load the enriched training labels."""
         logger.info(f"Loading enriched labels from {path}")
         df = pd.read_csv(path)
-        df["timestamp"] = pd.to_datetime(
-            df["timestamp"], format="ISO8601"
-        ).dt.tz_convert(tz.UTC)
+        df["timestamp"] = pd.to_datetime(df["timestamp"], format="ISO8601").dt.tz_convert(tz.UTC)
         return df
 
     def calculate_adaptive_position_size(self, row: pd.Series) -> float:
@@ -216,9 +212,7 @@ class DCABacktester:
         # Calculate metrics
         return self._calculate_metrics(trades_taken, trades_skipped, "Rule-Based")
 
-    def backtest_ml_enhanced(
-        self, df_labels: pd.DataFrame, confidence_col: str = None
-    ) -> Dict:
+    def backtest_ml_enhanced(self, df_labels: pd.DataFrame, confidence_col: str = None) -> Dict:
         """Backtest using ML predictions (when available)."""
         logger.info("\n" + "=" * 80)
         logger.info("ML-ENHANCED BACKTEST (Simulated)")
@@ -234,9 +228,7 @@ class DCABacktester:
 
         # Simulate ML confidence if not provided
         if confidence_col is None or confidence_col not in df_labels.columns:
-            logger.info(
-                "Simulating ML confidence scores based on feature importance..."
-            )
+            logger.info("Simulating ML confidence scores based on feature importance...")
             df_labels = self._simulate_ml_confidence(df_labels)
             confidence_col = "ml_confidence"
 
@@ -330,9 +322,7 @@ class DCABacktester:
 
         return df
 
-    def _calculate_metrics(
-        self, trades_taken: int, trades_skipped: int, strategy_name: str
-    ) -> Dict:
+    def _calculate_metrics(self, trades_taken: int, trades_skipped: int, strategy_name: str) -> Dict:
         """Calculate backtest metrics."""
         if not self.closed_trades:
             logger.warning("No trades executed!")
@@ -341,9 +331,7 @@ class DCABacktester:
         df_trades = pd.DataFrame(self.closed_trades)
 
         # Calculate metrics
-        total_return = (
-            (self.capital - self.config.initial_capital) / self.config.initial_capital
-        ) * 100
+        total_return = ((self.capital - self.config.initial_capital) / self.config.initial_capital) * 100
 
         # Win rate
         wins = len(df_trades[df_trades["outcome"] == "WIN"])
@@ -368,11 +356,7 @@ class DCABacktester:
         # Sharpe ratio (simplified - daily returns)
         if len(df_trades) > 1:
             returns = df_trades["pnl_pct"].values
-            sharpe = (
-                (np.mean(returns) / np.std(returns)) * np.sqrt(252)
-                if np.std(returns) > 0
-                else 0
-            )
+            sharpe = (np.mean(returns) / np.std(returns)) * np.sqrt(252) if np.std(returns) > 0 else 0
         else:
             sharpe = 0
 
@@ -399,10 +383,7 @@ class DCABacktester:
             regime_trades = df_trades[df_trades["market_regime"] == regime]
             if len(regime_trades) > 0:
                 regime_pnl = regime_trades["pnl"].sum()
-                regime_win_rate = (
-                    len(regime_trades[regime_trades["outcome"] == "WIN"])
-                    / len(regime_trades)
-                ) * 100
+                regime_win_rate = (len(regime_trades[regime_trades["outcome"] == "WIN"]) / len(regime_trades)) * 100
                 logger.info(
                     f"  {regime:8s}: {len(regime_trades):3d} trades, {regime_win_rate:.1f}% win rate, ${regime_pnl:+.2f} P&L"
                 )
@@ -465,12 +446,8 @@ class DCABacktester:
 
         # Calculate improvements
         baseline_return = results[0]["total_return"]
-        rule_improvement = (
-            (results[1]["total_return"] - baseline_return) / abs(baseline_return)
-        ) * 100
-        ml_improvement = (
-            (results[2]["total_return"] - baseline_return) / abs(baseline_return)
-        ) * 100
+        rule_improvement = ((results[1]["total_return"] - baseline_return) / abs(baseline_return)) * 100
+        ml_improvement = ((results[2]["total_return"] - baseline_return) / abs(baseline_return)) * 100
 
         logger.info("\n" + "=" * 80)
         logger.info("IMPROVEMENTS OVER BASELINE")
@@ -523,9 +500,7 @@ def main():
     logger.info("2. Market regime awareness is crucial for risk management")
     logger.info("3. ML can further enhance performance through better trade selection")
     logger.info("4. The strategy works best in BEAR/NEUTRAL markets")
-    logger.info(
-        "5. Position sizing based on relative performance (vs BTC) is highly effective"
-    )
+    logger.info("5. Position sizing based on relative performance (vs BTC) is highly effective")
 
     logger.success("\n✅ Backtesting complete!")
 
