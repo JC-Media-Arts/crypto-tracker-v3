@@ -286,7 +286,14 @@ class SimplifiedPaperTradingSystem:
                     )
                 else:
                     # Log negative scan
-                    await self.log_scan(symbol, "DCA", "SKIP", "No signal", confidence=0.0, market_data=data)
+                    await self.log_scan(
+                        symbol,
+                        "DCA",
+                        "SKIP",
+                        "No signal",
+                        confidence=0.0,
+                        market_data=data,
+                    )
 
                 # Swing
                 swing_signal = self.simple_rules.check_swing_setup(symbol, data)
@@ -313,7 +320,14 @@ class SimplifiedPaperTradingSystem:
                     )
                 else:
                     # Log negative scan
-                    await self.log_scan(symbol, "SWING", "SKIP", "No signal", confidence=0.0, market_data=data)
+                    await self.log_scan(
+                        symbol,
+                        "SWING",
+                        "SKIP",
+                        "No signal",
+                        confidence=0.0,
+                        market_data=data,
+                    )
 
                 # Channel
                 channel_signal = self.simple_rules.check_channel_setup(symbol, data)
@@ -340,7 +354,14 @@ class SimplifiedPaperTradingSystem:
                     )
                 else:
                     # Log negative scan
-                    await self.log_scan(symbol, "CHANNEL", "SKIP", "No signal", confidence=0.0, market_data=data)
+                    await self.log_scan(
+                        symbol,
+                        "CHANNEL",
+                        "SKIP",
+                        "No signal",
+                        confidence=0.0,
+                        market_data=data,
+                    )
 
             except Exception as e:
                 logger.error(f"Error evaluating {symbol}: {e}")
