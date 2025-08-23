@@ -1175,6 +1175,8 @@ crypto-tracker-v3/
 | 1/23 | Always verify critical services are configured in Railway | Data Scheduler was missing, causing stale data for Paper Trading |
 | 1/23 | Separation of concerns improves system reliability | ML/Shadow as Research module independent from Trading |
 | 1/23 | Check data flow end-to-end, not just individual components | Paper Trading needs Data Scheduler → OHLC updates → HybridDataFetcher |
+| 8/23 | Clear visual scoring (0-100%) vastly superior to technical jargon | Users understand "80% ready" better than "RSI 42, position 0.35" |
+| 8/23 | Monitor ALL opportunities, display TOP opportunities | Scanning 90 coins but showing top 5 gives best coverage without overwhelm |
 
 ---
 
@@ -1343,6 +1345,46 @@ else:
 ## Implementation Progress
 
 ### Recent Updates (August 23, 2025)
+
+#### Strategy Status Monitor Enhancement - COMPLETED
+**Issue Resolved**: Monitor was showing only 5 hardcoded coins (BTC, ETH, SOL, DOGE, SHIB) with confusing percentage displays
+
+**User Feedback**:
+- Same 5 coins appeared under each strategy regardless of actual opportunities
+- Percentage displays were confusing (e.g., "Waiting" or "Sell Zone" percentages unclear)
+- Coins were not sorted by proximity to trade triggers
+
+**Solution Implemented**: Complete rewrite of Strategy Status Monitor with 0-100% readiness scores
+- **Coin Coverage**:
+  - Now monitors ALL 90 tracked cryptocurrencies (not just 5)
+  - Evaluates every coin for each strategy continuously
+- **Readiness Score System**:
+  - Clear 0-100% scale where 100% = ready to buy
+  - Visual progress bars with color coding:
+    - 🟢 Green (80-100%): Ready to trade
+    - 🟡 Yellow (60-79%): Close to trigger
+    - 🔵 Blue (30-59%): Neutral
+    - ⚫ Gray (0-29%): Waiting
+- **Smart Sorting**:
+  - Coins sorted by readiness score (highest first)
+  - Shows only top 5 for each strategy to avoid clutter
+  - Most actionable opportunities always visible at top
+- **Improved Display**:
+  - Each coin shows symbol, price, readiness %, and details
+  - Progress bar provides instant visual feedback
+  - Status emojis (🟢 READY, 🟡 CLOSE, ⚪ WAITING)
+
+**Technical Details**:
+- **SWING Readiness**: Based on breakout proximity (70% weight) and volume confirmation (30% weight)
+- **CHANNEL Readiness**: 100% when in bottom 35% of channel, drops as price moves up
+- **DCA Readiness**: 80%+ when price has dropped beyond threshold, higher for bigger drops
+
+**Benefits**:
+- ✅ Complete visibility into all 90 coins' trading opportunities
+- ✅ Intuitive 0-100% scoring system everyone understands
+- ✅ Always see the best opportunities first (sorted by readiness)
+- ✅ Visual progress bars make it easy to spot ready trades
+- ✅ Better informed trading decisions with clear readiness metrics
 
 #### Trade Grouping Enhancement - COMPLETED
 **Issue Resolved**: Dashboard was showing duplicate trades (separate BUY and SELL entries appearing as individual rows)
