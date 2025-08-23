@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Setup Slack Webhook URLs for Paper Trading Notifications
-# 
+#
 # This script helps you configure the Slack webhook URLs for different channels:
 # - #trades: Buy/sell notifications with exit reasons
 # - #reports: Daily performance reports
@@ -18,7 +18,7 @@ echo "2. Create a new app or use existing one"
 echo "3. Go to 'Incoming Webhooks' and activate it"
 echo "4. Add webhooks for each channel:"
 echo "   - #trades"
-echo "   - #reports"  
+echo "   - #reports"
 echo "   - #system-alerts"
 echo ""
 echo "=========================================="
@@ -34,7 +34,7 @@ fi
 update_env() {
     local key=$1
     local value=$2
-    
+
     if grep -q "^${key}=" .env; then
         # Update existing
         if [[ "$OSTYPE" == "darwin"* ]]; then

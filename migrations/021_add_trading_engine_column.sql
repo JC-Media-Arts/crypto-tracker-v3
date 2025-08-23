@@ -3,14 +3,14 @@
 -- Date: 2025-08-21
 
 -- Add trading_engine column to paper_trades table
-ALTER TABLE paper_trades 
+ALTER TABLE paper_trades
 ADD COLUMN IF NOT EXISTS trading_engine VARCHAR(50) DEFAULT 'simple_paper_trader';
 
 -- Add index for querying by trading engine
-CREATE INDEX IF NOT EXISTS idx_paper_trades_engine 
+CREATE INDEX IF NOT EXISTS idx_paper_trades_engine
 ON paper_trades(trading_engine);
 
--- Add trading_engine column to paper_performance table  
+-- Add trading_engine column to paper_performance table
 ALTER TABLE paper_performance
 ADD COLUMN IF NOT EXISTS trading_engine VARCHAR(50) DEFAULT 'simple_paper_trader';
 
@@ -19,12 +19,12 @@ CREATE INDEX IF NOT EXISTS idx_paper_performance_engine
 ON paper_performance(trading_engine);
 
 -- Update any existing records (if needed)
-UPDATE paper_trades 
-SET trading_engine = 'simple_paper_trader' 
+UPDATE paper_trades
+SET trading_engine = 'simple_paper_trader'
 WHERE trading_engine IS NULL;
 
-UPDATE paper_performance 
-SET trading_engine = 'simple_paper_trader' 
+UPDATE paper_performance
+SET trading_engine = 'simple_paper_trader'
 WHERE trading_engine IS NULL;
 
 -- Add comment for documentation

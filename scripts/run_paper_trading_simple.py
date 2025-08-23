@@ -324,7 +324,10 @@ class SimplifiedPaperTradingSystem:
 
             # Execute trade (using async method)
             success = await self.paper_trader.open_position(
-                symbol=symbol, usd_amount=position_size, market_price=signal["current_price"], strategy=strategy
+                symbol=symbol,
+                usd_amount=position_size,
+                market_price=signal["current_price"],
+                strategy=strategy,
             )
 
             if success:
@@ -368,7 +371,8 @@ class SimplifiedPaperTradingSystem:
         # Check and close positions with exit conditions
         if current_prices:
             closed_trades = await self.paper_trader.check_and_close_positions(
-                current_prices=current_prices, max_hold_hours=self.config["max_position_duration_hours"]
+                current_prices=current_prices,
+                max_hold_hours=self.config["max_position_duration_hours"],
             )
 
             for trade in closed_trades:
@@ -397,7 +401,10 @@ class SimplifiedPaperTradingSystem:
                 # Send notification
                 if self.notifier:
                     await self.notifier.send_trade_closed(
-                        symbol=trade.symbol, strategy=trade.strategy, pnl=trade.pnl, exit_reason=trade.exit_reason
+                        symbol=trade.symbol,
+                        strategy=trade.strategy,
+                        pnl=trade.pnl,
+                        exit_reason=trade.exit_reason,
                     )
 
     async def run(self):

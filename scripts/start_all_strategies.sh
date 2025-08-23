@@ -26,7 +26,7 @@ start_process() {
     local script_name=$1
     local log_name=$2
     local description=$3
-    
+
     if [ -f "$script_name" ]; then
         echo "✅ Starting $description..."
         nohup python3 "$script_name" > "logs/$log_name.log" 2>&1 &

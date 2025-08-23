@@ -83,7 +83,7 @@ if crontab -l 2>/dev/null | grep -q "send_paper_trading_report.py"; then
     crontab -l | grep "send_paper_trading_report.py"
     echo ""
     read -p "Do you want to replace it? (y/n): " replace
-    
+
     if [ "$replace" == "y" ]; then
         # Remove old cron job
         (crontab -l 2>/dev/null | grep -v "send_paper_trading_report.py") | crontab -

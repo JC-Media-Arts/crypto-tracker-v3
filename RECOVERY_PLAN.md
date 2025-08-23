@@ -56,10 +56,10 @@ The system has been built "top-down" with ML and Shadow Testing layers added bef
    ```sql
    -- Create archive table
    CREATE TABLE ohlc_data_archive (LIKE ohlc_data INCLUDING ALL);
-   
+
    -- Move old data (run during off-hours)
-   INSERT INTO ohlc_data_archive 
-   SELECT * FROM ohlc_data 
+   INSERT INTO ohlc_data_archive
+   SELECT * FROM ohlc_data
    WHERE timeframe = '1min' AND timestamp < NOW() - INTERVAL '30 days';
    ```
 
@@ -242,11 +242,11 @@ def verify_trade_execution():
 # src/data/backup_fetcher.py
 class BackupDataFetcher:
     """Fallback when Polygon fails"""
-    
+
     def fetch_from_binance(self):
         # Free tier, no WebSocket limits
         pass
-    
+
     def fetch_from_coingecko(self):
         # Additional backup
         pass

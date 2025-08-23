@@ -77,7 +77,7 @@ class SwingDetector:
             df = pd.DataFrame(data)
         else:
             df = data
-            
+
         # Calculate indicators first
         df = self._calculate_indicators(df)
 
@@ -93,20 +93,20 @@ class SwingDetector:
 
         # Create setup
         latest = df.iloc[-1] if isinstance(df, pd.DataFrame) else df[-1]
-        
+
         # Calculate composite score from breakout and momentum
         breakout_strength = breakout.get("strength", 0)
         momentum_score = momentum.get("score", 0)
         volume_ratio = breakout.get("volume_ratio", 1)
-        
+
         # Composite score: combination of breakout strength, momentum, and volume
         # This represents the overall quality of the setup
         composite_score = (
-            breakout_strength * 0.4 +  # 40% weight on breakout strength
-            momentum_score * 0.4 +      # 40% weight on momentum
-            min(volume_ratio / 2, 1) * 0.2  # 20% weight on volume (capped at 2x)
+            breakout_strength * 0.4
+            + momentum_score * 0.4  # 40% weight on breakout strength
+            + min(volume_ratio / 2, 1) * 0.2  # 40% weight on momentum  # 20% weight on volume (capped at 2x)
         ) * 100  # Scale to 0-100
-        
+
         setup = {
             "symbol": symbol,
             "detected_at": latest.get("timestamp"),
@@ -121,26 +121,26 @@ class SwingDetector:
 
         # Calculate confidence without ML if needed
         setup["confidence"] = self.calculate_confidence_without_ml(setup, df)
-        
+
         return setup
 
     def calculate_confidence_without_ml(self, setup: Dict, df: pd.DataFrame) -> float:
         """
         Calculate confidence score without ML based on technical indicators.
         This replaces ML predictions when ML is disabled.
-        
+
         Args:
             setup: The detected setup dictionary
             df: DataFrame with calculated indicators
-            
+
         Returns:
             Confidence score between 0.0 and 1.0
         """
         confidence = 0.3  # Base confidence for any valid setup
         latest = df.iloc[-1]
-        
+
         # Volume confirmation (0-0.2 points)
-        volume_ratio = setup.get('volume_surge', 1.0)
+        volume_ratio = setup.get("volume_surge", 1.0)
         if volume_ratio > 3.0:
             confidence += 0.2  # Very strong volume
         elif volume_ratio > 2.0:
@@ -149,9 +149,9 @@ class SwingDetector:
             confidence += 0.1  # Moderate volume
         elif volume_ratio > 1.2:
             confidence += 0.05  # Slight volume increase
-            
+
         # Breakout strength (0-0.2 points)
-        breakout_strength = setup.get('breakout_strength', 0) * 100  # Convert to percentage
+        breakout_strength = setup.get("breakout_strength", 0) * 100  # Convert to percentage
         if breakout_strength > 3.0:
             confidence += 0.2  # Strong breakout
         elif breakout_strength > 2.0:
@@ -160,25 +160,25 @@ class SwingDetector:
             confidence += 0.1
         elif breakout_strength > 0.5:
             confidence += 0.05
-            
+
         # Momentum alignment (0-0.15 points)
-        rsi = latest.get('rsi', 50)
+        rsi = latest.get("rsi", 50)
         if 50 < rsi < 70:
             confidence += 0.1  # Good RSI range
         elif 45 < rsi <= 50 or 70 <= rsi < 75:
             confidence += 0.05  # Acceptable RSI
-            
-        if latest.get('macd', 0) > latest.get('macd_signal', 0):
+
+        if latest.get("macd", 0) > latest.get("macd_signal", 0):
             confidence += 0.05  # MACD bullish
-            
+
         # Trend alignment (0-0.15 points)
-        if latest.get('close', 0) > latest.get('sma_20', 0) > latest.get('sma_50', 0):
+        if latest.get("close", 0) > latest.get("sma_20", 0) > latest.get("sma_50", 0):
             confidence += 0.15  # Perfect trend alignment
-        elif latest.get('close', 0) > latest.get('sma_20', 0):
+        elif latest.get("close", 0) > latest.get("sma_20", 0):
             confidence += 0.1  # Above short-term MA
-        elif latest.get('close', 0) > latest.get('sma_50', 0):
+        elif latest.get("close", 0) > latest.get("sma_50", 0):
             confidence += 0.05  # Above long-term MA
-            
+
         # Cap confidence at 0.95 (never 100% certain without ML)
         return min(confidence, 0.95)
 
@@ -213,9 +213,7 @@ class SwingDetector:
 
                 if setup:
                     setups.append(setup)
-                    logger.info(
-                        f"🎯 Swing setup detected for {symbol}: {setup['pattern']}"
-                    )
+                    logger.info(f"🎯 Swing setup detected for {symbol}: {setup['pattern']}")
 
             except Exception as e:
                 logger.error(f"Error detecting swing setup for {symbol}: {e}")
@@ -240,9 +238,7 @@ class SwingDetector:
         df["rsi"] = self._calculate_rsi(df["close"])
 
         # MACD
-        df["macd"], df["macd_signal"], df["macd_hist"] = self._calculate_macd(
-            df["close"]
-        )
+        df["macd"], df["macd_signal"], df["macd_hist"] = self._calculate_macd(df["close"])
 
         # Bollinger Bands
         (
@@ -259,9 +255,7 @@ class SwingDetector:
         df["momentum"] = df["close"].pct_change(periods=self.config["momentum_period"])
 
         # Resistance levels
-        df["resistance"] = (
-            df["high"].rolling(window=self.config["breakout_lookback"]).max()
-        )
+        df["resistance"] = df["high"].rolling(window=self.config["breakout_lookback"]).max()
         df["support"] = df["low"].rolling(window=self.config["breakout_lookback"]).min()
 
         # Candle patterns
@@ -285,9 +279,7 @@ class SwingDetector:
 
         # Skip if already in active setup
         if symbol in self.active_setups:
-            if (
-                datetime.now() - self.active_setups[symbol]["timestamp"]
-            ).seconds < 3600:
+            if (datetime.now() - self.active_setups[symbol]["timestamp"]).seconds < 3600:
                 return None
 
         score = 0
@@ -318,15 +310,9 @@ class SwingDetector:
             signals.append("Strong Momentum")
 
         # 5. Price Action (15 points)
-        price_change_24h = (
-            (latest["close"] - df.iloc[-24]["close"]) / df.iloc[-24]["close"]
-        ) * 100
+        price_change_24h = ((latest["close"] - df.iloc[-24]["close"]) / df.iloc[-24]["close"]) * 100
 
-        if (
-            self.config["min_price_change_24h"]
-            <= price_change_24h
-            <= self.config["max_price_change_24h"]
-        ):
+        if self.config["min_price_change_24h"] <= price_change_24h <= self.config["max_price_change_24h"]:
             score += 15
             signals.append(f"Price +{price_change_24h:.1f}%")
 
@@ -370,12 +356,12 @@ class SwingDetector:
 
         latest = df.iloc[-1]
         prev_high = df.iloc[-2]["resistance"]
-        
+
         breakout_info = {
             "detected": False,
             "strength": 0,
             "volume_ratio": latest.get("volume_ratio", 1),
-            "pattern": None
+            "pattern": None,
         }
 
         # Check if current price is breaking above recent resistance
@@ -393,11 +379,7 @@ class SwingDetector:
         if not breakout_info["detected"] and latest["close"] > latest["bb_upper"]:
             # Must have volume confirmation AND good RSI
             if latest["volume_ratio"] > self.config["volume_spike_threshold"]:
-                if (
-                    self.config["rsi_bullish_min"]
-                    < latest.get("rsi", 50)
-                    < self.config["rsi_overbought"]
-                ):
+                if self.config["rsi_bullish_min"] < latest.get("rsi", 50) < self.config["rsi_overbought"]:
                     breakout_info["detected"] = True
                     breakout_info["pattern"] = "bollinger_breakout"
                     # Calculate strength based on distance from upper band
@@ -426,18 +408,11 @@ class SwingDetector:
         prev = df.iloc[-2]
 
         # RSI in bullish zone
-        if (
-            self.config["rsi_bullish_min"]
-            < latest["rsi"]
-            < self.config["rsi_overbought"]
-        ):
+        if self.config["rsi_bullish_min"] < latest["rsi"] < self.config["rsi_overbought"]:
             score += 5
 
         # MACD bullish cross
-        if (
-            latest["macd"] > latest["macd_signal"]
-            and prev["macd"] <= prev["macd_signal"]
-        ):
+        if latest["macd"] > latest["macd_signal"] and prev["macd"] <= prev["macd_signal"]:
             score += 5
 
         # Positive momentum
@@ -445,10 +420,7 @@ class SwingDetector:
             score += 5
 
         # Return as dict for compatibility
-        return {
-            "score": score,
-            "strong": score >= 10  # Consider strong if score >= 10
-        }
+        return {"score": score, "strong": score >= 10}  # Consider strong if score >= 10
 
     def _identify_pattern(self, df: pd.DataFrame) -> str:
         """Identify specific chart patterns"""
@@ -495,9 +467,7 @@ class SwingDetector:
 
         # Check for consolidation after peak
         post_peak = recent.iloc[peak_pos:]
-        consolidation_range = (
-            post_peak["high"].max() - post_peak["low"].min()
-        ) / post_peak["close"].mean()
+        consolidation_range = (post_peak["high"].max() - post_peak["low"].min()) / post_peak["close"].mean()
 
         if consolidation_range < 0.03:  # Less than 3% range
             # Check if breaking out of consolidation
@@ -621,9 +591,7 @@ class SwingDetector:
         rsi = 100 - (100 / (1 + rs))
         return rsi
 
-    def _calculate_macd(
-        self, prices: pd.Series
-    ) -> Tuple[pd.Series, pd.Series, pd.Series]:
+    def _calculate_macd(self, prices: pd.Series) -> Tuple[pd.Series, pd.Series, pd.Series]:
         """Calculate MACD"""
         exp1 = prices.ewm(span=12, adjust=False).mean()
         exp2 = prices.ewm(span=26, adjust=False).mean()

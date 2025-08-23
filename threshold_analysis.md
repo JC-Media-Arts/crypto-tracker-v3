@@ -57,7 +57,7 @@ The main problem is in `src/strategies/manager.py`:
 channel = self.channel_detector.detect_channel(symbol, data)  # Too strict!
 if not channel:
     continue  # Never reaches SimpleRules!
-    
+
 # Later...
 simple_setup = self.simple_rules.check_channel_setup(symbol, data)
 # This only runs if complex detector already found something
@@ -82,4 +82,3 @@ From our testing:
 3. **Consider market conditions** - we're in consolidation, not trending
 
 Would you like me to proceed with these threshold changes?
-

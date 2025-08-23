@@ -9,10 +9,10 @@ The user identified critical issues with the crypto trading system:
 
 ## ✅ **Major Accomplishments**
 
-### 1. **Data Storage Optimization** 
-- **Implemented data retention policy**: 
+### 1. **Data Storage Optimization**
+- **Implemented data retention policy**:
   - 1-minute data: 30 days
-  - 15-minute data: 1 year  
+  - 15-minute data: 1 year
   - 1-hour data: 2 years
   - Daily data: Forever
 - **Set up automated cleanup**: Railway cron service running daily at 10 AM UTC
@@ -37,7 +37,7 @@ The user identified critical issues with the crypto trading system:
 ### 4. **Enhanced Paper Trading Features** (Today's Session)
 - **Adaptive Exit Rules by Market Cap**:
   - Large Cap (BTC/ETH): TP 3-5%, SL 5-7%, Trail 2%
-  - Mid Cap: TP 5-10%, SL 7-10%, Trail 3.5%  
+  - Mid Cap: TP 5-10%, SL 7-10%, Trail 3.5%
   - Small Cap: TP 7-15%, SL 10-12%, Trail 6%
 - **Trailing Stops**: Protect profits as price rises
 - **Extended Timeout**: 72 hours (3 days) instead of 4 hours
@@ -54,7 +54,7 @@ The user identified critical issues with the crypto trading system:
 
 ### New Files
 - `src/trading/simple_paper_trader_v2.py` - Enhanced paper trading engine
-- `scripts/run_paper_trading_v2.py` - Main trading orchestrator  
+- `scripts/run_paper_trading_v2.py` - Main trading orchestrator
 - `migrations/021_add_trading_engine_column.sql` - DB schema
 - `migrations/022_add_exit_reason.sql` - Exit tracking
 - `scripts/execute_cleanup_fixed.py` - Data cleanup script

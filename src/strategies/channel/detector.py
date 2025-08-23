@@ -60,21 +60,11 @@ class ChannelDetector:
 
         # Channel detection parameters
         self.min_touches = self.config.get("min_touches", 2)  # Min touches per line
-        self.lookback_periods = self.config.get(
-            "lookback_periods", 100
-        )  # Bars to analyze
-        self.touch_tolerance = self.config.get(
-            "touch_tolerance", 0.002
-        )  # 0.2% tolerance
-        self.min_channel_width = self.config.get(
-            "min_channel_width", 0.01
-        )  # 1% minimum
-        self.max_channel_width = self.config.get(
-            "max_channel_width", 0.10
-        )  # 10% maximum
-        self.parallel_tolerance = self.config.get(
-            "parallel_tolerance", 0.15
-        )  # 15% slope difference
+        self.lookback_periods = self.config.get("lookback_periods", 100)  # Bars to analyze
+        self.touch_tolerance = self.config.get("touch_tolerance", 0.002)  # 0.2% tolerance
+        self.min_channel_width = self.config.get("min_channel_width", 0.01)  # 1% minimum
+        self.max_channel_width = self.config.get("max_channel_width", 0.10)  # 10% maximum
+        self.parallel_tolerance = self.config.get("parallel_tolerance", 0.15)  # 15% slope difference
 
         # Trading zones
         self.buy_zone = self.config.get("buy_zone", 0.25)  # Bottom 25% of channel
@@ -131,9 +121,7 @@ class ChannelDetector:
 
         return None
 
-    def _find_local_extremes(
-        self, prices: np.ndarray, is_high: bool, window: int = 3
-    ) -> List[int]:
+    def _find_local_extremes(self, prices: np.ndarray, is_high: bool, window: int = 3) -> List[int]:
         """
         Find local highs or lows in price data
         """
@@ -158,19 +146,13 @@ class ChannelDetector:
                 if is_high and prices[i] > prices[i - 1] and prices[i] > prices[i + 1]:
                     if i not in extremes:
                         extremes.append(i)
-                elif (
-                    not is_high
-                    and prices[i] < prices[i - 1]
-                    and prices[i] < prices[i + 1]
-                ):
+                elif not is_high and prices[i] < prices[i - 1] and prices[i] < prices[i + 1]:
                     if i not in extremes:
                         extremes.append(i)
 
         return extremes
 
-    def _fit_line(
-        self, indices: List[int], prices: np.ndarray
-    ) -> Optional[Tuple[float, float]]:
+    def _fit_line(self, indices: List[int], prices: np.ndarray) -> Optional[Tuple[float, float]]:
         """
         Fit a line to price points using linear regression
         Returns (slope, intercept)
@@ -192,9 +174,7 @@ class ChannelDetector:
         except:
             return None
 
-    def _are_parallel(
-        self, line1: Tuple[float, float], line2: Tuple[float, float]
-    ) -> bool:
+    def _are_parallel(self, line1: Tuple[float, float], line2: Tuple[float, float]) -> bool:
         """
         Check if two lines are approximately parallel
         """
@@ -210,11 +190,7 @@ class ChannelDetector:
             return False
 
         slope_ratio = abs(slope1 / slope2)
-        return (
-            (1 - self.parallel_tolerance)
-            <= slope_ratio
-            <= (1 + self.parallel_tolerance)
-        )
+        return (1 - self.parallel_tolerance) <= slope_ratio <= (1 + self.parallel_tolerance)
 
     def _create_channel(
         self,
@@ -249,9 +225,7 @@ class ChannelDetector:
         touches_lower = self._count_touches(df["low"].values, lower_line)
 
         # Calculate channel strength (based on touches and consistency)
-        strength = self._calculate_strength(
-            df, upper_line, lower_line, touches_upper, touches_lower
-        )
+        strength = self._calculate_strength(df, upper_line, lower_line, touches_upper, touches_lower)
 
         # Current position in channel
         current_price = df["close"].iloc[-1]
@@ -357,9 +331,7 @@ class ChannelDetector:
 
         return None
 
-    def calculate_targets(
-        self, channel: Channel, entry_price: float, signal: str
-    ) -> Dict[str, float]:
+    def calculate_targets(self, channel: Channel, entry_price: float, signal: str) -> Dict[str, float]:
         """
         Calculate take profit and stop loss for channel trade
         """
@@ -389,25 +361,25 @@ class ChannelDetector:
             "stop_loss_pct": sl_pct,
             "risk_reward": tp_pct / sl_pct if sl_pct > 0 else 0,
         }
-    
+
     def calculate_confidence_without_ml(self, channel: Channel, signal: str) -> float:
         """
         Calculate confidence score for channel trade without ML.
         This replaces ML predictions when ML is disabled.
-        
+
         Args:
             channel: The detected channel
             signal: Trading signal (BUY/SELL)
-            
+
         Returns:
             Confidence score between 0.0 and 1.0
         """
         confidence = 0.3  # Base confidence for any valid channel
-        
+
         # Channel strength (0-0.25 points)
         # Strength is already calculated in channel (0-1 scale)
         confidence += channel.strength * 0.25
-        
+
         # Number of touches (0-0.15 points)
         total_touches = channel.touches_upper + channel.touches_lower
         if total_touches >= 8:
@@ -416,13 +388,13 @@ class ChannelDetector:
             confidence += 0.1
         elif total_touches >= 4:
             confidence += 0.05
-            
+
         # Channel width appropriateness (0-0.1 points)
         if 0.02 <= channel.width <= 0.05:
             confidence += 0.1  # Ideal width (2-5%)
         elif 0.015 <= channel.width <= 0.07:
             confidence += 0.05  # Acceptable width
-            
+
         # Position in channel (0-0.2 points)
         if signal == "BUY":
             # Better confidence when closer to bottom
@@ -440,10 +412,10 @@ class ChannelDetector:
                 confidence += 0.15
             elif channel.current_position >= 0.75:
                 confidence += 0.1
-                
+
         # Channel type bonus (0-0.05 points)
         if channel.channel_type == "HORIZONTAL":
             confidence += 0.05  # Horizontal channels are most reliable
-            
+
         # Cap confidence at 0.95
         return min(confidence, 0.95)

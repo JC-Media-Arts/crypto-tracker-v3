@@ -7,7 +7,7 @@
 -- ============================================
 
 -- Add missing columns to trade_logs
-ALTER TABLE trade_logs 
+ALTER TABLE trade_logs
 ADD COLUMN IF NOT EXISTS pnl DECIMAL(10,2) DEFAULT 0,
 ADD COLUMN IF NOT EXISTS stop_loss_price DECIMAL(10,2),
 ADD COLUMN IF NOT EXISTS take_profit_price DECIMAL(10,2),
@@ -15,19 +15,19 @@ ADD COLUMN IF NOT EXISTS actual_exit_price DECIMAL(10,2);
 
 -- Add calculated P&L percentage column (PostgreSQL 12+ feature)
 -- Note: Only add if not exists to avoid errors
-DO $$ 
+DO $$
 BEGIN
     IF NOT EXISTS (
-        SELECT 1 FROM information_schema.columns 
+        SELECT 1 FROM information_schema.columns
         WHERE table_name = 'trade_logs' AND column_name = 'pnl_percentage'
     ) THEN
         ALTER TABLE trade_logs
-        ADD COLUMN pnl_percentage DECIMAL(5,2) 
+        ADD COLUMN pnl_percentage DECIMAL(5,2)
         GENERATED ALWAYS AS (
-            CASE 
-                WHEN entry_price > 0 AND actual_exit_price > 0 
+            CASE
+                WHEN entry_price > 0 AND actual_exit_price > 0
                 THEN ((actual_exit_price - entry_price) / entry_price * 100)
-                ELSE 0 
+                ELSE 0
             END
         ) STORED;
     END IF;
@@ -72,20 +72,20 @@ CREATE TABLE IF NOT EXISTS shadow_testing_trades (
 -- ============================================
 
 -- Indexes for shadow_testing_scans
-CREATE INDEX IF NOT EXISTS idx_shadow_scans_time 
+CREATE INDEX IF NOT EXISTS idx_shadow_scans_time
     ON shadow_testing_scans(scan_time DESC);
-CREATE INDEX IF NOT EXISTS idx_shadow_scans_strategy 
+CREATE INDEX IF NOT EXISTS idx_shadow_scans_strategy
     ON shadow_testing_scans(strategy_name, symbol);
-CREATE INDEX IF NOT EXISTS idx_shadow_scans_signal 
-    ON shadow_testing_scans(signal_detected) 
+CREATE INDEX IF NOT EXISTS idx_shadow_scans_signal
+    ON shadow_testing_scans(signal_detected)
     WHERE signal_detected = true;
 
 -- Indexes for shadow_testing_trades
-CREATE INDEX IF NOT EXISTS idx_shadow_trades_scan 
+CREATE INDEX IF NOT EXISTS idx_shadow_trades_scan
     ON shadow_testing_trades(scan_id);
-CREATE INDEX IF NOT EXISTS idx_shadow_trades_outcome 
+CREATE INDEX IF NOT EXISTS idx_shadow_trades_outcome
     ON shadow_testing_trades(outcome);
-CREATE INDEX IF NOT EXISTS idx_shadow_trades_strategy 
+CREATE INDEX IF NOT EXISTS idx_shadow_trades_strategy
     ON shadow_testing_trades(strategy_name, created_at DESC);
 
 -- ============================================
@@ -94,14 +94,14 @@ CREATE INDEX IF NOT EXISTS idx_shadow_trades_strategy
 
 -- Create or replace view for shadow testing performance analysis
 CREATE OR REPLACE VIEW shadow_testing_performance AS
-SELECT 
+SELECT
     strategy_name,
     COUNT(*) as total_trades,
     SUM(CASE WHEN outcome = 'WIN' THEN 1 ELSE 0 END) as wins,
     SUM(CASE WHEN outcome = 'LOSS' THEN 1 ELSE 0 END) as losses,
     SUM(CASE WHEN outcome = 'BREAKEVEN' THEN 1 ELSE 0 END) as breakeven,
     ROUND(
-        SUM(CASE WHEN outcome = 'WIN' THEN 1 ELSE 0 END)::NUMERIC / 
+        SUM(CASE WHEN outcome = 'WIN' THEN 1 ELSE 0 END)::NUMERIC /
         NULLIF(COUNT(*), 0) * 100, 2
     ) as win_rate,
     ROUND(AVG(pnl_percentage)::NUMERIC, 2) as avg_return_pct,

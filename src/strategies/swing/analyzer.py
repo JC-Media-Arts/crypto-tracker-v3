@@ -74,9 +74,7 @@ class SwingAnalyzer:
 
         return analysis
 
-    def rank_opportunities(
-        self, setups: List[Dict], portfolio_state: Dict
-    ) -> List[Dict]:
+    def rank_opportunities(self, setups: List[Dict], portfolio_state: Dict) -> List[Dict]:
         """
         Rank multiple swing opportunities based on various factors
 
@@ -93,9 +91,7 @@ class SwingAnalyzer:
 
         # Score each opportunity
         for setup in filtered:
-            setup["composite_score"] = self._calculate_composite_score(
-                setup, portfolio_state
-            )
+            setup["composite_score"] = self._calculate_composite_score(setup, portfolio_state)
 
         # Sort by composite score
         ranked = sorted(filtered, key=lambda x: x["composite_score"], reverse=True)
@@ -162,7 +158,7 @@ class SwingAnalyzer:
         """Calculate risk/reward metrics"""
 
         entry = setup.get("price", 0)  # Setup uses "price" not "entry_price"
-        
+
         # Handle missing price gracefully
         if entry <= 0:
             return {
@@ -172,7 +168,7 @@ class SwingAnalyzer:
                 "risk_pct": 0,
                 "reward_pct": 0,
             }
-        
+
         stop = setup.get("stop_loss", entry * 0.97)  # Default 3% stop (tighter for swing)
         target = setup.get("take_profit", entry * 1.05)  # Default 5% target (realistic for swing)
 
@@ -232,9 +228,7 @@ class SwingAnalyzer:
         win_prob = min(win_prob, 0.80)  # Cap at 80%
 
         # Calculate EV
-        expected_value = (win_prob * risk_reward["reward_pct"]) - (
-            (1 - win_prob) * risk_reward["risk_pct"]
-        )
+        expected_value = (win_prob * risk_reward["reward_pct"]) - ((1 - win_prob) * risk_reward["risk_pct"])
 
         return expected_value
 
@@ -242,7 +236,7 @@ class SwingAnalyzer:
         """Generate detailed trade plan"""
 
         entry = setup.get("price", 0)  # Use standard field name with defensive access
-        
+
         # Handle missing price gracefully
         if entry <= 0:
             return {
@@ -375,9 +369,7 @@ class SwingAnalyzer:
 
         return min(max(priority, 1), 10)
 
-    def _filter_by_portfolio(
-        self, setups: List[Dict], portfolio_state: Dict
-    ) -> List[Dict]:
+    def _filter_by_portfolio(self, setups: List[Dict], portfolio_state: Dict) -> List[Dict]:
         """Filter setups based on portfolio constraints"""
 
         filtered = []
@@ -427,9 +419,7 @@ class SwingAnalyzer:
             "risk_reward": min(setup["risk_reward_ratio"] * 20, 100),
             "confidence": setup["confidence"] * 100,
             "priority": setup["priority"] * 10,
-            "diversification": self._calculate_diversification_score(
-                setup, portfolio_state
-            ),
+            "diversification": self._calculate_diversification_score(setup, portfolio_state),
         }
 
         # Calculate weighted score
@@ -437,9 +427,7 @@ class SwingAnalyzer:
 
         return composite
 
-    def _calculate_diversification_score(
-        self, setup: Dict, portfolio_state: Dict
-    ) -> float:
+    def _calculate_diversification_score(self, setup: Dict, portfolio_state: Dict) -> float:
         """Calculate how much this trade adds to diversification"""
 
         current_positions = portfolio_state.get("positions", [])
