@@ -546,7 +546,8 @@ class SimplifiedPaperTradingSystem:
 
         except Exception as e:
             # Don't let logging errors stop trading
-            logger.debug(f"Could not log scan: {e}")
+            logger.error(f"Could not log scan for {symbol}: {e}")
+            logger.debug(f"Full scan data: {scan_data}")
 
     async def execute_trade(self, trading_signal: Dict):
         """Execute a trade based on signal"""
