@@ -7,12 +7,17 @@ Designed to run 24/7 on Railway without any ML dependencies
 
 import asyncio
 import os
-import sys
-from pathlib import Path
-from datetime import datetime
-from typing import Dict, List
-from loguru import logger
-import signal as sig_handler
+
+# Force disable ML and Shadow Testing
+os.environ["ML_ENABLED"] = "false"
+os.environ["SHADOW_ENABLED"] = "false"
+
+import sys  # noqa: E402
+from pathlib import Path  # noqa: E402
+from datetime import datetime  # noqa: E402
+from typing import Dict, List  # noqa: E402
+from loguru import logger  # noqa: E402
+import signal as sig_handler  # noqa: E402
 
 # Add project root to path
 sys.path.append(str(Path(__file__).parent.parent))
