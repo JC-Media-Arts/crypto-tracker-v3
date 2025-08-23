@@ -1127,8 +1127,10 @@ def get_trades():
             "win_rate": 0,
             "total_pnl": 0,
             "total_pnl_dollar": 0,
+            "total_position_size": 0,  # Track total position size for realized trades
             "unrealized_pnl": 0,
             "unrealized_pnl_dollar": 0,
+            "unrealized_position_size": 0,  # Track total position size for open trades
         }
 
         if result.data:
@@ -1261,8 +1263,8 @@ def get_trades():
                             dot_color = "#6b7280"
 
                         stats["closed_count"] += 1
-                        stats["total_pnl"] += pnl_pct
                         stats["total_pnl_dollar"] += position_size * pnl_pct / 100
+                        stats["total_position_size"] += position_size
 
                         # Add closed trade to list
                         trades_data.append(
@@ -1369,8 +1371,8 @@ def get_trades():
 
                         # Update stats
                         stats["open_count"] += 1
-                        stats["unrealized_pnl"] += pnl_pct
                         stats["unrealized_pnl_dollar"] += position_size * pnl_pct / 100
+                        stats["unrealized_position_size"] += position_size
 
                         # Add open position to list
                         trades_data.append(
@@ -1440,13 +1442,28 @@ def get_trades():
                     )
 
                     stats["open_count"] += 1
-                    stats["unrealized_pnl"] += pnl_pct
                     stats["unrealized_pnl_dollar"] += position_size * pnl_pct / 100
+                    stats["unrealized_position_size"] += position_size
 
         # Calculate win rate
         total_closed = stats["win_count"] + stats["loss_count"]
         if total_closed > 0:
             stats["win_rate"] = (stats["win_count"] / total_closed) * 100
+
+        # Calculate proper P&L percentages based on weighted positions
+        if stats["total_position_size"] > 0:
+            stats["total_pnl"] = (
+                stats["total_pnl_dollar"] / stats["total_position_size"]
+            ) * 100
+        else:
+            stats["total_pnl"] = 0
+
+        if stats["unrealized_position_size"] > 0:
+            stats["unrealized_pnl"] = (
+                stats["unrealized_pnl_dollar"] / stats["unrealized_position_size"]
+            ) * 100
+        else:
+            stats["unrealized_pnl"] = 0
 
         # Sort trades: open first, then by status
         trades_data.sort(key=lambda x: (x["status"] != "open", x.get("entry_price", 0)))
