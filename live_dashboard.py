@@ -1554,11 +1554,22 @@ def get_strategy_status():
 
 
 if __name__ == "__main__":
+    import os
+
+    # Get port from Railway or default to 8080 for local
+    port = int(os.environ.get("PORT", 8080))
+
     print("\n" + "=" * 60)
     print("🚀 STARTING LIVE TRADING DASHBOARD")
     print("=" * 60)
-    print("\n📊 Dashboard will be available at: http://localhost:8080")
+
+    if os.environ.get("RAILWAY_ENVIRONMENT"):
+        print(f"\n📊 Dashboard running on Railway (port {port})")
+        print("🔗 Access via Railway's public URL")
+    else:
+        print(f"\n📊 Dashboard will be available at: http://localhost:{port}")
+
     print("🔄 Auto-updates every 10 seconds")
     print("\nPress Ctrl+C to stop the server\n")
 
-    app.run(debug=False, host="0.0.0.0", port=8080)
+    app.run(debug=False, host="0.0.0.0", port=port)

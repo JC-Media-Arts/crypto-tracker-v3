@@ -22,6 +22,7 @@ krakenex==2.1.0
 slack-sdk==3.26.2
 docker==7.0.0
 aiohttp==3.12.15
+flask==3.0.0
 
 # Machine Learning
 scikit-learn==1.5.2
