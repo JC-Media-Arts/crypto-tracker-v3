@@ -84,6 +84,7 @@ class SimplifiedPaperTradingSystem:
         self.swing_detector = SwingDetector(self.config)
         self.channel_detector = ChannelDetector(self.config)
         self.regime_detector = RegimeDetector(enabled=True)
+        self.current_regime = MarketRegime.NORMAL  # Default until first scan
 
         # Track active positions
         self.active_positions = self.paper_trader.positions
@@ -244,8 +245,8 @@ class SimplifiedPaperTradingSystem:
             self.regime_detector.update_btc_price(btc_price)
 
         # Detect regime
-        current_regime = self.regime_detector.get_market_regime()
-        if current_regime == MarketRegime.PANIC:
+        self.current_regime = self.regime_detector.get_market_regime()
+        if self.current_regime == MarketRegime.PANIC:
             logger.warning("🚨 Market PANIC detected - skipping all new trades")
             return
 
