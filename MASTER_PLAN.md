@@ -1342,6 +1342,31 @@ else:
 
 ## Implementation Progress
 
+### Recent Updates (August 23, 2025)
+
+#### Trade Grouping Enhancement - COMPLETED
+**Issue Resolved**: Dashboard was showing duplicate trades (separate BUY and SELL entries appearing as individual rows)
+
+**Root Cause**: The paper_trades table stores BUY and SELL as separate records. The dashboard's matching logic was failing to properly pair them, causing both to appear as separate trades.
+
+**Solution Implemented**: Added `trade_group_id` system for proper trade grouping
+- **Database Change**: Added `trade_group_id` column to `paper_trades` table
+- **Paper Trader Updates**:
+  - Modified `SimplePaperTraderV2` to generate unique group IDs for each trade session
+  - Format: `{strategy}_{symbol}_{timestamp}_{random}` (e.g., `DCA_BTC_20250823_122039_a2geqk`)
+  - All related trades (initial BUY, DCA adds, final SELL) share the same group ID
+- **Dashboard Updates**:
+  - Rewrote trade grouping logic to use `trade_group_id` instead of complex time-based matching
+  - Properly aggregates multiple BUYs (for DCA) into single trade display
+  - Shows accurate fill counts for DCA grids
+
+**Benefits**:
+- ✅ Eliminates duplicate trade display in dashboard
+- ✅ Properly groups DCA trades with multiple fills
+- ✅ Each trading session has unique identifier for complete audit trail
+- ✅ Backward compatible with legacy trades without group IDs
+- ✅ Clean separation between different trading sessions for same symbol
+
 ### Current Status (August 16, 2025 - Saturday Night)
 
 #### 📅 Daily Check-in - August 16, 2025

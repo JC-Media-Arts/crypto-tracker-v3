@@ -3,12 +3,12 @@ Enhanced Paper Trading System with Adaptive Exit Rules and Database Persistence
 """
 
 import json
-import os
+import random
+import string
 from datetime import datetime
 from typing import Dict, List, Optional
 from dataclasses import dataclass, asdict
 from loguru import logger
-import asyncio
 from pathlib import Path
 from src.data.supabase_client import SupabaseClient
 from src.notifications.paper_trading_notifier import PaperTradingNotifier
@@ -29,6 +29,7 @@ class Position:
     trailing_stop_pct: Optional[float] = None
     highest_price: Optional[float] = None  # For trailing stop
     fees_paid: float = 0.0
+    trade_group_id: Optional[str] = None  # Links related trades together
 
 
 @dataclass
@@ -47,6 +48,7 @@ class Trade:
     strategy: str
     trade_type: str  # 'win' or 'loss'
     exit_reason: str  # 'stop_loss', 'take_profit', 'trailing_stop', 'time_exit'
+    trade_group_id: Optional[str] = None  # Links related trades together
 
 
 class SimplePaperTraderV2:
@@ -251,6 +253,14 @@ class SimplePaperTraderV2:
         """Calculate Kraken taker fees"""
         return usd_value * self.base_fee_rate
 
+    def generate_trade_group_id(self, strategy: str, symbol: str) -> str:
+        """Generate a unique trade group ID for linking related trades"""
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        random_suffix = "".join(
+            random.choices(string.ascii_lowercase + string.digits, k=6)
+        )
+        return f"{strategy}_{symbol}_{timestamp}_{random_suffix}"
+
     async def open_position(
         self,
         symbol: str,
@@ -329,6 +339,9 @@ class SimplePaperTraderV2:
         # Calculate position amount in crypto units
         crypto_amount = usd_amount / actual_price
 
+        # Generate trade group ID for this position
+        trade_group_id = self.generate_trade_group_id(strategy, symbol)
+
         # Create position
         position = Position(
             symbol=symbol,
@@ -342,6 +355,7 @@ class SimplePaperTraderV2:
             trailing_stop_pct=trailing_stop_pct,
             highest_price=actual_price,  # Initialize for trailing stop
             fees_paid=fees,
+            trade_group_id=trade_group_id,  # Link all related trades
         )
 
         # Update state
@@ -489,6 +503,7 @@ class SimplePaperTraderV2:
             strategy=position.strategy,
             trade_type="win" if pnl_net > 0 else "loss",
             exit_reason=exit_reason,
+            trade_group_id=position.trade_group_id,  # Link to same trade group
         )
 
         # Update stats
@@ -568,9 +583,10 @@ class SimplePaperTraderV2:
                 "stop_loss": position.stop_loss,
                 "take_profit": position.take_profit,
                 "trailing_stop_pct": position.trailing_stop_pct,
+                "trade_group_id": position.trade_group_id,  # Link to trade group
             }
 
-            result = self.db_client.client.table("paper_trades").insert(data).execute()
+            self.db_client.client.table("paper_trades").insert(data).execute()
             logger.debug(f"Saved position to DB: {position.symbol}")
         except Exception as e:
             logger.error(f"Failed to save position to DB: {e}")
@@ -596,9 +612,10 @@ class SimplePaperTraderV2:
                 "fees": trade.fees_paid,
                 "pnl": trade.pnl_usd,
                 "exit_reason": trade.exit_reason,
+                "trade_group_id": trade.trade_group_id,  # Link to same trade group
             }
 
-            result = self.db_client.client.table("paper_trades").insert(data).execute()
+            self.db_client.client.table("paper_trades").insert(data).execute()
 
             # Also update daily performance
             await self.update_daily_performance(trade)

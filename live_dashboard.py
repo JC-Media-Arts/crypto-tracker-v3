@@ -1100,7 +1100,9 @@ def get_engine_status():
             # Check for recent trades or scan history entries (within last 30 minutes)
             # Using 30 minutes as Paper Trading may have periods of inactivity
             db = SupabaseClient()
-            thirty_minutes_ago = (datetime.now(timezone.utc) - timedelta(minutes=30)).isoformat()
+            thirty_minutes_ago = (
+                datetime.now(timezone.utc) - timedelta(minutes=30)
+            ).isoformat()
 
             # Check for recent scan history (paper trading logs scans frequently)
             result = (
@@ -1130,18 +1132,25 @@ def get_engine_status():
             # Local check - look for process
             import subprocess
 
-            result = subprocess.run(["pgrep", "-f", "run_paper_trading"], capture_output=True, text=True)
+            result = subprocess.run(
+                ["pgrep", "-f", "run_paper_trading"], capture_output=True, text=True
+            )
             is_running = bool(result.stdout.strip())
 
             # Also check for the process in ps output for more details
             if is_running:
-                ps_result = subprocess.run(["ps", "aux"], capture_output=True, text=True)
+                ps_result = subprocess.run(
+                    ["ps", "aux"], capture_output=True, text=True
+                )
                 paper_trading_running = "run_paper_trading" in ps_result.stdout
             else:
                 paper_trading_running = False
 
             return jsonify(
-                {"running": paper_trading_running, "pid": result.stdout.strip() if paper_trading_running else None}
+                {
+                    "running": paper_trading_running,
+                    "pid": result.stdout.strip() if paper_trading_running else None,
+                }
             )
     except Exception as e:
         logger.error(f"Error checking engine status: {e}")
@@ -1150,7 +1159,7 @@ def get_engine_status():
 
 @app.route("/api/trades")
 def get_trades():
-    """API endpoint to get current trades data"""
+    """API endpoint to get current trades data - using trade_group_id for proper grouping"""
     from datetime import datetime, timezone
 
     try:
@@ -1160,7 +1169,6 @@ def get_trades():
         result = (
             db.client.table("paper_trades")
             .select("*")
-            .order("side", desc=False)
             .order("created_at", desc=True)
             .execute()
         )
@@ -1180,7 +1188,9 @@ def get_trades():
 
         if result.data:
             # Get current prices
-            symbols = list(set(trade["symbol"] for trade in result.data if trade["symbol"]))
+            symbols = list(
+                set(trade["symbol"] for trade in result.data if trade["symbol"])
+            )
             current_prices = {}
 
             for symbol in symbols:
@@ -1199,157 +1209,95 @@ def get_trades():
                 except Exception:
                     pass
 
-            # Process trades - group by symbol to match BUY/SELL
-            trades_by_symbol = {}
+            # Group trades by trade_group_id
+            trades_by_group = {}
+            legacy_trades = []  # For trades without group_id
+
             for trade in result.data:
-                symbol = trade["symbol"]
-                if symbol not in trades_by_symbol:
-                    trades_by_symbol[symbol] = {"buys": [], "sells": []}
+                group_id = trade.get("trade_group_id")
 
-                if trade["side"] == "BUY":
-                    trades_by_symbol[symbol]["buys"].append(trade)
+                if group_id:
+                    # New format with group_id
+                    if group_id not in trades_by_group:
+                        trades_by_group[group_id] = {
+                            "buys": [],
+                            "sells": [],
+                            "symbol": trade["symbol"],
+                            "strategy": trade.get("strategy_name", "N/A"),
+                        }
+
+                    if trade["side"] == "BUY":
+                        trades_by_group[group_id]["buys"].append(trade)
+                    else:
+                        trades_by_group[group_id]["sells"].append(trade)
                 else:
-                    trades_by_symbol[symbol]["sells"].append(trade)
+                    # Legacy format without group_id
+                    legacy_trades.append(trade)
 
-            # Process each symbol's trades
-            for symbol, symbol_trades in trades_by_symbol.items():
+            # Process grouped trades (new format with trade_group_id)
+            for group_id, group_data in trades_by_group.items():
+                symbol = group_data["symbol"]
+                strategy = group_data["strategy"]
                 current_price = current_prices.get(symbol)
 
-                # Sort by created_at
-                symbol_trades["buys"].sort(key=lambda x: x["created_at"])
-                symbol_trades["sells"].sort(key=lambda x: x["created_at"])
+                # Sort trades by created_at
+                group_data["buys"].sort(key=lambda x: x["created_at"])
+                group_data["sells"].sort(key=lambda x: x["created_at"])
 
-                # Track matched buys
-                matched_buys = set()
+                # Calculate aggregated entry data for multiple BUYs (DCA)
+                if group_data["buys"]:
+                    total_cost = 0
+                    total_amount = 0
+                    first_buy = group_data["buys"][0]
 
-                # Process closed trades (matching BUY and SELL)
-                for sell_trade in symbol_trades["sells"]:
-                    # Find matching buy
-                    for i, buy_trade in enumerate(symbol_trades["buys"]):
-                        if i not in matched_buys and buy_trade["created_at"] <= sell_trade["created_at"]:
-                            matched_buys.add(i)
+                    for buy in group_data["buys"]:
+                        price = float(buy.get("price", 0))
+                        amount = float(buy.get("amount", 1))
+                        total_cost += price * amount
+                        total_amount += amount
 
-                            # Create closed trade record
-                            entry_price = float(buy_trade["price"]) if buy_trade.get("price") else 0
-                            exit_price = float(sell_trade["price"]) if sell_trade.get("price") else 0
+                    avg_entry_price = (
+                        total_cost / total_amount if total_amount > 0 else 0
+                    )
+                    position_size = float(first_buy.get("position_size", 50))
 
-                            if entry_price > 0:
-                                pnl_pct = ((exit_price - entry_price) / entry_price) * 100
-                            else:
-                                pnl_pct = float(sell_trade.get("pnl", 0)) if sell_trade.get("pnl") else 0
+                    # Check if position is closed (has SELL)
+                    if group_data["sells"]:
+                        # CLOSED POSITION
+                        sell_trade = group_data["sells"][
+                            0
+                        ]  # Should only be one SELL per group
+                        exit_price = float(sell_trade.get("price", 0))
 
-                            # Calculate duration
-                            entry_time = datetime.fromisoformat(buy_trade["created_at"].replace("Z", "+00:00"))
-                            # Use filled_at from SELL trade if available, otherwise use updated_at or created_at
-                            exit_timestamp = (
-                                sell_trade.get("filled_at")
-                                or sell_trade.get("updated_at")
-                                or sell_trade.get("created_at")
-                            )
-                            exit_time = datetime.fromisoformat(exit_timestamp.replace("Z", "+00:00"))
-                            duration = exit_time - entry_time
-                            days = duration.days
-                            hours = duration.seconds // 3600
-                            minutes = (duration.seconds % 3600) // 60
-
-                            # Format duration more precisely
-                            if days > 0:
-                                duration_str = f"{days}d {hours}h"
-                            elif hours > 0:
-                                duration_str = f"{hours}h {minutes}m"
-                            else:
-                                duration_str = f"{minutes}m"
-
-                            # Determine dot color
-                            if pnl_pct > 0.1:
-                                dot_color = "#22c55e"
-                                stats["win_count"] += 1
-                            elif pnl_pct < -0.1:
-                                dot_color = "#ef4444"
-                                stats["loss_count"] += 1
-                            else:
-                                dot_color = "#6b7280"
-
-                            stats["closed_count"] += 1
-                            stats["total_pnl"] += pnl_pct
-                            position_size = float(buy_trade.get("position_size", 50))
-                            stats["total_pnl_dollar"] += position_size * pnl_pct / 100
-
-                            trades_data.append(
-                                {
-                                    "symbol": symbol,
-                                    "strategy_name": buy_trade.get("strategy_name", "N/A"),
-                                    "position_size": float(buy_trade.get("position_size", 50)),  # Default to $50
-                                    "entry_price": entry_price,
-                                    "current_price": exit_price,
-                                    "exit_price": exit_price,
-                                    "pnl_pct": pnl_pct,
-                                    "status": "closed",
-                                    "duration": duration_str,
-                                    "dot_color": dot_color,
-                                    "sl_display": f"${buy_trade['stop_loss']:.2f}"
-                                    if buy_trade.get("stop_loss")
-                                    else None,
-                                    "tp_display": f"${buy_trade['take_profit']:.2f}"
-                                    if buy_trade.get("take_profit")
-                                    else None,
-                                    "ts_display": f"{float(buy_trade.get('trailing_stop_pct', 0))*100:.1f}%"
-                                    if buy_trade.get("trailing_stop_pct")
-                                    else None,
-                                    "exit_reason": sell_trade.get("exit_reason", ""),
-                                }
-                            )
-                            break
-
-                # Process open positions (unmatched BUYs)
-                for i, buy_trade in enumerate(symbol_trades["buys"]):
-                    if i not in matched_buys and buy_trade["status"] == "FILLED":
-                        entry_price = float(buy_trade["price"]) if buy_trade.get("price") else 0
-
-                        if current_price and entry_price > 0:
-                            pnl_pct = ((current_price - entry_price) / entry_price) * 100
-                            current_pnl = pnl_pct
-
-                            # Calculate SL/TP/TS displays for open positions
-                            sl_display = None
-                            tp_display = None
-                            ts_display = None
-
-                            if buy_trade.get("stop_loss"):
-                                sl_price = float(buy_trade["stop_loss"])
-                                sl_pnl = ((sl_price - entry_price) / entry_price) * 100
-                                sl_display = f"{current_pnl:.1f}% / {sl_pnl:.1f}%"
-
-                            if buy_trade.get("take_profit"):
-                                tp_price = float(buy_trade["take_profit"])
-                                tp_pnl = ((tp_price - entry_price) / entry_price) * 100
-                                tp_display = f"{current_pnl:.1f}% / {tp_pnl:.1f}%"
-
-                            if buy_trade.get("trailing_stop_pct"):
-                                ts_pct = float(buy_trade["trailing_stop_pct"]) * 100
-                                # Trailing stop only activates after TP is hit
-                                if current_pnl >= tp_pnl:  # TP has been reached
-                                    # Calculate the trailing stop trigger price from highest
-                                    highest_price = buy_trade.get("highest_price", current_price)
-                                    ts_trigger_from_high = ((current_price - highest_price) / highest_price) * 100
-                                    ts_display = f"🟢 Active: {ts_trigger_from_high:.1f}% / -{ts_pct:.1f}%"
-                                else:
-                                    # Not yet active - show when it will activate
-                                    ts_display = f"⚪ Inactive (activates at TP: {tp_pnl:.1f}%)"
+                        # Calculate P&L
+                        if avg_entry_price > 0:
+                            pnl_pct = (
+                                (exit_price - avg_entry_price) / avg_entry_price
+                            ) * 100
                         else:
-                            pnl_pct = 0
-                            sl_display = None
-                            tp_display = None
-                            ts_display = None
+                            pnl_pct = (
+                                float(sell_trade.get("pnl", 0)) / position_size * 100
+                                if sell_trade.get("pnl")
+                                else 0
+                            )
 
                         # Calculate duration
-                        entry_time = datetime.fromisoformat(buy_trade["created_at"].replace("Z", "+00:00"))
-                        duration = datetime.now(timezone.utc) - entry_time
+                        entry_time = datetime.fromisoformat(
+                            first_buy["created_at"].replace("Z", "+00:00")
+                        )
+                        exit_timestamp = sell_trade.get("filled_at") or sell_trade.get(
+                            "created_at"
+                        )
+                        exit_time = datetime.fromisoformat(
+                            exit_timestamp.replace("Z", "+00:00")
+                        )
+                        duration = exit_time - entry_time
+
+                        # Format duration
                         days = duration.days
                         hours = duration.seconds // 3600
                         minutes = (duration.seconds % 3600) // 60
 
-                        # Format duration more precisely
                         if days > 0:
                             duration_str = f"{days}d {hours}h"
                         elif hours > 0:
@@ -1357,7 +1305,81 @@ def get_trades():
                         else:
                             duration_str = f"{minutes}m"
 
-                        # Determine dot color
+                        # Update stats
+                        if pnl_pct > 0.1:
+                            dot_color = "#22c55e"
+                            stats["win_count"] += 1
+                        elif pnl_pct < -0.1:
+                            dot_color = "#ef4444"
+                            stats["loss_count"] += 1
+                        else:
+                            dot_color = "#6b7280"
+
+                        stats["closed_count"] += 1
+                        stats["total_pnl"] += pnl_pct
+                        stats["total_pnl_dollar"] += position_size * pnl_pct / 100
+
+                        # Add closed trade to list
+                        trades_data.append(
+                            {
+                                "symbol": symbol,
+                                "strategy_name": strategy,
+                                "position_size": position_size,
+                                "entry_price": avg_entry_price,
+                                "initial_price": float(first_buy.get("price", 0)),
+                                "current_price": exit_price,
+                                "exit_price": exit_price,
+                                "pnl_pct": pnl_pct,
+                                "status": "closed",
+                                "duration": duration_str,
+                                "dot_color": dot_color,
+                                "dca_fills": len(group_data["buys"])
+                                if strategy == "DCA"
+                                else 1,
+                                "sl_display": f"${first_buy['stop_loss']:.2f}"
+                                if first_buy.get("stop_loss")
+                                else None,
+                                "tp_display": f"${first_buy['take_profit']:.2f}"
+                                if first_buy.get("take_profit")
+                                else None,
+                                "ts_display": f"{float(first_buy.get('trailing_stop_pct', 0))*100:.1f}%"
+                                if first_buy.get("trailing_stop_pct")
+                                else None,
+                                "exit_reason": sell_trade.get("exit_reason", ""),
+                            }
+                        )
+
+                    else:
+                        # OPEN POSITION (no SELL yet)
+                        if not current_price:
+                            continue  # Skip if no current price available
+
+                        # Calculate unrealized P&L
+                        pnl_pct = (
+                            ((current_price - avg_entry_price) / avg_entry_price * 100)
+                            if avg_entry_price > 0
+                            else 0
+                        )
+
+                        # Calculate duration
+                        entry_time = datetime.fromisoformat(
+                            first_buy["created_at"].replace("Z", "+00:00")
+                        )
+                        duration = datetime.now(timezone.utc) - entry_time
+
+                        # Format duration
+                        days = duration.days
+                        hours = duration.seconds // 3600
+                        minutes = (duration.seconds % 3600) // 60
+
+                        if days > 0:
+                            duration_str = f"{days}d {hours}h"
+                        elif hours > 0:
+                            duration_str = f"{hours}h {minutes}m"
+                        else:
+                            duration_str = f"{minutes}m"
+
+                        # Determine color
                         if pnl_pct > 0.1:
                             dot_color = "#22c55e"
                         elif pnl_pct < -0.1:
@@ -1365,46 +1387,63 @@ def get_trades():
                         else:
                             dot_color = "#6b7280"
 
+                        # Calculate SL/TP/TS displays
+                        sl_display = None
+                        tp_display = None
+                        ts_display = None
+
+                        if first_buy.get("stop_loss"):
+                            sl_price = float(first_buy["stop_loss"])
+                            sl_pnl = (
+                                (sl_price - avg_entry_price) / avg_entry_price
+                            ) * 100
+                            sl_display = f"{pnl_pct:.1f}% / {sl_pnl:.1f}%"
+
+                        if first_buy.get("take_profit"):
+                            tp_price = float(first_buy["take_profit"])
+                            tp_pnl = (
+                                (tp_price - avg_entry_price) / avg_entry_price
+                            ) * 100
+                            tp_display = f"{pnl_pct:.1f}% / {tp_pnl:.1f}%"
+
+                        if first_buy.get("trailing_stop_pct"):
+                            ts_pct = float(first_buy["trailing_stop_pct"]) * 100
+                            if first_buy.get("take_profit"):
+                                tp_price = float(first_buy["take_profit"])
+                                tp_pnl = (
+                                    (tp_price - avg_entry_price) / avg_entry_price
+                                ) * 100
+                                if pnl_pct >= tp_pnl:
+                                    ts_display = (
+                                        f"🟢 Active: {pnl_pct:.1f}% / -{ts_pct:.1f}%"
+                                    )
+                                else:
+                                    ts_display = (
+                                        f"⚪ Inactive (activates at TP: {tp_pnl:.1f}%)"
+                                    )
+
+                        # Update stats
                         stats["open_count"] += 1
                         stats["unrealized_pnl"] += pnl_pct
-                        position_size = float(buy_trade.get("position_size", 50))
                         stats["unrealized_pnl_dollar"] += position_size * pnl_pct / 100
 
-                        # Check if this is part of a DCA grid
-                        dca_fills = 1
-                        initial_price = entry_price
-                        if buy_trade.get("strategy_name") == "DCA":
-                            # Count how many BUY trades exist for this symbol
-                            all_buys_for_symbol = [
-                                t
-                                for t in symbol_trades["buys"]
-                                if t["status"] == "FILLED" and t.get("strategy_name") == "DCA"
-                            ]
-                            dca_fills = len(all_buys_for_symbol)
-
-                            # Calculate average entry price if multiple fills
-                            if dca_fills > 1:
-                                total_cost = sum(
-                                    float(t["price"]) * float(t.get("amount", 1)) for t in all_buys_for_symbol
-                                )
-                                total_amount = sum(float(t.get("amount", 1)) for t in all_buys_for_symbol)
-                                entry_price = total_cost / total_amount if total_amount > 0 else entry_price
-                                initial_price = float(all_buys_for_symbol[0]["price"])
-
+                        # Add open position to list
                         trades_data.append(
                             {
                                 "symbol": symbol,
-                                "strategy_name": buy_trade.get("strategy_name", "N/A"),
-                                "position_size": float(buy_trade.get("position_size", 50)),  # Default to $50
-                                "entry_price": entry_price,
-                                "initial_price": initial_price,
-                                "dca_fills": dca_fills,
+                                "strategy_name": strategy,
+                                "position_size": position_size,
+                                "entry_price": avg_entry_price,
+                                "initial_price": float(first_buy.get("price", 0)),
                                 "current_price": current_price,
                                 "exit_price": None,
                                 "pnl_pct": pnl_pct,
                                 "status": "open",
                                 "duration": duration_str,
                                 "dot_color": dot_color,
+                                "dca_fills": len(group_data["buys"])
+                                if strategy == "DCA"
+                                else 1,
                                 "sl_display": sl_display,
                                 "tp_display": tp_display,
                                 "ts_display": ts_display,
@@ -1412,13 +1451,60 @@ def get_trades():
                             }
                         )
 
+            # Handle legacy trades (without trade_group_id) - simplified display
+            # Just show them as individual trades for now
+            for trade in legacy_trades:
+                symbol = trade["symbol"]
+                current_price = current_prices.get(symbol)
+
+                if trade["side"] == "BUY" and trade["status"] == "FILLED":
+                    # Legacy open position
+                    entry_price = float(trade.get("price", 0))
+                    position_size = float(trade.get("position_size", 50))
+
+                    if current_price and entry_price > 0:
+                        pnl_pct = ((current_price - entry_price) / entry_price) * 100
+                    else:
+                        pnl_pct = 0
+
+                    # Simple duration calculation
+                    entry_time = datetime.fromisoformat(
+                        trade["created_at"].replace("Z", "+00:00")
+                    )
+                    duration = datetime.now(timezone.utc) - entry_time
+                    duration_str = (
+                        f"{duration.days}d"
+                        if duration.days > 0
+                        else f"{duration.seconds // 3600}h"
+                    )
+
+                    trades_data.append(
+                        {
+                            "symbol": symbol,
+                            "strategy_name": trade.get("strategy_name", "LEGACY"),
+                            "position_size": position_size,
+                            "entry_price": entry_price,
+                            "current_price": current_price,
+                            "pnl_pct": pnl_pct,
+                            "status": "open",
+                            "duration": duration_str,
+                            "dot_color": "#94a3b8",  # Gray for legacy
+                            "dca_fills": 1,
+                            "exit_reason": "",
+                        }
+                    )
+
+                    stats["open_count"] += 1
+                    stats["unrealized_pnl"] += pnl_pct
+                    stats["unrealized_pnl_dollar"] += position_size * pnl_pct / 100
+
         # Calculate win rate
         total_closed = stats["win_count"] + stats["loss_count"]
         if total_closed > 0:
             stats["win_rate"] = (stats["win_count"] / total_closed) * 100
 
-        # Sort trades: open first, then by created time
-        trades_data.sort(key=lambda x: (x["status"] != "open"))
+        # Sort trades: open first, then by status
+        trades_data.sort(key=lambda x: (x["status"] != "open", x.get("entry_price", 0)))
 
         # Get current time in LA
         la_time = datetime.now(pytz.timezone("America/Los_Angeles"))
@@ -1440,9 +1526,24 @@ def get_strategy_status():
         # Get recent market data for a few key symbols
         symbols = ["BTC", "ETH", "SOL", "DOGE", "SHIB"]
         strategy_status = {
-            "swing": {"name": "SWING", "thresholds": {}, "candidates": [], "market_needs": []},
-            "channel": {"name": "CHANNEL", "thresholds": {}, "candidates": [], "market_needs": []},
-            "dca": {"name": "DCA", "thresholds": {}, "candidates": [], "market_needs": []},
+            "swing": {
+                "name": "SWING",
+                "thresholds": {},
+                "candidates": [],
+                "market_needs": [],
+            },
+            "channel": {
+                "name": "CHANNEL",
+                "thresholds": {},
+                "candidates": [],
+                "market_needs": [],
+            },
+            "dca": {
+                "name": "DCA",
+                "thresholds": {},
+                "candidates": [],
+                "market_needs": [],
+            },
         }
 
         # Get thresholds from detectors
@@ -1471,7 +1572,8 @@ def get_strategy_status():
             "buy_zone": f"< {channel_detector.buy_zone * 100:.0f}%",
             "sell_zone": f"> {channel_detector.sell_zone * 100:.0f}%",
             "channel_width": (
-                f"{channel_detector.min_channel_width * 100:.1f}-" f"{channel_detector.max_channel_width * 100:.0f}%"
+                f"{channel_detector.min_channel_width * 100:.1f}-"
+                f"{channel_detector.max_channel_width * 100:.0f}%"
             ),
             "fallback_position": f"< {simple_rules.channel_position_threshold * 100:.0f}%",
         }
@@ -1509,16 +1611,22 @@ def get_strategy_status():
 
             swing_info = {
                 "symbol": symbol,
-                "current_price": f"${current['close']:.2f}" if current["close"] > 1 else f"${current['close']:.4f}",
+                "current_price": f"${current['close']:.2f}"
+                if current["close"] > 1
+                else f"${current['close']:.4f}",
                 "breakout": f"{breakout_pct:.2f}%",
                 "volume": f"{volume_ratio:.1f}x",
-                "status": "READY" if breakout_pct > 0.3 and volume_ratio > 1.5 else "WAITING",
+                "status": "READY"
+                if breakout_pct > 0.3 and volume_ratio > 1.5
+                else "WAITING",
             }
 
             if breakout_pct > 0:
                 swing_info["needs"] = "Already breaking out!"
             elif breakout_pct > -1:
-                swing_info["needs"] = f"${abs(breakout_pct * current['close'] / 100):.2f} rise needed"
+                swing_info[
+                    "needs"
+                ] = f"${abs(breakout_pct * current['close'] / 100):.2f} rise needed"
             else:
                 swing_info["needs"] = f"Needs {abs(breakout_pct):.1f}% recovery first"
 
@@ -1540,7 +1648,9 @@ def get_strategy_status():
                 "channel_range": "${:.2f}-${:.2f}".format(low, high)
                 if low > 1
                 else "${:.4f}-${:.4f}".format(low, high),
-                "status": "BUY ZONE" if position <= 0.35 else ("SELL ZONE" if position >= 0.65 else "NEUTRAL"),
+                "status": "BUY ZONE"
+                if position <= 0.35
+                else ("SELL ZONE" if position >= 0.65 else "NEUTRAL"),
             }
 
             if position <= 0.35:
@@ -1563,7 +1673,9 @@ def get_strategy_status():
 
             dca_info = {
                 "symbol": symbol,
-                "current_price": f"${current['close']:.2f}" if current["close"] > 1 else f"${current['close']:.4f}",
+                "current_price": f"${current['close']:.2f}"
+                if current["close"] > 1
+                else f"${current['close']:.4f}",
                 "drop_from_high": f"{drop_from_high:.2f}%",
                 "status": "READY" if drop_from_high <= -1.0 else "WAITING",
             }
