@@ -9,26 +9,26 @@ import asyncio
 import os
 import sys
 from pathlib import Path
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional
+from datetime import datetime
+from typing import Dict, List
 from loguru import logger
-import signal
+import signal as sig_handler
 
 # Add project root to path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from src.data.hybrid_fetcher import HybridDataFetcher
-from src.trading.simple_paper_trader_v2 import SimplePaperTraderV2
-from src.config.settings import Settings
-from src.data.supabase_client import SupabaseClient
-from src.notifications.paper_trading_notifier import PaperTradingNotifier
+from src.data.hybrid_fetcher import HybridDataFetcher  # noqa: E402
+from src.trading.simple_paper_trader_v2 import SimplePaperTraderV2  # noqa: E402
+from src.config.settings import Settings  # noqa: E402
+from src.data.supabase_client import SupabaseClient  # noqa: E402
+from src.notifications.paper_trading_notifier import PaperTradingNotifier  # noqa: E402
 
 # Import only what we need from strategies - NO ML
-from src.strategies.dca.detector import DCADetector
-from src.strategies.swing.detector import SwingDetector
-from src.strategies.channel.detector import ChannelDetector
-from src.strategies.simple_rules import SimpleRules
-from src.strategies.regime_detector import RegimeDetector, MarketRegime
+from src.strategies.dca.detector import DCADetector  # noqa: E402
+from src.strategies.swing.detector import SwingDetector  # noqa: E402
+from src.strategies.channel.detector import ChannelDetector  # noqa: E402
+from src.strategies.simple_rules import SimpleRules  # noqa: E402
+from src.strategies.regime_detector import RegimeDetector, MarketRegime  # noqa: E402
 
 
 class SimplifiedPaperTradingSystem:
@@ -302,16 +302,16 @@ class SimplifiedPaperTradingSystem:
         available_slots = self.paper_trader.max_positions - len(self.active_positions)
         signals_to_take = signals[:available_slots]
 
-        for signal in signals_to_take:
-            if signal["confidence"] >= self.config["min_confidence"]:
-                await self.execute_trade(signal)
+        for trading_signal in signals_to_take:
+            if trading_signal["confidence"] >= self.config["min_confidence"]:
+                await self.execute_trade(trading_signal)
 
-    async def execute_trade(self, signal: Dict):
+    async def execute_trade(self, trading_signal: Dict):
         """Execute a trade based on signal"""
         try:
-            symbol = signal["symbol"]
-            strategy = signal.get("strategy", "unknown")
-            confidence = signal.get("confidence", 0.5)
+            symbol = trading_signal["symbol"]
+            strategy = trading_signal.get("strategy", "unknown")
+            confidence = trading_signal.get("confidence", 0.5)
 
             # Calculate position size
             position_size = self.config["position_size"]
@@ -326,12 +326,12 @@ class SimplifiedPaperTradingSystem:
             success = await self.paper_trader.open_position(
                 symbol=symbol,
                 usd_amount=position_size,
-                market_price=signal["current_price"],
+                market_price=trading_signal["current_price"],
                 strategy=strategy,
             )
 
             if success:
-                logger.info(f"✅ Opened {strategy} position: {symbol} @ ${signal['current_price']:.4f}")
+                logger.info(f"✅ Opened {strategy} position: {symbol} @ ${trading_signal['current_price']:.4f}")
 
                 # Log to scan_history for research system to analyze later
                 # Note: Skipping scan_history logging for now - table schema mismatch
@@ -343,7 +343,7 @@ class SimplifiedPaperTradingSystem:
                         await self.notifier.notify_position_opened(
                             symbol=symbol,
                             strategy=strategy,
-                            entry_price=signal["current_price"],
+                            entry_price=trading_signal["current_price"],
                             position_size=position_size,
                             confidence=confidence,
                         )
@@ -351,7 +351,7 @@ class SimplifiedPaperTradingSystem:
                         logger.debug(f"Could not send notification: {e}")
 
         except Exception as e:
-            logger.error(f"Error executing trade for {signal['symbol']}: {e}")
+            logger.error(f"Error executing trade for {trading_signal['symbol']}: {e}")
 
     async def check_exits(self):
         """Check if any positions should be closed"""
@@ -448,8 +448,8 @@ async def main():
     system = SimplifiedPaperTradingSystem()
 
     # Setup signal handlers
-    signal.signal(signal.SIGINT, system.handle_shutdown)
-    signal.signal(signal.SIGTERM, system.handle_shutdown)
+    sig_handler.signal(sig_handler.SIGINT, system.handle_shutdown)
+    sig_handler.signal(sig_handler.SIGTERM, system.handle_shutdown)
 
     # Start dashboard if not on Railway
     if not os.environ.get("RAILWAY_ENVIRONMENT"):
