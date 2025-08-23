@@ -1097,15 +1097,16 @@ def get_engine_status():
     try:
         # If running on Railway, check database for recent activity
         if os.environ.get("RAILWAY_ENVIRONMENT"):
-            # Check for recent trades or scan history entries (within last 5 minutes)
+            # Check for recent trades or scan history entries (within last 30 minutes)
+            # Using 30 minutes as Paper Trading may have periods of inactivity
             db = SupabaseClient()
-            five_minutes_ago = (datetime.now(timezone.utc) - timedelta(minutes=5)).isoformat()
+            thirty_minutes_ago = (datetime.now(timezone.utc) - timedelta(minutes=30)).isoformat()
 
             # Check for recent scan history (paper trading logs scans frequently)
             result = (
                 db.client.table("scan_history")
                 .select("timestamp")
-                .gte("timestamp", five_minutes_ago)
+                .gte("timestamp", thirty_minutes_ago)
                 .limit(1)
                 .execute()
             )
@@ -1117,8 +1118,8 @@ def get_engine_status():
             if not paper_trading_running:
                 trade_result = (
                     db.client.table("paper_trades")
-                    .select("updated_at")
-                    .gte("updated_at", five_minutes_ago)
+                    .select("created_at")
+                    .gte("created_at", thirty_minutes_ago)
                     .limit(1)
                     .execute()
                 )
