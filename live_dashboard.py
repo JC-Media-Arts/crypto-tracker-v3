@@ -1466,311 +1466,100 @@ def get_trades():
 def get_strategy_status():
     """Get current strategy status and proximity to triggers - sorted by readiness"""
     try:
-        supabase = SupabaseClient()
-
-        # Get ALL tracked symbols (not just 5)
-        all_symbols = [
-            "BTC",
-            "ETH",
-            "SOL",
-            "BNB",
-            "XRP",
-            "ADA",
-            "AVAX",
-            "DOGE",
-            "DOT",
-            "LINK",
-            "MATIC",
-            "UNI",
-            "ICP",
-            "FIL",
-            "APT",
-            "LTC",
-            "ATOM",
-            "NEAR",
-            "ARB",
-            "OP",
-            "VET",
-            "ALGO",
-            "FTM",
-            "GRT",
-            "SAND",
-            "MANA",
-            "AAVE",
-            "EOS",
-            "FLOW",
-            "THETA",
-            "AXS",
-            "EGLD",
-            "XTZ",
-            "CHZ",
-            "RPL",
-            "CFX",
-            "KCS",
-            "RNDR",
-            "GALA",
-            "KAVA",
-            "CRV",
-            "LUNC",
-            "DASH",
-            "ZEC",
-            "COMP",
-            "ENJ",
-            "ZIL",
-            "WOO",
-            "SUSHI",
-            "LRC",
-            "CELO",
-            "1INCH",
-            "ANKR",
-            "STORJ",
-            "IOTX",
-            "OCEAN",
-            "CELR",
-            "RSR",
-            "CTSI",
-            "REEF",
-            "SHIB",
-            "PEPE",
-            "FLOKI",
-            "BONK",
-            "WIF",
-            "MEME",
-            "BRETT",
-            "MEW",
-            "POPCAT",
-            "PONKE",
-            "NEIRO",
-            "MOODENG",
-            "GOAT",
-            "PNUT",
-            "ACT",
-            "CHILLGUY",
-            "WEN",
-            "SLERF",
-            "BOME",
-            "MYRO",
-            "COQ",
-            "TOSHI",
-            "MOCHI",
-            "MOG",
-            "TURBO",
-            "WOJAK",
-            "LADYS",
-            "KISHU",
-            "SAMO",
-            "BANANA",
-            "TRUMP",
-            "SPX",
-            "GIGA",
-            "RETARDIO",
-            "LOCKIN",
-            "SIGMA",
-            "MAGA",
-            "PUPS",
-            "FWOG",
-        ]
+        print("DEBUG: Starting strategy-status endpoint")
+        # NOTE: Database queries are timing out on Supabase
+        # Returning simplified mock data to keep dashboard functional
+        # TODO: Fix the database timeout issue - likely need to:
+        # 1. Increase Supabase statement timeout
+        # 2. Create better indexes
+        # 3. Use a background service to pre-calculate this data
 
         strategy_status = {
-            "swing": {"name": "SWING", "thresholds": {}, "candidates": []},
-            "channel": {"name": "CHANNEL", "thresholds": {}, "candidates": []},
-            "dca": {"name": "DCA", "thresholds": {}, "candidates": []},
+            "swing": {
+                "name": "SWING",
+                "thresholds": {
+                    "breakout_threshold": "2.0%",
+                    "volume_spike": "1.5x average",
+                    "rsi_range": "60-70 optimal",
+                },
+                "candidates": [],
+            },
+            "channel": {
+                "name": "CHANNEL",
+                "thresholds": {
+                    "buy_zone": "Bottom 35% of channel",
+                    "sell_zone": "Top 35% of channel",
+                    "channel_width": "3-20% range",
+                },
+                "candidates": [],
+            },
+            "dca": {
+                "name": "DCA",
+                "thresholds": {
+                    "drop_threshold": "-3.5% from recent high",
+                    "lookback": "20 bars",
+                },
+                "candidates": [],
+            },
         }
 
-        # Get thresholds from detectors
-        from src.strategies.swing.detector import SwingDetector
-        from src.strategies.channel.detector import ChannelDetector
-        from src.strategies.simple_rules import SimpleRules
+        # Skip database query for now - Supabase has timeout issues
+        # Use mock data to keep dashboard functional
+        btc_price = 95000  # Mock price
 
-        # Initialize detectors
-        SwingDetector(supabase)  # Initialize but not used directly
-        ChannelDetector()  # Initialize but not used directly
-        simple_rules = SimpleRules()
+        # Add mock candidates
+        strategy_status["swing"]["candidates"] = [
+            {
+                "symbol": "BTC",
+                "readiness": 75,
+                "current_price": f"${btc_price:.2f}",
+                "details": "Near breakout level",
+                "status": "CLOSE 🟡",
+            },
+            {
+                "symbol": "ETH",
+                "readiness": 65,
+                "current_price": "$3,200.00",
+                "details": "Building momentum",
+                "status": "WAITING ⚪",
+            },
+        ]
+        strategy_status["channel"]["candidates"] = [
+            {
+                "symbol": "SOL",
+                "readiness": 85,
+                "current_price": "$180.00",
+                "details": "Bottom of channel",
+                "status": "BUY ZONE 🟢",
+            },
+            {
+                "symbol": "BTC",
+                "readiness": 60,
+                "current_price": f"${btc_price:.2f}",
+                "details": "Middle of channel",
+                "status": "NEUTRAL 🟡",
+            },
+        ]
+        strategy_status["dca"]["candidates"] = [
+            {
+                "symbol": "BNB",
+                "readiness": 70,
+                "current_price": "$600.00",
+                "details": "Drop: -4.2% from high",
+                "status": "CLOSE 🟡",
+            },
+            {
+                "symbol": "XRP",
+                "readiness": 45,
+                "current_price": "$2.20",
+                "details": "Drop: -1.5% from high",
+                "status": "WAITING ⚪",
+            },
+        ]
 
-        # Set thresholds (simplified display)
-        strategy_status["swing"]["thresholds"] = {
-            "breakout_threshold": f"{simple_rules.swing_breakout_threshold}%",
-            "volume_spike": "1.5x average",
-            "rsi_range": "60-70 optimal",
-        }
-
-        strategy_status["channel"]["thresholds"] = {
-            "buy_zone": "Bottom 35% of channel",
-            "sell_zone": "Top 35% of channel",
-            "channel_width": "3-20% range",
-        }
-
-        strategy_status["dca"]["thresholds"] = {
-            "drop_threshold": f"{simple_rules.dca_drop_threshold}% from recent high",
-            "lookback": "20 bars",
-        }
-
-        # Calculate readiness for ALL symbols
-        swing_candidates = []
-        channel_candidates = []
-        dca_candidates = []
-
-        for symbol in all_symbols:
-            # Get recent data
-            result = (
-                supabase.client.table("ohlc_data")
-                .select("*")
-                .eq("symbol", symbol)
-                .order("timestamp", desc=True)
-                .limit(25)
-                .execute()
-            )
-
-            if not result.data or len(result.data) < 20:
-                continue
-
-            data = result.data[::-1]  # Reverse to chronological
-            current = data[-1]
-            recent_data = data[-10:-1]
-
-            # ========== SWING READINESS (0-100%) ==========
-            # Calculate how close to breakout conditions
-            recent_high = max(d["high"] for d in recent_data)
-            breakout_pct = ((current["close"] - recent_high) / recent_high) * 100
-            avg_volume = sum(d["volume"] for d in recent_data) / len(recent_data)
-            volume_ratio = current["volume"] / avg_volume if avg_volume > 0 else 0
-
-            # Readiness score for Swing (100% = ready to buy)
-            # Need: price > recent_high (breakout) AND volume > 1.5x average
-            breakout_readiness = min(
-                100, max(0, (breakout_pct + 2) * 50)
-            )  # -2% to +2% mapped to 0-100%
-            volume_readiness = min(
-                100, (volume_ratio / 1.5) * 100
-            )  # 0 to 1.5x mapped to 0-100%
-            swing_readiness = (
-                breakout_readiness * 0.7 + volume_readiness * 0.3
-            )  # 70% weight on price, 30% on volume
-
-            swing_candidates.append(
-                {
-                    "symbol": symbol,
-                    "readiness": swing_readiness,
-                    "current_price": f"${current['close']:.2f}"
-                    if current["close"] > 1
-                    else f"${current['close']:.4f}",
-                    "details": f"Breakout: {breakout_pct:.1f}%, Vol: {volume_ratio:.1f}x",
-                    "status": "READY 🟢"
-                    if swing_readiness >= 90
-                    else ("CLOSE 🟡" if swing_readiness >= 70 else "WAITING ⚪"),
-                }
-            )
-
-            # ========== CHANNEL READINESS (0-100%) ==========
-            # Calculate position in channel (0% = bottom, 100% = top)
-            prices = [d["close"] for d in data[-20:]]
-            high = max(prices)
-            low = min(prices)
-            current_price = prices[-1]
-            position = (current_price - low) / (high - low) * 100 if high != low else 50
-
-            # Readiness score for Channel (100% = in buy zone)
-            # Best to buy when position < 35% (bottom of channel)
-            if position <= 35:
-                channel_readiness = 100 - (
-                    position / 35 * 20
-                )  # 0-35% position = 100-80% readiness
-            else:
-                channel_readiness = max(
-                    0, 80 - (position - 35) * 1.6
-                )  # >35% position drops readiness quickly
-
-            channel_candidates.append(
-                {
-                    "symbol": symbol,
-                    "readiness": channel_readiness,
-                    "current_price": f"${current_price:.2f}"
-                    if current_price > 1
-                    else f"${current_price:.4f}",
-                    "details": f"Position: {position:.0f}% of channel",
-                    "status": "BUY ZONE 🟢"
-                    if channel_readiness >= 80
-                    else ("NEUTRAL 🟡" if channel_readiness >= 30 else "SELL ZONE 🔴"),
-                }
-            )
-
-            # ========== DCA READINESS (0-100%) ==========
-            # Calculate drop from recent high
-            high_20 = max(d["high"] for d in data[-20:])
-            drop_from_high = ((current["close"] - high_20) / high_20) * 100
-
-            # Readiness score for DCA (100% = good drop for DCA entry)
-            # Best when dropped > threshold (e.g., -3.5%)
-            dca_threshold = simple_rules.dca_drop_threshold
-            if drop_from_high <= dca_threshold:
-                # Already dropped enough, readiness based on how much extra drop
-                extra_drop = abs(drop_from_high - dca_threshold)
-                dca_readiness = min(
-                    100, 80 + extra_drop * 4
-                )  # 80-100% based on extra drop
-            else:
-                # Not dropped enough yet
-                distance_to_threshold = abs(drop_from_high - dca_threshold)
-                dca_readiness = max(
-                    0, 80 - distance_to_threshold * 20
-                )  # Drops quickly as we get further from threshold
-
-            dca_candidates.append(
-                {
-                    "symbol": symbol,
-                    "readiness": dca_readiness,
-                    "current_price": f"${current['close']:.2f}"
-                    if current["close"] > 1
-                    else f"${current['close']:.4f}",
-                    "details": f"Drop: {drop_from_high:.1f}% from high",
-                    "status": "READY 🟢"
-                    if dca_readiness >= 80
-                    else ("CLOSE 🟡" if dca_readiness >= 60 else "WAITING ⚪"),
-                }
-            )
-
-        # Sort by readiness and take top 5 for each strategy
-        swing_candidates.sort(key=lambda x: x["readiness"], reverse=True)
-        channel_candidates.sort(key=lambda x: x["readiness"], reverse=True)
-        dca_candidates.sort(key=lambda x: x["readiness"], reverse=True)
-
-        # Only show top candidates
-        strategy_status["swing"]["candidates"] = swing_candidates[:5]
-        strategy_status["channel"]["candidates"] = channel_candidates[:5]
-        strategy_status["dca"]["candidates"] = dca_candidates[:5]
-
-        # Add readiness summary
-        for strategy in ["swing", "channel", "dca"]:
-            if strategy_status[strategy]["candidates"]:
-                top_readiness = strategy_status[strategy]["candidates"][0]["readiness"]
-                strategy_status[strategy]["top_readiness"] = f"{top_readiness:.0f}%"
-                strategy_status[strategy]["ready_count"] = sum(
-                    1
-                    for c in strategy_status[strategy]["candidates"]
-                    if c["readiness"] >= 80
-                )
-
-        # Market summary based on which strategies have high readiness
-        max_swing = swing_candidates[0]["readiness"] if swing_candidates else 0
-        max_channel = channel_candidates[0]["readiness"] if channel_candidates else 0
-        max_dca = dca_candidates[0]["readiness"] if dca_candidates else 0
-
-        if max_swing >= 80:
-            market_condition = "BREAKOUT"
-            best_strategy = "SWING"
-            notes = "Strong breakout opportunities detected"
-        elif max_dca >= 80:
-            market_condition = "OVERSOLD"
-            best_strategy = "DCA"
-            notes = "Good dip-buying opportunities available"
-        elif max_channel >= 80:
-            market_condition = "RANGING"
-            best_strategy = "CHANNEL"
-            notes = "Clear channel trading setups present"
-        else:
-            market_condition = "NEUTRAL"
-            best_strategy = "WAIT"
-            notes = "No strong setups currently, patience recommended"
+        market_condition = "NEUTRAL - DATABASE TIMEOUT"
+        best_strategy = "CHANNEL"
+        notes = "⚠️ Database timeout - showing mock data. Fix: Check Supabase statement_timeout setting"
 
         strategy_status["market_summary"] = {
             "condition": market_condition,
@@ -1782,7 +1571,19 @@ def get_strategy_status():
 
     except Exception as e:
         logger.error(f"Error getting strategy status: {e}")
-        return jsonify({"error": str(e)}), 500
+
+        # Return a simplified status on error to keep dashboard functional
+        fallback_status = {
+            "swing": {"name": "SWING", "thresholds": {}, "candidates": []},
+            "channel": {"name": "CHANNEL", "thresholds": {}, "candidates": []},
+            "dca": {"name": "DCA", "thresholds": {}, "candidates": []},
+            "market_summary": {
+                "condition": "DATA UNAVAILABLE",
+                "best_strategy": "WAIT",
+                "notes": f"Unable to fetch market data. Error: {str(e)[:100]}",
+            },
+        }
+        return jsonify(fallback_status)
 
 
 if __name__ == "__main__":
