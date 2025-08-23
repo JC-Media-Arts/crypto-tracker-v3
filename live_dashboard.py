@@ -4,20 +4,18 @@ Live trading dashboard server that auto-updates
 """
 
 from flask import Flask, render_template_string, jsonify
-from datetime import datetime
 import pytz
-import json
 import sys
 from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent))
 
-from src.data.supabase_client import SupabaseClient
-from loguru import logger
+from src.data.supabase_client import SupabaseClient  # noqa: E402
+from loguru import logger  # noqa: E402
 
 app = Flask(__name__)
 
-HTML_TEMPLATE = """
+HTML_TEMPLATE = r"""  # noqa: E501
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1093,23 +1091,57 @@ def dashboard():
 @app.route("/api/engine-status")
 def get_engine_status():
     """Check if paper trading engine is running"""
-    import subprocess
+    import os
+    from datetime import datetime, timedelta, timezone
 
     try:
-        # Check if the paper trading process is running
-        result = subprocess.run(["pgrep", "-f", "run_paper_trading"], capture_output=True, text=True)
-        is_running = bool(result.stdout.strip())
+        # If running on Railway, check database for recent activity
+        if os.environ.get("RAILWAY_ENVIRONMENT"):
+            # Check for recent trades or scan history entries (within last 5 minutes)
+            db = SupabaseClient()
+            five_minutes_ago = (datetime.now(timezone.utc) - timedelta(minutes=5)).isoformat()
 
-        # Also check for the process in ps output for more details
-        if is_running:
-            ps_result = subprocess.run(["ps", "aux"], capture_output=True, text=True)
-            paper_trading_running = "run_paper_trading" in ps_result.stdout
+            # Check for recent scan history (paper trading logs scans frequently)
+            result = (
+                db.client.table("scan_history")
+                .select("timestamp")
+                .gte("timestamp", five_minutes_ago)
+                .limit(1)
+                .execute()
+            )
+
+            # If we have recent scans, paper trading is running
+            paper_trading_running = bool(result.data)
+
+            # Also check for recent trades as backup
+            if not paper_trading_running:
+                trade_result = (
+                    db.client.table("paper_trades")
+                    .select("updated_at")
+                    .gte("updated_at", five_minutes_ago)
+                    .limit(1)
+                    .execute()
+                )
+                paper_trading_running = bool(trade_result.data)
+
+            return jsonify({"running": paper_trading_running, "source": "railway"})
         else:
-            paper_trading_running = False
+            # Local check - look for process
+            import subprocess
 
-        return jsonify(
-            {"running": paper_trading_running, "pid": result.stdout.strip() if paper_trading_running else None}
-        )
+            result = subprocess.run(["pgrep", "-f", "run_paper_trading"], capture_output=True, text=True)
+            is_running = bool(result.stdout.strip())
+
+            # Also check for the process in ps output for more details
+            if is_running:
+                ps_result = subprocess.run(["ps", "aux"], capture_output=True, text=True)
+                paper_trading_running = "run_paper_trading" in ps_result.stdout
+            else:
+                paper_trading_running = False
+
+            return jsonify(
+                {"running": paper_trading_running, "pid": result.stdout.strip() if paper_trading_running else None}
+            )
     except Exception as e:
         logger.error(f"Error checking engine status: {e}")
         return jsonify({"running": False, "error": str(e)})
@@ -1118,6 +1150,8 @@ def get_engine_status():
 @app.route("/api/trades")
 def get_trades():
     """API endpoint to get current trades data"""
+    from datetime import datetime, timezone
+
     try:
         db = SupabaseClient()
 
@@ -1161,7 +1195,7 @@ def get_trades():
 
                     if price_result.data:
                         current_prices[symbol] = float(price_result.data[0]["close"])
-                except:
+                except Exception:
                     pass
 
             # Process trades - group by symbol to match BUY/SELL
@@ -1204,8 +1238,6 @@ def get_trades():
                                 pnl_pct = float(sell_trade.get("pnl", 0)) if sell_trade.get("pnl") else 0
 
                             # Calculate duration
-                            from datetime import datetime, timezone
-
                             entry_time = datetime.fromisoformat(buy_trade["created_at"].replace("Z", "+00:00"))
                             # Use filled_at from SELL trade if available, otherwise use updated_at or created_at
                             exit_timestamp = (
@@ -1310,8 +1342,6 @@ def get_trades():
                             ts_display = None
 
                         # Calculate duration
-                        from datetime import datetime, timezone
-
                         entry_time = datetime.fromisoformat(buy_trade["created_at"].replace("Z", "+00:00"))
                         duration = datetime.now(timezone.utc) - entry_time
                         days = duration.days
@@ -1439,7 +1469,9 @@ def get_strategy_status():
             "min_touches": f"{channel_detector.min_touches} per line",
             "buy_zone": f"< {channel_detector.buy_zone * 100:.0f}%",
             "sell_zone": f"> {channel_detector.sell_zone * 100:.0f}%",
-            "channel_width": f"{channel_detector.min_channel_width * 100:.1f}-{channel_detector.max_channel_width * 100:.0f}%",
+            "channel_width": (
+                f"{channel_detector.min_channel_width * 100:.1f}-" f"{channel_detector.max_channel_width * 100:.0f}%"
+            ),
             "fallback_position": f"< {simple_rules.channel_position_threshold * 100:.0f}%",
         }
 
@@ -1483,7 +1515,7 @@ def get_strategy_status():
             }
 
             if breakout_pct > 0:
-                swing_info["needs"] = f"Already breaking out!"
+                swing_info["needs"] = "Already breaking out!"
             elif breakout_pct > -1:
                 swing_info["needs"] = f"${abs(breakout_pct * current['close'] / 100):.2f} rise needed"
             else:
@@ -1500,9 +1532,13 @@ def get_strategy_status():
 
             channel_info = {
                 "symbol": symbol,
-                "current_price": f"${current_price:.2f}" if current_price > 1 else f"${current_price:.4f}",
+                "current_price": "${:.2f}".format(current_price)
+                if current_price > 1
+                else "${:.4f}".format(current_price),
                 "position": f"{position * 100:.1f}%",
-                "channel_range": f"${low:.2f}-${high:.2f}" if low > 1 else f"${low:.4f}-${high:.4f}",
+                "channel_range": "${:.2f}-${:.2f}".format(low, high)
+                if low > 1
+                else "${:.4f}-${:.4f}".format(low, high),
                 "status": "BUY ZONE" if position <= 0.35 else ("SELL ZONE" if position >= 0.65 else "NEUTRAL"),
             }
 
