@@ -679,50 +679,23 @@ HTML_TEMPLATE = r"""  # noqa: E501
                     });
 
                     html += '</div><div class="candidate-list">';
-                    html += '<h4 style="color: #94a3b8; font-size: 0.875rem; margin-bottom: 8px;">Top 5 Closest to Trigger:</h4>';
+                    html += '<h4 style="color: #94a3b8; font-size: 0.875rem; margin-bottom: 8px;">Top 5 by Readiness Score:</h4>';
 
-                    // Sort candidates by proximity to trigger
-                    let sortedCandidates = [...strategy.candidates];
-                    sortedCandidates.sort((a, b) => {
-                        // Extract numeric distance from the "needs" field
-                        const extractDistance = (needs) => {
-                            if (!needs) return 999;
+                    // Display candidates (already sorted by readiness from API)
+                    strategy.candidates.forEach(candidate => {
+                        // Determine status class based on readiness score
+                        const readiness = candidate.readiness;
+                        const statusClass = readiness >= 80 ? 'ready' :
+                                          readiness >= 60 ? 'close' :
+                                          readiness >= 30 ? 'neutral' : 'waiting';
 
-                            // If it's "Ready" status, return 0 (closest to trigger)
-                            if (needs.toLowerCase().includes('ready')) return 0;
+                        const itemClass = readiness >= 80 ? 'ready' :
+                                        readiness >= 60 ? 'close' : 'waiting';
 
-                            // Extract percentage (e.g., "0.7% more drop needed" -> 0.7)
-                            const percentMatch = needs.match(/(\d+\.?\d*)%/);
-                            if (percentMatch) return parseFloat(percentMatch[1]);
-
-                            // Extract dollar amount (e.g., "$406.00 rise needed" -> 406.00)
-                            const dollarMatch = needs.match(/\$(\d+\.?\d*)/);
-                            if (dollarMatch) {
-                                // Normalize dollar amounts to percentage equivalent
-                                // Use a small percentage for dollar amounts to keep them comparable
-                                return parseFloat(dollarMatch[1]) * 0.001;
-                            }
-
-                            // Default for unparseable values
-                            return 999;
-                        };
-
-                        const aDistance = extractDistance(a.needs);
-                        const bDistance = extractDistance(b.needs);
-
-                        // Sort by distance (smaller distance = closer to trigger = higher priority)
-                        return aDistance - bDistance;
-                    });
-
-                    // Display only top 5 candidates
-                    sortedCandidates.slice(0, 5).forEach(candidate => {
-                        const statusClass = candidate.status === 'READY' ? 'ready' :
-                                          candidate.status === 'WAITING' ? 'waiting' :
-                                          candidate.status === 'BUY ZONE' ? 'buy-zone' :
-                                          candidate.status === 'SELL ZONE' ? 'sell-zone' : 'neutral';
-
-                        const itemClass = candidate.status === 'READY' || candidate.status === 'BUY ZONE' ? 'ready' :
-                                        candidate.status === 'WAITING' ? 'waiting' : 'neutral';
+                        // Create readiness bar visual
+                        const readinessColor = readiness >= 80 ? '#22c55e' :
+                                              readiness >= 60 ? '#f59e0b' :
+                                              readiness >= 30 ? '#3b82f6' : '#6b7280';
 
                         html += `
                             <div class="candidate-item ${itemClass}">
@@ -730,56 +703,28 @@ HTML_TEMPLATE = r"""  # noqa: E501
                                     <span class="candidate-symbol">${candidate.symbol}</span>
                                     <span class="candidate-status ${statusClass}">${candidate.status}</span>
                                 </div>
+
+                                <!-- Readiness Score Bar -->
+                                <div style="margin: 8px 0;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                        <span style="color: #94a3b8; font-size: 0.75rem;">Readiness</span>
+                                        <span style="color: ${readinessColor}; font-weight: 600;">${readiness.toFixed(0)}%</span>
+                                    </div>
+                                    <div style="background: rgba(148, 163, 184, 0.1); border-radius: 4px; height: 6px; overflow: hidden;">
+                                        <div style="background: ${readinessColor}; height: 100%; width: ${readiness}%; transition: width 0.3s;"></div>
+                                    </div>
+                                </div>
+
                                 <div class="candidate-details">
-                        `;
-
-                        // Add strategy-specific details
-                        if (key === 'swing') {
-                            html += `
-                                <div class="candidate-detail">
-                                    <span>Price:</span>
-                                    <span style="color: #cbd5e1;">${candidate.current_price}</span>
+                                    <div class="candidate-detail">
+                                        <span>Price:</span>
+                                        <span style="color: #cbd5e1;">${candidate.current_price}</span>
+                                    </div>
+                                    <div class="candidate-detail">
+                                        <span>Details:</span>
+                                        <span style="color: #94a3b8; font-size: 0.85rem;">${candidate.details}</span>
+                                    </div>
                                 </div>
-                                <div class="candidate-detail">
-                                    <span>Breakout:</span>
-                                    <span style="color: #cbd5e1;">${candidate.breakout}</span>
-                                </div>
-                                <div class="candidate-detail">
-                                    <span>Volume:</span>
-                                    <span style="color: #cbd5e1;">${candidate.volume}</span>
-                                </div>
-                            `;
-                        } else if (key === 'channel') {
-                            html += `
-                                <div class="candidate-detail">
-                                    <span>Price:</span>
-                                    <span style="color: #cbd5e1;">${candidate.current_price}</span>
-                                </div>
-                                <div class="candidate-detail">
-                                    <span>Position:</span>
-                                    <span style="color: #cbd5e1;">${candidate.position}</span>
-                                </div>
-                                <div class="candidate-detail">
-                                    <span>Range:</span>
-                                    <span style="color: #cbd5e1;">${candidate.channel_range}</span>
-                                </div>
-                            `;
-                        } else if (key === 'dca') {
-                            html += `
-                                <div class="candidate-detail">
-                                    <span>Price:</span>
-                                    <span style="color: #cbd5e1;">${candidate.current_price}</span>
-                                </div>
-                                <div class="candidate-detail">
-                                    <span>Drop:</span>
-                                    <span style="color: #cbd5e1;">${candidate.drop_from_high}</span>
-                                </div>
-                            `;
-                        }
-
-                        html += `
-                                </div>
-                                <div class="candidate-needs">📍 ${candidate.needs}</div>
                             </div>
                         `;
                     });
@@ -1519,31 +1464,117 @@ def get_trades():
 
 @app.route("/api/strategy-status")
 def get_strategy_status():
-    """Get current strategy status and proximity to triggers"""
+    """Get current strategy status and proximity to triggers - sorted by readiness"""
     try:
         supabase = SupabaseClient()
 
-        # Get recent market data for a few key symbols
-        symbols = ["BTC", "ETH", "SOL", "DOGE", "SHIB"]
+        # Get ALL tracked symbols (not just 5)
+        all_symbols = [
+            "BTC",
+            "ETH",
+            "SOL",
+            "BNB",
+            "XRP",
+            "ADA",
+            "AVAX",
+            "DOGE",
+            "DOT",
+            "LINK",
+            "MATIC",
+            "UNI",
+            "ICP",
+            "FIL",
+            "APT",
+            "LTC",
+            "ATOM",
+            "NEAR",
+            "ARB",
+            "OP",
+            "VET",
+            "ALGO",
+            "FTM",
+            "GRT",
+            "SAND",
+            "MANA",
+            "AAVE",
+            "EOS",
+            "FLOW",
+            "THETA",
+            "AXS",
+            "EGLD",
+            "XTZ",
+            "CHZ",
+            "RPL",
+            "CFX",
+            "KCS",
+            "RNDR",
+            "GALA",
+            "KAVA",
+            "CRV",
+            "LUNC",
+            "DASH",
+            "ZEC",
+            "COMP",
+            "ENJ",
+            "ZIL",
+            "WOO",
+            "SUSHI",
+            "LRC",
+            "CELO",
+            "1INCH",
+            "ANKR",
+            "STORJ",
+            "IOTX",
+            "OCEAN",
+            "CELR",
+            "RSR",
+            "CTSI",
+            "REEF",
+            "SHIB",
+            "PEPE",
+            "FLOKI",
+            "BONK",
+            "WIF",
+            "MEME",
+            "BRETT",
+            "MEW",
+            "POPCAT",
+            "PONKE",
+            "NEIRO",
+            "MOODENG",
+            "GOAT",
+            "PNUT",
+            "ACT",
+            "CHILLGUY",
+            "WEN",
+            "SLERF",
+            "BOME",
+            "MYRO",
+            "COQ",
+            "TOSHI",
+            "MOCHI",
+            "MOG",
+            "TURBO",
+            "WOJAK",
+            "LADYS",
+            "KISHU",
+            "SAMO",
+            "BANANA",
+            "TRUMP",
+            "SPX",
+            "GIGA",
+            "RETARDIO",
+            "LOCKIN",
+            "SIGMA",
+            "MAGA",
+            "PUPS",
+            "FWOG",
+        ]
+
         strategy_status = {
-            "swing": {
-                "name": "SWING",
-                "thresholds": {},
-                "candidates": [],
-                "market_needs": [],
-            },
-            "channel": {
-                "name": "CHANNEL",
-                "thresholds": {},
-                "candidates": [],
-                "market_needs": [],
-            },
-            "dca": {
-                "name": "DCA",
-                "thresholds": {},
-                "candidates": [],
-                "market_needs": [],
-            },
+            "swing": {"name": "SWING", "thresholds": {}, "candidates": []},
+            "channel": {"name": "CHANNEL", "thresholds": {}, "candidates": []},
+            "dca": {"name": "DCA", "thresholds": {}, "candidates": []},
         }
 
         # Get thresholds from detectors
@@ -1552,40 +1583,34 @@ def get_strategy_status():
         from src.strategies.simple_rules import SimpleRules
 
         # Initialize detectors
-        swing_detector = SwingDetector(supabase)
-        channel_detector = ChannelDetector()
+        SwingDetector(supabase)  # Initialize but not used directly
+        ChannelDetector()  # Initialize but not used directly
         simple_rules = SimpleRules()
 
-        # Swing thresholds
+        # Set thresholds (simplified display)
         strategy_status["swing"]["thresholds"] = {
-            "breakout_threshold": f"{(swing_detector.config['breakout_threshold'] - 1) * 100:.1f}%",
-            "volume_spike": f"{swing_detector.config['volume_spike_threshold']}x",
-            "min_price_change_24h": f"{swing_detector.config['min_price_change_24h']}%",
-            "rsi_range": f"{swing_detector.config['rsi_bullish_min']}-{swing_detector.config['rsi_overbought']}",
-            "fallback_breakout": f"{simple_rules.swing_breakout_threshold}%",
-            "fallback_volume": "1.5x",
+            "breakout_threshold": f"{simple_rules.swing_breakout_threshold}%",
+            "volume_spike": "1.5x average",
+            "rsi_range": "60-70 optimal",
         }
 
-        # Channel thresholds
         strategy_status["channel"]["thresholds"] = {
-            "min_touches": f"{channel_detector.min_touches} per line",
-            "buy_zone": f"< {channel_detector.buy_zone * 100:.0f}%",
-            "sell_zone": f"> {channel_detector.sell_zone * 100:.0f}%",
-            "channel_width": (
-                f"{channel_detector.min_channel_width * 100:.1f}-"
-                f"{channel_detector.max_channel_width * 100:.0f}%"
-            ),
-            "fallback_position": f"< {simple_rules.channel_position_threshold * 100:.0f}%",
+            "buy_zone": "Bottom 35% of channel",
+            "sell_zone": "Top 35% of channel",
+            "channel_width": "3-20% range",
         }
 
-        # DCA thresholds
         strategy_status["dca"]["thresholds"] = {
-            "drop_threshold": f"{simple_rules.dca_drop_threshold}%",
-            "lookback_period": "20 bars",
+            "drop_threshold": f"{simple_rules.dca_drop_threshold}% from recent high",
+            "lookback": "20 bars",
         }
 
-        # Check each symbol for proximity to triggers
-        for symbol in symbols:
+        # Calculate readiness for ALL symbols
+        swing_candidates = []
+        channel_candidates = []
+        dca_candidates = []
+
+        for symbol in all_symbols:
             # Get recent data
             result = (
                 supabase.client.table("ohlc_data")
@@ -1603,96 +1628,154 @@ def get_strategy_status():
             current = data[-1]
             recent_data = data[-10:-1]
 
-            # Check Swing proximity
+            # ========== SWING READINESS (0-100%) ==========
+            # Calculate how close to breakout conditions
             recent_high = max(d["high"] for d in recent_data)
             breakout_pct = ((current["close"] - recent_high) / recent_high) * 100
             avg_volume = sum(d["volume"] for d in recent_data) / len(recent_data)
             volume_ratio = current["volume"] / avg_volume if avg_volume > 0 else 0
 
-            swing_info = {
-                "symbol": symbol,
-                "current_price": f"${current['close']:.2f}"
-                if current["close"] > 1
-                else f"${current['close']:.4f}",
-                "breakout": f"{breakout_pct:.2f}%",
-                "volume": f"{volume_ratio:.1f}x",
-                "status": "READY"
-                if breakout_pct > 0.3 and volume_ratio > 1.5
-                else "WAITING",
-            }
+            # Readiness score for Swing (100% = ready to buy)
+            # Need: price > recent_high (breakout) AND volume > 1.5x average
+            breakout_readiness = min(
+                100, max(0, (breakout_pct + 2) * 50)
+            )  # -2% to +2% mapped to 0-100%
+            volume_readiness = min(
+                100, (volume_ratio / 1.5) * 100
+            )  # 0 to 1.5x mapped to 0-100%
+            swing_readiness = (
+                breakout_readiness * 0.7 + volume_readiness * 0.3
+            )  # 70% weight on price, 30% on volume
 
-            if breakout_pct > 0:
-                swing_info["needs"] = "Already breaking out!"
-            elif breakout_pct > -1:
-                swing_info[
-                    "needs"
-                ] = f"${abs(breakout_pct * current['close'] / 100):.2f} rise needed"
-            else:
-                swing_info["needs"] = f"Needs {abs(breakout_pct):.1f}% recovery first"
+            swing_candidates.append(
+                {
+                    "symbol": symbol,
+                    "readiness": swing_readiness,
+                    "current_price": f"${current['close']:.2f}"
+                    if current["close"] > 1
+                    else f"${current['close']:.4f}",
+                    "details": f"Breakout: {breakout_pct:.1f}%, Vol: {volume_ratio:.1f}x",
+                    "status": "READY 🟢"
+                    if swing_readiness >= 90
+                    else ("CLOSE 🟡" if swing_readiness >= 70 else "WAITING ⚪"),
+                }
+            )
 
-            strategy_status["swing"]["candidates"].append(swing_info)
-
-            # Check Channel proximity
+            # ========== CHANNEL READINESS (0-100%) ==========
+            # Calculate position in channel (0% = bottom, 100% = top)
             prices = [d["close"] for d in data[-20:]]
             high = max(prices)
             low = min(prices)
             current_price = prices[-1]
-            position = (current_price - low) / (high - low) if high != low else 0.5
+            position = (current_price - low) / (high - low) * 100 if high != low else 50
 
-            channel_info = {
-                "symbol": symbol,
-                "current_price": "${:.2f}".format(current_price)
-                if current_price > 1
-                else "${:.4f}".format(current_price),
-                "position": f"{position * 100:.1f}%",
-                "channel_range": "${:.2f}-${:.2f}".format(low, high)
-                if low > 1
-                else "${:.4f}-${:.4f}".format(low, high),
-                "status": "BUY ZONE"
-                if position <= 0.35
-                else ("SELL ZONE" if position >= 0.65 else "NEUTRAL"),
-            }
-
-            if position <= 0.35:
-                channel_info["needs"] = "Ready for BUY"
-            elif position >= 0.65:
-                channel_info["needs"] = "Ready for SELL (if holding)"
+            # Readiness score for Channel (100% = in buy zone)
+            # Best to buy when position < 35% (bottom of channel)
+            if position <= 35:
+                channel_readiness = 100 - (
+                    position / 35 * 20
+                )  # 0-35% position = 100-80% readiness
             else:
-                if position < 0.5:
-                    drop_needed = (current_price - low * 1.35) / current_price * 100
-                    channel_info["needs"] = f"{abs(drop_needed):.1f}% drop to buy zone"
-                else:
-                    rise_needed = (high * 0.65 - current_price) / current_price * 100
-                    channel_info["needs"] = f"{rise_needed:.1f}% rise to sell zone"
+                channel_readiness = max(
+                    0, 80 - (position - 35) * 1.6
+                )  # >35% position drops readiness quickly
 
-            strategy_status["channel"]["candidates"].append(channel_info)
+            channel_candidates.append(
+                {
+                    "symbol": symbol,
+                    "readiness": channel_readiness,
+                    "current_price": f"${current_price:.2f}"
+                    if current_price > 1
+                    else f"${current_price:.4f}",
+                    "details": f"Position: {position:.0f}% of channel",
+                    "status": "BUY ZONE 🟢"
+                    if channel_readiness >= 80
+                    else ("NEUTRAL 🟡" if channel_readiness >= 30 else "SELL ZONE 🔴"),
+                }
+            )
 
-            # Check DCA proximity
+            # ========== DCA READINESS (0-100%) ==========
+            # Calculate drop from recent high
             high_20 = max(d["high"] for d in data[-20:])
             drop_from_high = ((current["close"] - high_20) / high_20) * 100
 
-            dca_info = {
-                "symbol": symbol,
-                "current_price": f"${current['close']:.2f}"
-                if current["close"] > 1
-                else f"${current['close']:.4f}",
-                "drop_from_high": f"{drop_from_high:.2f}%",
-                "status": "READY" if drop_from_high <= -1.0 else "WAITING",
-            }
-
-            if drop_from_high <= -1.0:
-                dca_info["needs"] = "Ready for DCA entry"
+            # Readiness score for DCA (100% = good drop for DCA entry)
+            # Best when dropped > threshold (e.g., -3.5%)
+            dca_threshold = simple_rules.dca_drop_threshold
+            if drop_from_high <= dca_threshold:
+                # Already dropped enough, readiness based on how much extra drop
+                extra_drop = abs(drop_from_high - dca_threshold)
+                dca_readiness = min(
+                    100, 80 + extra_drop * 4
+                )  # 80-100% based on extra drop
             else:
-                additional_drop = abs(-1.0 - drop_from_high)
-                dca_info["needs"] = f"{additional_drop:.1f}% more drop needed"
+                # Not dropped enough yet
+                distance_to_threshold = abs(drop_from_high - dca_threshold)
+                dca_readiness = max(
+                    0, 80 - distance_to_threshold * 20
+                )  # Drops quickly as we get further from threshold
 
-            strategy_status["dca"]["candidates"].append(dca_info)
+            dca_candidates.append(
+                {
+                    "symbol": symbol,
+                    "readiness": dca_readiness,
+                    "current_price": f"${current['close']:.2f}"
+                    if current["close"] > 1
+                    else f"${current['close']:.4f}",
+                    "details": f"Drop: {drop_from_high:.1f}% from high",
+                    "status": "READY 🟢"
+                    if dca_readiness >= 80
+                    else ("CLOSE 🟡" if dca_readiness >= 60 else "WAITING ⚪"),
+                }
+            )
 
-        # Add market condition summary
+        # Sort by readiness and take top 5 for each strategy
+        swing_candidates.sort(key=lambda x: x["readiness"], reverse=True)
+        channel_candidates.sort(key=lambda x: x["readiness"], reverse=True)
+        dca_candidates.sort(key=lambda x: x["readiness"], reverse=True)
+
+        # Only show top candidates
+        strategy_status["swing"]["candidates"] = swing_candidates[:5]
+        strategy_status["channel"]["candidates"] = channel_candidates[:5]
+        strategy_status["dca"]["candidates"] = dca_candidates[:5]
+
+        # Add readiness summary
+        for strategy in ["swing", "channel", "dca"]:
+            if strategy_status[strategy]["candidates"]:
+                top_readiness = strategy_status[strategy]["candidates"][0]["readiness"]
+                strategy_status[strategy]["top_readiness"] = f"{top_readiness:.0f}%"
+                strategy_status[strategy]["ready_count"] = sum(
+                    1
+                    for c in strategy_status[strategy]["candidates"]
+                    if c["readiness"] >= 80
+                )
+
+        # Market summary based on which strategies have high readiness
+        max_swing = swing_candidates[0]["readiness"] if swing_candidates else 0
+        max_channel = channel_candidates[0]["readiness"] if channel_candidates else 0
+        max_dca = dca_candidates[0]["readiness"] if dca_candidates else 0
+
+        if max_swing >= 80:
+            market_condition = "BREAKOUT"
+            best_strategy = "SWING"
+            notes = "Strong breakout opportunities detected"
+        elif max_dca >= 80:
+            market_condition = "OVERSOLD"
+            best_strategy = "DCA"
+            notes = "Good dip-buying opportunities available"
+        elif max_channel >= 80:
+            market_condition = "RANGING"
+            best_strategy = "CHANNEL"
+            notes = "Clear channel trading setups present"
+        else:
+            market_condition = "NEUTRAL"
+            best_strategy = "WAIT"
+            notes = "No strong setups currently, patience recommended"
+
         strategy_status["market_summary"] = {
-            "condition": "CONSOLIDATION",
-            "best_strategy": "CHANNEL",
-            "notes": "Low volume and sideways movement favors channel trading",
+            "condition": market_condition,
+            "best_strategy": best_strategy,
+            "notes": notes,
         }
 
         return jsonify(strategy_status)
