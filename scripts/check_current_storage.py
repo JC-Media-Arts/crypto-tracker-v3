@@ -34,7 +34,10 @@ def main():
         try:
             # Get count for this timeframe
             result = (
-                supabase.client.table("ohlc_data").select("*", count="exact", head=True).eq("timeframe", tf).execute()
+                supabase.client.table("ohlc_data")
+                .select("*", count="exact", head=True)
+                .eq("timeframe", tf)
+                .execute()
             )
 
             count = result.count if hasattr(result, "count") else 0
@@ -64,7 +67,9 @@ def main():
 
                 # Calculate age of oldest data
                 if oldest_date != "Unknown":
-                    oldest_dt = datetime.fromisoformat(oldest_date.replace("Z", "+00:00"))
+                    oldest_dt = datetime.fromisoformat(
+                        oldest_date.replace("Z", "+00:00")
+                    )
                     age_days = (datetime.now(timezone.utc) - oldest_dt).days
                 else:
                     age_days = 0
@@ -96,17 +101,29 @@ def main():
     for table_name, date_field in tables:
         try:
             # Get row count
-            result = supabase.client.table(table_name).select("*", count="exact", head=True).execute()
+            result = (
+                supabase.client.table(table_name)
+                .select("*", count="exact", head=True)
+                .execute()
+            )
 
             count = result.count if hasattr(result, "count") else 0
 
             if count > 0:
                 # Get oldest entry
-                oldest = supabase.client.table(table_name).select(date_field).order(date_field).limit(1).execute()
+                oldest = (
+                    supabase.client.table(table_name)
+                    .select(date_field)
+                    .order(date_field)
+                    .limit(1)
+                    .execute()
+                )
 
                 if oldest.data and oldest.data[0][date_field]:
                     oldest_date = oldest.data[0][date_field]
-                    oldest_dt = datetime.fromisoformat(oldest_date.replace("Z", "+00:00"))
+                    oldest_dt = datetime.fromisoformat(
+                        oldest_date.replace("Z", "+00:00")
+                    )
                     age_days = (datetime.now(timezone.utc) - oldest_dt).days
 
                     print(f"\n{table_name}: {count:,} rows")

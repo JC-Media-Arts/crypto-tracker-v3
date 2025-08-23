@@ -95,13 +95,17 @@ def test_simple_rules_path():
             analysis = analyzer.analyze_setup(converted_setup, market_conditions)
 
             logger.info(f"✅ Analysis successful!")
-            logger.info(f"   Adjusted size multiplier: {analysis.get('adjusted_size_multiplier', 'N/A')}")
+            logger.info(
+                f"   Adjusted size multiplier: {analysis.get('adjusted_size_multiplier', 'N/A')}"
+            )
             logger.info(f"   Market regime: {analysis.get('market_regime', 'N/A')}")
             logger.info(f"   Expected value: {analysis.get('expected_value', 'N/A')}")
 
             return True
         else:
-            logger.warning("No setup detected by SimpleRules (this is OK for this test data)")
+            logger.warning(
+                "No setup detected by SimpleRules (this is OK for this test data)"
+            )
             return True
 
     except Exception as e:
@@ -129,8 +133,12 @@ def test_complex_detector_path():
         setup = detector.detect_setup("ETH", data)
 
         if setup:
-            logger.info(f"✅ SwingDetector found setup with score: {setup.get('score', 'N/A')}")
-            logger.info(f"   Position size multiplier: {setup.get('position_size_multiplier', 'N/A')}")
+            logger.info(
+                f"✅ SwingDetector found setup with score: {setup.get('score', 'N/A')}"
+            )
+            logger.info(
+                f"   Position size multiplier: {setup.get('position_size_multiplier', 'N/A')}"
+            )
 
             # Test with SwingAnalyzer
             analyzer = SwingAnalyzer()
@@ -144,8 +152,12 @@ def test_complex_detector_path():
             analysis = analyzer.analyze_setup(setup, market_conditions)
 
             logger.info(f"✅ Analysis successful!")
-            logger.info(f"   Original multiplier: {setup.get('position_size_multiplier', 'N/A')}")
-            logger.info(f"   Adjusted multiplier: {analysis.get('adjusted_size_multiplier', 'N/A')}")
+            logger.info(
+                f"   Original multiplier: {setup.get('position_size_multiplier', 'N/A')}"
+            )
+            logger.info(
+                f"   Adjusted multiplier: {analysis.get('adjusted_size_multiplier', 'N/A')}"
+            )
             logger.info(f"   Market regime: {analysis.get('market_regime', 'N/A')}")
 
             # Verify BEAR market increased the multiplier
@@ -153,13 +165,19 @@ def test_complex_detector_path():
                 original = setup.get("position_size_multiplier", 1.0)
                 adjusted = analysis.get("adjusted_size_multiplier", 1.0)
                 if adjusted > original:
-                    logger.info(f"✅ BEAR market correctly increased multiplier: {original:.2f} → {adjusted:.2f}")
+                    logger.info(
+                        f"✅ BEAR market correctly increased multiplier: {original:.2f} → {adjusted:.2f}"
+                    )
                 else:
-                    logger.warning(f"⚠️  BEAR market should increase multiplier but didn't")
+                    logger.warning(
+                        f"⚠️  BEAR market should increase multiplier but didn't"
+                    )
 
             return True
         else:
-            logger.info("No setup detected by complex detector (normal for random data)")
+            logger.info(
+                "No setup detected by complex detector (normal for random data)"
+            )
             return True
 
     except Exception as e:
@@ -212,7 +230,9 @@ def test_strategy_manager_integration():
                 # Check that setup_data has the multiplier
                 setup = signal.setup_data.get("setup", {})
                 if "position_size_multiplier" in setup:
-                    logger.info(f"   ✅ Has position_size_multiplier: {setup['position_size_multiplier']}")
+                    logger.info(
+                        f"   ✅ Has position_size_multiplier: {setup['position_size_multiplier']}"
+                    )
                 else:
                     logger.error(f"   ❌ Missing position_size_multiplier!")
                     return False
@@ -243,7 +263,9 @@ def main():
     results.append(("Complex Detector Path", test_complex_detector_path()))
 
     # Test 3: Full integration
-    results.append(("Strategy Manager Integration", test_strategy_manager_integration()))
+    results.append(
+        ("Strategy Manager Integration", test_strategy_manager_integration())
+    )
 
     # Summary
     logger.info("\n" + "=" * 60)
@@ -258,7 +280,9 @@ def main():
             all_passed = False
 
     if all_passed:
-        logger.info("\n🎉 ALL TESTS PASSED! The position_size_multiplier fix is working correctly.")
+        logger.info(
+            "\n🎉 ALL TESTS PASSED! The position_size_multiplier fix is working correctly."
+        )
         logger.info("The error in Slack should now be resolved.")
     else:
         logger.error("\n⚠️  Some tests failed. Please review the errors above.")

@@ -39,7 +39,9 @@ def analyze_targets():
         for target in [3, 5, 7, 10]:
             hit_target = (wins["pnl_pct"] >= target).sum()
             pct = (hit_target / len(df)) * 100
-            print(f"  Would hit {target}% target: {hit_target}/{len(df)} ({pct:.1f}% of all setups)")
+            print(
+                f"  Would hit {target}% target: {hit_target}/{len(df)} ({pct:.1f}% of all setups)"
+            )
 
     print(f"\nLosses: {len(losses)} setups")
     if len(losses) > 0:
@@ -50,7 +52,9 @@ def analyze_targets():
     print(f"\nBreakeven: {len(breakeven)} setups")
     if len(breakeven) > 0:
         print(f"  Average P&L: {breakeven['pnl_pct'].mean():.2f}%")
-        print(f"  Range: {breakeven['pnl_pct'].min():.2f}% to {breakeven['pnl_pct'].max():.2f}%")
+        print(
+            f"  Range: {breakeven['pnl_pct'].min():.2f}% to {breakeven['pnl_pct'].max():.2f}%"
+        )
 
     # Analyze by drop size
     print("\n" + "=" * 80)

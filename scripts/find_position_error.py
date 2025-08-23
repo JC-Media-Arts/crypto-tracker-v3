@@ -82,7 +82,9 @@ try:
 
     if dca_setup:
         print(f"\nDCA Setup created with fields: {list(dca_setup.keys())}")
-        print(f"Has position_size_multiplier: {'position_size_multiplier' in dca_setup}")
+        print(
+            f"Has position_size_multiplier: {'position_size_multiplier' in dca_setup}"
+        )
         if "position_size_multiplier" in dca_setup:
             print(f"Value: {dca_setup['position_size_multiplier']}")
 
@@ -117,7 +119,9 @@ def find_problematic_patterns(directory):
 
                     for i, line in enumerate(lines, 1):
                         # Look for direct dictionary access
-                        if re.search(r'\[[\'"]position_size_multiplier[\'"]\](?!\s*=)', line):
+                        if re.search(
+                            r'\[[\'"]position_size_multiplier[\'"]\](?!\s*=)', line
+                        ):
                             if ".get(" not in line:  # Not using safe access
                                 problematic.append(
                                     {

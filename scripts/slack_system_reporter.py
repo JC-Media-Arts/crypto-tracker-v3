@@ -108,15 +108,27 @@ class SlackSystemReporter:
         try:
             # Data freshness
             result = (
-                self.db.client.table("ohlc_data").select("timestamp").order("timestamp", desc=True).limit(1).execute()
+                self.db.client.table("ohlc_data")
+                .select("timestamp")
+                .order("timestamp", desc=True)
+                .limit(1)
+                .execute()
             )
 
             if result.data:
-                latest = datetime.fromisoformat(result.data[0]["timestamp"].replace("Z", "+00:00"))
+                latest = datetime.fromisoformat(
+                    result.data[0]["timestamp"].replace("Z", "+00:00")
+                )
                 age_minutes = (datetime.now(timezone.utc) - latest).total_seconds() / 60
                 health["checks"]["data_freshness"] = {
                     "value": f"{age_minutes:.1f} minutes",
-                    "status": ("ok" if age_minutes < 5 else "warning" if age_minutes < 10 else "critical"),
+                    "status": (
+                        "ok"
+                        if age_minutes < 5
+                        else "warning"
+                        if age_minutes < 10
+                        else "critical"
+                    ),
                 }
 
             # Query performance
@@ -125,26 +137,44 @@ class SlackSystemReporter:
             query_time = time.time() - start
             health["checks"]["query_performance"] = {
                 "value": f"{query_time:.3f}s",
-                "status": ("ok" if query_time < 0.5 else "warning" if query_time < 1.0 else "critical"),
+                "status": (
+                    "ok"
+                    if query_time < 0.5
+                    else "warning"
+                    if query_time < 1.0
+                    else "critical"
+                ),
             }
 
             # Symbol coverage
             cutoff = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
-            result = self.db.client.table("ohlc_data").select("symbol").gte("timestamp", cutoff).limit(10000).execute()
+            result = (
+                self.db.client.table("ohlc_data")
+                .select("symbol")
+                .gte("timestamp", cutoff)
+                .limit(10000)
+                .execute()
+            )
 
             if result.data:
                 unique_symbols = set(r["symbol"] for r in result.data)
                 health["checks"]["symbol_coverage"] = {
                     "value": f"{len(unique_symbols)}/90",
                     "status": (
-                        "ok" if len(unique_symbols) >= 85 else "warning" if len(unique_symbols) >= 75 else "critical"
+                        "ok"
+                        if len(unique_symbols) >= 85
+                        else "warning"
+                        if len(unique_symbols) >= 75
+                        else "critical"
                     ),
                 }
 
             # Calculate health score
             ok_count = sum(1 for c in health["checks"].values() if c["status"] == "ok")
             total_count = len(health["checks"])
-            health["score"] = round((ok_count / total_count * 100) if total_count > 0 else 0)
+            health["score"] = round(
+                (ok_count / total_count * 100) if total_count > 0 else 0
+            )
 
             if health["score"] >= 90:
                 health["status"] = "healthy"
@@ -166,7 +196,9 @@ class SlackSystemReporter:
 
         try:
             # Count overnight data points
-            overnight_cutoff = (datetime.now(timezone.utc) - timedelta(hours=12)).isoformat()
+            overnight_cutoff = (
+                datetime.now(timezone.utc) - timedelta(hours=12)
+            ).isoformat()
 
             result = (
                 self.db.client.table("ohlc_data")
@@ -201,7 +233,9 @@ class SlackSystemReporter:
                 )
 
                 if result.data:
-                    latest = datetime.fromisoformat(result.data[0]["timestamp"].replace("Z", "+00:00"))
+                    latest = datetime.fromisoformat(
+                        result.data[0]["timestamp"].replace("Z", "+00:00")
+                    )
                     age = datetime.now(timezone.utc) - latest
 
                     if tf == "1m":
@@ -264,7 +298,11 @@ class SlackSystemReporter:
 
         try:
             # Count today's data points
-            today_cutoff = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0).isoformat()
+            today_cutoff = (
+                datetime.now(timezone.utc)
+                .replace(hour=0, minute=0, second=0)
+                .isoformat()
+            )
 
             result = (
                 self.db.client.table("ohlc_data")
@@ -303,7 +341,9 @@ class SlackSystemReporter:
                 strategy = model_file.split("/")[1]
                 ml_stats["model_versions"][strategy] = {
                     "exists": True,
-                    "modified": datetime.fromtimestamp(path.stat().st_mtime).isoformat(),
+                    "modified": datetime.fromtimestamp(
+                        path.stat().st_mtime
+                    ).isoformat(),
                 }
 
         return ml_stats
@@ -352,7 +392,11 @@ class SlackSystemReporter:
         # Check data collection
         preparation["checks"]["data_collection"] = {
             "status": "ok" if await self.is_data_flowing() else "warning",
-            "message": ("Data collection active" if await self.is_data_flowing() else "Data collection may be stalled"),
+            "message": (
+                "Data collection active"
+                if await self.is_data_flowing()
+                else "Data collection may be stalled"
+            ),
         }
 
         return preparation
@@ -361,11 +405,17 @@ class SlackSystemReporter:
         """Check if data is actively flowing."""
         try:
             result = (
-                self.db.client.table("ohlc_data").select("timestamp").order("timestamp", desc=True).limit(1).execute()
+                self.db.client.table("ohlc_data")
+                .select("timestamp")
+                .order("timestamp", desc=True)
+                .limit(1)
+                .execute()
             )
 
             if result.data:
-                latest = datetime.fromisoformat(result.data[0]["timestamp"].replace("Z", "+00:00"))
+                latest = datetime.fromisoformat(
+                    result.data[0]["timestamp"].replace("Z", "+00:00")
+                )
                 age_minutes = (datetime.now(timezone.utc) - latest).total_seconds() / 60
                 return age_minutes < 10
 
@@ -409,7 +459,13 @@ class SlackSystemReporter:
             if health.get("checks"):
                 message_parts.append("\n*Health Checks:*")
                 for check_name, check_data in health["checks"].items():
-                    emoji = "✅" if check_data["status"] == "ok" else "⚠️" if check_data["status"] == "warning" else "❌"
+                    emoji = (
+                        "✅"
+                        if check_data["status"] == "ok"
+                        else "⚠️"
+                        if check_data["status"] == "warning"
+                        else "❌"
+                    )
                     message_parts.append(f"{emoji} {check_name}: {check_data['value']}")
 
             # Pipeline issues
@@ -430,14 +486,20 @@ class SlackSystemReporter:
             # Evening report message
             performance = report["sections"].get("performance", {})
             message_parts.append("*Daily Performance:*")
-            message_parts.append(f"• Data points: {performance.get('data_points_collected', 0):,}")
-            message_parts.append(f"• Uptime: {performance.get('uptime_percentage', 0)}%")
+            message_parts.append(
+                f"• Data points: {performance.get('data_points_collected', 0):,}"
+            )
+            message_parts.append(
+                f"• Uptime: {performance.get('uptime_percentage', 0)}%"
+            )
 
             # ML performance
             ml = report["sections"].get("ml", {})
             message_parts.append("\n*ML System:*")
             message_parts.append(f"• Predictions: {ml.get('predictions_made', 0)}")
-            message_parts.append(f"• Models loaded: {len(ml.get('model_versions', {}))}/3")
+            message_parts.append(
+                f"• Models loaded: {len(ml.get('model_versions', {}))}/3"
+            )
 
             # Trading activity
             trading = report["sections"].get("trading", {})
@@ -454,7 +516,9 @@ class SlackSystemReporter:
 
             # Next day prep
             prep = report["sections"].get("preparation", {})
-            message_parts.append(f"\n*Next Day Prep: {prep.get('status', 'unknown').upper()}*")
+            message_parts.append(
+                f"\n*Next Day Prep: {prep.get('status', 'unknown').upper()}*"
+            )
 
         message = "\n".join(message_parts)
 
@@ -474,7 +538,9 @@ class SlackSystemReporter:
             title, message, details = self.format_slack_message(report)
 
             # Determine notification type based on health status
-            health_status = report["sections"].get("health", {}).get("status", "unknown")
+            health_status = (
+                report["sections"].get("health", {}).get("status", "unknown")
+            )
             if health_status == "critical":
                 notification_type = NotificationType.SYSTEM_ALERT
             else:
@@ -487,7 +553,11 @@ class SlackSystemReporter:
                 message=message,
                 details=details,
                 color=(
-                    "good" if health_status == "healthy" else "warning" if health_status == "degraded" else "danger"
+                    "good"
+                    if health_status == "healthy"
+                    else "warning"
+                    if health_status == "degraded"
+                    else "danger"
                 ),
             )
 
@@ -540,10 +610,14 @@ class SlackSystemReporter:
     def schedule_reports(self):
         """Schedule twice-daily reports."""
         # Schedule morning report at 9 AM
-        schedule.every().day.at("09:00").do(lambda: asyncio.create_task(self.send_morning_report()))
+        schedule.every().day.at("09:00").do(
+            lambda: asyncio.create_task(self.send_morning_report())
+        )
 
         # Schedule evening report at 5 PM
-        schedule.every().day.at("17:00").do(lambda: asyncio.create_task(self.send_evening_report()))
+        schedule.every().day.at("17:00").do(
+            lambda: asyncio.create_task(self.send_evening_report())
+        )
 
         logger.info("Scheduled reports for 9 AM and 5 PM daily")
 
@@ -570,11 +644,17 @@ class SlackSystemReporter:
         try:
             # Check data freshness
             result = (
-                self.db.client.table("ohlc_data").select("timestamp").order("timestamp", desc=True).limit(1).execute()
+                self.db.client.table("ohlc_data")
+                .select("timestamp")
+                .order("timestamp", desc=True)
+                .limit(1)
+                .execute()
             )
 
             if result.data:
-                latest = datetime.fromisoformat(result.data[0]["timestamp"].replace("Z", "+00:00"))
+                latest = datetime.fromisoformat(
+                    result.data[0]["timestamp"].replace("Z", "+00:00")
+                )
                 age_minutes = (datetime.now(timezone.utc) - latest).total_seconds() / 60
 
                 if age_minutes > 15:  # Data is very stale

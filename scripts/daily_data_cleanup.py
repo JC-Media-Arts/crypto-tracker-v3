@@ -105,7 +105,9 @@ class DataRetentionManager:
 
                         # Safety limit
                         if batch_deleted > 100000:
-                            logger.warning(f"Reached safety limit for {cleanup['name']}")
+                            logger.warning(
+                                f"Reached safety limit for {cleanup['name']}"
+                            )
                             break
 
                 self.cleanup_report.append(
@@ -160,7 +162,9 @@ class DataRetentionManager:
 
         for cleanup in other_cleanups:
             try:
-                cutoff_date = (datetime.utcnow() - timedelta(days=cleanup["retention_days"])).isoformat()
+                cutoff_date = (
+                    datetime.utcnow() - timedelta(days=cleanup["retention_days"])
+                ).isoformat()
 
                 result = (
                     self.supabase.client.table(cleanup["table"])
@@ -197,7 +201,9 @@ class DataRetentionManager:
 
         # Calculate totals
         total_deleted = sum(item["deleted"] for item in self.cleanup_report)
-        successful = sum(1 for item in self.cleanup_report if item["status"] == "success")
+        successful = sum(
+            1 for item in self.cleanup_report if item["status"] == "success"
+        )
         failed = len(self.cleanup_report) - successful
 
         # Format report
@@ -209,7 +215,9 @@ class DataRetentionManager:
         report_lines.append("*Details:*")
         for item in self.cleanup_report:
             status_emoji = "✅" if item["status"] == "success" else "❌"
-            report_lines.append(f"{status_emoji} {item['target']}: {item['deleted']:,} rows")
+            report_lines.append(
+                f"{status_emoji} {item['target']}: {item['deleted']:,} rows"
+            )
             if item["status"] != "success":
                 report_lines.append(f"   Error: {item['status']}")
 

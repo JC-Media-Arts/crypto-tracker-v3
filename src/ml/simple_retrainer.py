@@ -57,9 +57,13 @@ class SimpleRetrainer:
 
             result = query.execute()
 
-            new_outcomes = result.count if hasattr(result, "count") else len(result.data)
+            new_outcomes = (
+                result.count if hasattr(result, "count") else len(result.data)
+            )
 
-            logger.info(f"Found {new_outcomes} new completed trades for {strategy} since last training")
+            logger.info(
+                f"Found {new_outcomes} new completed trades for {strategy} since last training"
+            )
 
             return new_outcomes >= self.min_new_samples, new_outcomes
 
@@ -83,7 +87,9 @@ class SimpleRetrainer:
         if not should_retrain:
             return f"Not enough data ({new_samples}/{self.min_new_samples} samples)"
 
-        logger.info(f"Starting retraining for {strategy} with {new_samples} new samples")
+        logger.info(
+            f"Starting retraining for {strategy} with {new_samples} new samples"
+        )
 
         try:
             # Get all training data (old + new)
@@ -101,7 +107,9 @@ class SimpleRetrainer:
                 return f"Insufficient total samples ({len(X)}/50 minimum)"
 
             # Split for validation
-            X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+            X_train, X_val, y_train, y_val = train_test_split(
+                X, y, test_size=0.2, random_state=42, stratify=y
+            )
 
             # Train new model with same parameters as original
             new_model = self._train_model(X_train, y_train, strategy)
@@ -113,7 +121,9 @@ class SimpleRetrainer:
             current_model = self._load_current_model(strategy)
             if current_model:
                 current_score = self._validate_model(current_model, X_val, y_val)
-                logger.info(f"Current model score: {current_score:.3f}, New model score: {new_score:.3f}")
+                logger.info(
+                    f"Current model score: {current_score:.3f}, New model score: {new_score:.3f}"
+                )
 
                 if new_score > current_score:
                     # Save new model
@@ -147,7 +157,9 @@ class SimpleRetrainer:
 
                 # Parse JSON features
                 if "scan_features" in df.columns:
-                    df["features"] = df["scan_features"].apply(lambda x: json.loads(x) if isinstance(x, str) else x)
+                    df["features"] = df["scan_features"].apply(
+                        lambda x: json.loads(x) if isinstance(x, str) else x
+                    )
 
                 return df
 
@@ -157,7 +169,9 @@ class SimpleRetrainer:
             logger.error(f"Error loading training data: {e}")
             return pd.DataFrame()
 
-    def _prepare_features_labels(self, data: pd.DataFrame, strategy: str) -> Tuple[np.ndarray, np.ndarray]:
+    def _prepare_features_labels(
+        self, data: pd.DataFrame, strategy: str
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """Prepare features and labels for training"""
         features_list = []
         labels_list = []
@@ -260,7 +274,9 @@ class SimpleRetrainer:
                 "samples_trained": len(model.feature_importances_),
             }
 
-            metadata_file = os.path.join(self.model_dir, f"{strategy.lower()}_metadata.json")
+            metadata_file = os.path.join(
+                self.model_dir, f"{strategy.lower()}_metadata.json"
+            )
             with open(metadata_file, "w") as f:
                 json.dump(metadata, f, indent=2)
 

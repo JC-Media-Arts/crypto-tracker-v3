@@ -62,7 +62,9 @@ def test_table_operations(client: Client):
         results["ml_predictions_insert"] = f"✓ Created prediction ID: {prediction_id}"
 
         # Clean up
-        client.table("ml_predictions").delete().eq("prediction_id", prediction_id).execute()
+        client.table("ml_predictions").delete().eq(
+            "prediction_id", prediction_id
+        ).execute()
     except Exception as e:
         results["ml_predictions_insert"] = f"✗ Error: {str(e)}"
 
@@ -106,7 +108,9 @@ def check_table_structure(client: Client):
 
 def main():
     """Verify database setup."""
-    console.print("\n[bold cyan]Crypto Tracker v3 - Database Verification[/bold cyan]\n")
+    console.print(
+        "\n[bold cyan]Crypto Tracker v3 - Database Verification[/bold cyan]\n"
+    )
 
     # Get settings
     try:
@@ -128,7 +132,9 @@ def main():
     existing_tables, missing_tables = check_table_structure(client)
 
     # Display results in a table
-    table = Table(title="Database Tables Status", show_header=True, header_style="bold magenta")
+    table = Table(
+        title="Database Tables Status", show_header=True, header_style="bold magenta"
+    )
     table.add_column("Table Name", style="cyan")
     table.add_column("Status", style="white")
 
@@ -141,7 +147,9 @@ def main():
     console.print(table)
 
     if missing_tables:
-        console.print(f"\n[red]Missing {len(missing_tables)} tables. Please run migrations.[/red]")
+        console.print(
+            f"\n[red]Missing {len(missing_tables)} tables. Please run migrations.[/red]"
+        )
         return 1
 
     # Test operations

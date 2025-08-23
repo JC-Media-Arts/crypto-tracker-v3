@@ -44,7 +44,9 @@ class MockSupabaseClient:
 
     def execute(self):
         # Return mock data based on context
-        return type("obj", (object,), {"data": [{"position_id": "TEST_001", "close": 100.0}]})()
+        return type(
+            "obj", (object,), {"data": [{"position_id": "TEST_001", "close": 100.0}]}
+        )()
 
 
 async def test_executor():
@@ -110,7 +112,9 @@ async def test_executor():
 
     # Test 2: Execute grid
     print("\n2. Executing DCA grid...")
-    result = await executor.execute_grid(symbol="TEST", grid=grid, ml_predictions=ml_predictions, setup_data=setup_data)
+    result = await executor.execute_grid(
+        symbol="TEST", grid=grid, ml_predictions=ml_predictions, setup_data=setup_data
+    )
 
     if result["success"]:
         print(f"✅ Grid executed successfully!")
@@ -143,7 +147,9 @@ async def test_executor():
 
     # Test take profit scenario
     print("\n5. Testing take profit exit...")
-    exit_result = await executor.handle_exit(position_id=position_id, exit_reason="TAKE_PROFIT", exit_price=105.0)
+    exit_result = await executor.handle_exit(
+        position_id=position_id, exit_reason="TAKE_PROFIT", exit_price=105.0
+    )
 
     if exit_result["success"]:
         print(f"✅ Position exited successfully!")

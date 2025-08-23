@@ -89,7 +89,9 @@ class DCAExecutor:
             "max_hold_hours": 72,
         }
 
-    async def execute_grid(self, symbol: str, grid: Dict, ml_predictions: Dict, setup_data: Dict) -> Dict:
+    async def execute_grid(
+        self, symbol: str, grid: Dict, ml_predictions: Dict, setup_data: Dict
+    ) -> Dict:
         """
         Execute a DCA grid strategy.
 
@@ -106,11 +108,15 @@ class DCAExecutor:
             # Validate execution conditions
             is_valid, error = self._validate_execution(symbol, grid)
             if not is_valid:
-                logger.warning(f"Grid execution validation failed for {symbol}: {error}")
+                logger.warning(
+                    f"Grid execution validation failed for {symbol}: {error}"
+                )
                 return {"success": False, "error": error}
 
             # Create position entry
-            position_id = await self._create_position(symbol, grid, ml_predictions, setup_data)
+            position_id = await self._create_position(
+                symbol, grid, ml_predictions, setup_data
+            )
 
             # Place grid orders
             orders = await self._place_grid_orders(position_id, symbol, grid)
@@ -131,7 +137,10 @@ class DCAExecutor:
                 "pnl_percent": 0,
             }
 
-            logger.info(f"Executed DCA grid for {symbol}: " f"{len(orders)} orders placed, position ID: {position_id}")
+            logger.info(
+                f"Executed DCA grid for {symbol}: "
+                f"{len(orders)} orders placed, position ID: {position_id}"
+            )
 
             return {
                 "success": True,
@@ -147,7 +156,9 @@ class DCAExecutor:
             logger.error(f"Error executing grid for {symbol}: {e}")
             return {"success": False, "error": str(e)}
 
-    def _validate_execution(self, symbol: str, grid: Dict) -> Tuple[bool, Optional[str]]:
+    def _validate_execution(
+        self, symbol: str, grid: Dict
+    ) -> Tuple[bool, Optional[str]]:
         """
         Validate if grid can be executed.
 
@@ -159,13 +170,20 @@ class DCAExecutor:
             Tuple of (is_valid, error_message)
         """
         # Check max positions
-        active_count = sum(1 for p in self.active_positions.values() if p["status"] == PositionStatus.ACTIVE)
+        active_count = sum(
+            1
+            for p in self.active_positions.values()
+            if p["status"] == PositionStatus.ACTIVE
+        )
         if active_count >= self.config["max_positions"]:
             return False, f"Max positions reached ({self.config['max_positions']})"
 
         # Check if symbol already has active position
         for position in self.active_positions.values():
-            if position["symbol"] == symbol and position["status"] == PositionStatus.ACTIVE:
+            if (
+                position["symbol"] == symbol
+                and position["status"] == PositionStatus.ACTIVE
+            ):
                 return False, f"Already have active position for {symbol}"
 
         # Check position size limits
@@ -182,7 +200,9 @@ class DCAExecutor:
 
         return True, None
 
-    async def _create_position(self, symbol: str, grid: Dict, ml_predictions: Dict, setup_data: Dict) -> str:
+    async def _create_position(
+        self, symbol: str, grid: Dict, ml_predictions: Dict, setup_data: Dict
+    ) -> str:
         """
         Create position entry in database.
 
@@ -215,10 +235,14 @@ class DCAExecutor:
             return result["position_id"]
         else:
             # Direct database insertion for testing
-            result = self.supabase.client.table("positions").insert(position_data).execute()
+            result = (
+                self.supabase.client.table("positions").insert(position_data).execute()
+            )
             return result.data[0]["position_id"]
 
-    async def _place_grid_orders(self, position_id: str, symbol: str, grid: Dict) -> List[Dict]:
+    async def _place_grid_orders(
+        self, position_id: str, symbol: str, grid: Dict
+    ) -> List[Dict]:
         """
         Place orders for all grid levels.
 
@@ -284,7 +308,9 @@ class DCAExecutor:
                         continue
 
                     # Check for exit conditions
-                    exit_reason = await self._check_exit_conditions(position, current_price)
+                    exit_reason = await self._check_exit_conditions(
+                        position, current_price
+                    )
 
                     if exit_reason:
                         await self.handle_exit(position_id, exit_reason, current_price)
@@ -323,7 +349,9 @@ class DCAExecutor:
             logger.error(f"Error getting price for {symbol}: {e}")
         return None
 
-    async def _check_exit_conditions(self, position: Dict, current_price: float) -> Optional[str]:
+    async def _check_exit_conditions(
+        self, position: Dict, current_price: float
+    ) -> Optional[str]:
         """
         Check if position should be exited.
 
@@ -370,7 +398,9 @@ class DCAExecutor:
                 continue
 
             # Check if price has reached order level
-            if current_price <= order["price"] * (1 + self.config["slippage_tolerance"]):
+            if current_price <= order["price"] * (
+                1 + self.config["slippage_tolerance"]
+            ):
                 # Simulate fill
                 order["status"] = OrderStatus.FILLED.value
                 order["filled_at"] = datetime.now().isoformat()
@@ -380,9 +410,14 @@ class DCAExecutor:
                 position["filled_levels"] += 1
                 position["total_invested"] += order["size_usd"]
 
-                logger.info(f"Filled level {order['level']} for {position['symbol']} " f"at ${current_price:.2f}")
+                logger.info(
+                    f"Filled level {order['level']} for {position['symbol']} "
+                    f"at ${current_price:.2f}"
+                )
 
-    async def handle_exit(self, position_id: str, exit_reason: str, exit_price: float) -> Dict:
+    async def handle_exit(
+        self, position_id: str, exit_reason: str, exit_price: float
+    ) -> Dict:
         """
         Handle position exit.
 
@@ -400,10 +435,18 @@ class DCAExecutor:
                 return {"success": False, "error": "Position not found"}
 
             # Calculate P&L
-            total_quantity = sum(o["quantity"] for o in position["orders"] if o["status"] == OrderStatus.FILLED.value)
+            total_quantity = sum(
+                o["quantity"]
+                for o in position["orders"]
+                if o["status"] == OrderStatus.FILLED.value
+            )
             exit_value = total_quantity * exit_price
             pnl = exit_value - position["total_invested"]
-            pnl_percent = (pnl / position["total_invested"] * 100) if position["total_invested"] > 0 else 0
+            pnl_percent = (
+                (pnl / position["total_invested"] * 100)
+                if position["total_invested"] > 0
+                else 0
+            )
 
             # Update position status
             position["status"] = PositionStatus.CLOSED
@@ -433,7 +476,10 @@ class DCAExecutor:
                 "exit_price": exit_price,
                 "pnl": pnl,
                 "pnl_percent": pnl_percent,
-                "hold_time_hours": (position["exit_time"] - position["created_at"]).total_seconds() / 3600,
+                "hold_time_hours": (
+                    position["exit_time"] - position["created_at"]
+                ).total_seconds()
+                / 3600,
             }
 
         except Exception as e:
@@ -461,14 +507,20 @@ class DCAExecutor:
             return
 
         # Calculate current value
-        total_quantity = sum(o["quantity"] for o in position["orders"] if o["status"] == OrderStatus.FILLED.value)
+        total_quantity = sum(
+            o["quantity"]
+            for o in position["orders"]
+            if o["status"] == OrderStatus.FILLED.value
+        )
         current_value = total_quantity * current_price
 
         # Update metrics
         position["current_value"] = current_value
         position["pnl"] = current_value - position["total_invested"]
         position["pnl_percent"] = (
-            (position["pnl"] / position["total_invested"] * 100) if position["total_invested"] > 0 else 0
+            (position["pnl"] / position["total_invested"] * 100)
+            if position["total_invested"] > 0
+            else 0
         )
 
     async def start_monitoring(self):
@@ -490,14 +542,20 @@ class DCAExecutor:
             {
                 "position_id": pid,
                 "symbol": p["symbol"],
-                "status": (p["status"].value if isinstance(p["status"], PositionStatus) else p["status"]),
+                "status": (
+                    p["status"].value
+                    if isinstance(p["status"], PositionStatus)
+                    else p["status"]
+                ),
                 "filled_levels": p["filled_levels"],
                 "total_invested": p["total_invested"],
                 "current_value": p["current_value"],
                 "pnl": p["pnl"],
                 "pnl_percent": p["pnl_percent"],
                 "created_at": (
-                    p["created_at"].isoformat() if isinstance(p["created_at"], datetime) else p["created_at"]
+                    p["created_at"].isoformat()
+                    if isinstance(p["created_at"], datetime)
+                    else p["created_at"]
                 ),
             }
             for pid, p in self.active_positions.items()

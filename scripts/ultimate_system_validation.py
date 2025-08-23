@@ -79,8 +79,12 @@ class UltimateSystemValidator:
                     result = None
 
             if result and result.data:
-                last_update = datetime.fromisoformat(result.data[0]["timestamp"].replace("Z", "+00:00"))
-                age_minutes = (datetime.now(timezone.utc) - last_update).total_seconds() / 60
+                last_update = datetime.fromisoformat(
+                    result.data[0]["timestamp"].replace("Z", "+00:00")
+                )
+                age_minutes = (
+                    datetime.now(timezone.utc) - last_update
+                ).total_seconds() / 60
 
                 if age_minutes < 10:
                     fresh_count += 1
@@ -96,7 +100,10 @@ class UltimateSystemValidator:
         one_hour_ago = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
         try:
             result = (
-                self.supabase.table("ohlc_today").select("*", count="exact").gte("timestamp", one_hour_ago).execute()
+                self.supabase.table("ohlc_today")
+                .select("*", count="exact")
+                .gte("timestamp", one_hour_ago)
+                .execute()
             )
         except:
             # If view fails, just estimate
@@ -119,7 +126,9 @@ class UltimateSystemValidator:
 
         for strategy in strategies:
             # Check last 30 minutes
-            thirty_min_ago = (datetime.now(timezone.utc) - timedelta(minutes=30)).isoformat()
+            thirty_min_ago = (
+                datetime.now(timezone.utc) - timedelta(minutes=30)
+            ).isoformat()
 
             result = (
                 self.supabase.table("scan_history")
@@ -165,11 +174,21 @@ class UltimateSystemValidator:
         tests = {}
 
         # Check ML feature freshness
-        result = self.supabase.table("ml_features").select("timestamp").order("timestamp", desc=True).limit(1).execute()
+        result = (
+            self.supabase.table("ml_features")
+            .select("timestamp")
+            .order("timestamp", desc=True)
+            .limit(1)
+            .execute()
+        )
 
         if result.data:
-            last_feature = datetime.fromisoformat(result.data[0]["timestamp"].replace("Z", "+00:00"))
-            age_minutes = (datetime.now(timezone.utc) - last_feature).total_seconds() / 60
+            last_feature = datetime.fromisoformat(
+                result.data[0]["timestamp"].replace("Z", "+00:00")
+            )
+            age_minutes = (
+                datetime.now(timezone.utc) - last_feature
+            ).total_seconds() / 60
             tests["Feature Calculation"] = age_minutes < 60
 
             status = "✅" if age_minutes < 60 else "❌"
@@ -211,7 +230,9 @@ class UltimateSystemValidator:
             prediction = predictor.predict("DCA", test_features)
             if prediction and "confidence" in prediction:
                 tests["ML Predictions Work"] = True
-                print(f"  ✅ ML predictions working (confidence: {prediction['confidence']:.2%})")
+                print(
+                    f"  ✅ ML predictions working (confidence: {prediction['confidence']:.2%})"
+                )
             else:
                 tests["ML Predictions Work"] = False
                 print(f"  ❌ ML predictions returned invalid result")
@@ -244,7 +265,9 @@ class UltimateSystemValidator:
             ml_threshold = config.get("ml_confidence_threshold", 1.0)
             tests["Thresholds Loosened"] = ml_threshold <= 0.60
 
-            print(f"  📋 ML threshold: {ml_threshold} {'✅' if ml_threshold <= 0.60 else '❌ Too strict!'}")
+            print(
+                f"  📋 ML threshold: {ml_threshold} {'✅' if ml_threshold <= 0.60 else '❌ Too strict!'}"
+            )
 
         # Check for trades
         result = self.supabase.table("trade_logs").select("*", count="exact").execute()
@@ -252,7 +275,12 @@ class UltimateSystemValidator:
 
         # Check recent trade attempts
         one_day_ago = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
-        recent_result = self.supabase.table("trade_logs").select("*").gte("created_at", one_day_ago).execute()
+        recent_result = (
+            self.supabase.table("trade_logs")
+            .select("*")
+            .gte("created_at", one_day_ago)
+            .execute()
+        )
 
         recent_trades = len(recent_result.data) if recent_result.data else 0
 
@@ -272,7 +300,13 @@ class UltimateSystemValidator:
         tests = {}
 
         # Check for recent errors in scan_history
-        result = self.supabase.table("scan_history").select("reason").eq("reason", "error").limit(10).execute()
+        result = (
+            self.supabase.table("scan_history")
+            .select("reason")
+            .eq("reason", "error")
+            .limit(10)
+            .execute()
+        )
 
         error_count = len(result.data) if result.data else 0
         tests["Low Error Rate"] = error_count < 5
@@ -292,8 +326,12 @@ class UltimateSystemValidator:
             # Look for gaps > 10 minutes (indicating crashes)
             gaps = []
             for i in range(1, len(result.data)):
-                t1 = datetime.fromisoformat(result.data[i - 1]["timestamp"].replace("Z", "+00:00"))
-                t2 = datetime.fromisoformat(result.data[i]["timestamp"].replace("Z", "+00:00"))
+                t1 = datetime.fromisoformat(
+                    result.data[i - 1]["timestamp"].replace("Z", "+00:00")
+                )
+                t2 = datetime.fromisoformat(
+                    result.data[i]["timestamp"].replace("Z", "+00:00")
+                )
                 gap_minutes = (t2 - t1).total_seconds() / 60
                 if gap_minutes > 10:
                     gaps.append(gap_minutes)
@@ -311,7 +349,9 @@ class UltimateSystemValidator:
             result = subprocess.run(["crontab", "-l"], capture_output=True, text=True)
             has_cron = "run_strategies_cron.sh" in result.stdout
             tests["Cron Active"] = has_cron
-            print(f"  {'✅' if has_cron else '❌'} Cron job: {'Active' if has_cron else 'Not found'}")
+            print(
+                f"  {'✅' if has_cron else '❌'} Cron job: {'Active' if has_cron else 'Not found'}"
+            )
         except:
             tests["Cron Active"] = False
             print(f"  ⚠️  Could not check cron status")
@@ -342,22 +382,40 @@ class UltimateSystemValidator:
         except:
             data_result = None
 
-        has_data = len(data_result.data) >= 50 if (data_result and data_result.data) else False
+        has_data = (
+            len(data_result.data) >= 50 if (data_result and data_result.data) else False
+        )
         print(
             f"    {'✅' if has_data else '❌'} Data points: {len(data_result.data) if (data_result and data_result.data) else 0}"
         )
 
         # 2. Features calculated?
-        feature_result = self.supabase.table("ml_features").select("*").eq("symbol", test_symbol).limit(1).execute()
+        feature_result = (
+            self.supabase.table("ml_features")
+            .select("*")
+            .eq("symbol", test_symbol)
+            .limit(1)
+            .execute()
+        )
 
         has_features = len(feature_result.data) > 0 if feature_result.data else False
-        print(f"    {'✅' if has_features else '❌'} ML features: {'Yes' if has_features else 'No'}")
+        print(
+            f"    {'✅' if has_features else '❌'} ML features: {'Yes' if has_features else 'No'}"
+        )
 
         # 3. Scans performed?
-        scan_result = self.supabase.table("scan_history").select("*").eq("symbol", test_symbol).limit(10).execute()
+        scan_result = (
+            self.supabase.table("scan_history")
+            .select("*")
+            .eq("symbol", test_symbol)
+            .limit(10)
+            .execute()
+        )
 
         has_scans = len(scan_result.data) > 0 if scan_result.data else False
-        print(f"    {'✅' if has_scans else '❌'} Strategy scans: {len(scan_result.data) if scan_result.data else 0}")
+        print(
+            f"    {'✅' if has_scans else '❌'} Strategy scans: {len(scan_result.data) if scan_result.data else 0}"
+        )
 
         # 4. Signals generated?
         signal_result = (
@@ -370,11 +428,17 @@ class UltimateSystemValidator:
         )
 
         has_signals = len(signal_result.data) > 0 if signal_result.data else False
-        print(f"    {'✅' if has_signals else '❌'} Signals: {len(signal_result.data) if signal_result.data else 0}")
+        print(
+            f"    {'✅' if has_signals else '❌'} Signals: {len(signal_result.data) if signal_result.data else 0}"
+        )
 
         # 5. Shadow testing active?
         shadow_result = (
-            self.supabase.table("shadow_testing_scans").select("*").eq("symbol", test_symbol).limit(5).execute()
+            self.supabase.table("shadow_testing_scans")
+            .select("*")
+            .eq("symbol", test_symbol)
+            .limit(5)
+            .execute()
         )
 
         has_shadow = len(shadow_result.data) > 0 if shadow_result.data else False
@@ -402,9 +466,12 @@ class UltimateSystemValidator:
         print(f"{Fore.CYAN}{'='*60}\n")
 
         # Calculate scores
-        total_tests = sum(len(v) if isinstance(v, dict) else 1 for v in self.results.values())
+        total_tests = sum(
+            len(v) if isinstance(v, dict) else 1 for v in self.results.values()
+        )
         passed_tests = sum(
-            sum(1 for t in v.values() if t) if isinstance(v, dict) else (1 if v else 0) for v in self.results.values()
+            sum(1 for t in v.values() if t) if isinstance(v, dict) else (1 if v else 0)
+            for v in self.results.values()
         )
 
         pass_rate = (passed_tests / total_tests * 100) if total_tests > 0 else 0
@@ -417,7 +484,11 @@ class UltimateSystemValidator:
             if isinstance(tests, dict):
                 component_passed = sum(1 for v in tests.values() if v)
                 component_total = len(tests)
-                component_rate = (component_passed / component_total * 100) if component_total > 0 else 0
+                component_rate = (
+                    (component_passed / component_total * 100)
+                    if component_total > 0
+                    else 0
+                )
 
                 if component_rate == 100:
                     status = f"{Fore.GREEN}✅ OPERATIONAL"
@@ -435,7 +506,9 @@ class UltimateSystemValidator:
                 print(f"  • {failure}")
 
         # Overall verdict
-        print(f"\n{Fore.CYAN}Overall Score: {passed_tests}/{total_tests} ({pass_rate:.1f}%)")
+        print(
+            f"\n{Fore.CYAN}Overall Score: {passed_tests}/{total_tests} ({pass_rate:.1f}%)"
+        )
 
         if pass_rate >= 90:
             print(f"{Fore.GREEN}✅ SYSTEM IS PRODUCTION READY")
@@ -468,8 +541,12 @@ class UltimateSystemValidator:
 
         print(f"\n{Fore.CYAN}Bottom Line:")
         if pass_rate >= 75:
-            print(f"{Fore.GREEN}System is functional enough for careful production use.")
-            print(f"Grade: {'A' if pass_rate >= 90 else 'B' if pass_rate >= 80 else 'C'}")
+            print(
+                f"{Fore.GREEN}System is functional enough for careful production use."
+            )
+            print(
+                f"Grade: {'A' if pass_rate >= 90 else 'B' if pass_rate >= 80 else 'C'}"
+            )
         else:
             print(f"{Fore.RED}System needs more work before production deployment.")
             print(f"Grade: {'D' if pass_rate >= 60 else 'F'}")

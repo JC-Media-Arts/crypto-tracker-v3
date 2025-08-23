@@ -29,7 +29,9 @@ class ScanHistoryViewer:
     def view_recent_scans(self, hours: int = 1):
         """View recent scan history"""
 
-        console.print(Panel(f"[bold cyan]Recent Scan History (Last {hours} hours)[/bold cyan]"))
+        console.print(
+            Panel(f"[bold cyan]Recent Scan History (Last {hours} hours)[/bold cyan]")
+        )
 
         # Get stats
         stats = self.scan_logger.get_decision_stats(hours=hours)
@@ -41,7 +43,9 @@ class ScanHistoryViewer:
 
         summary_table.add_row("Total Scans", str(stats.get("total_scans", 0)))
         summary_table.add_row("Symbols Scanned", str(stats.get("symbols_scanned", 0)))
-        summary_table.add_row("Avg ML Confidence", f"{stats.get('avg_confidence', 0):.3f}")
+        summary_table.add_row(
+            "Avg ML Confidence", f"{stats.get('avg_confidence', 0):.3f}"
+        )
 
         console.print(summary_table)
 
@@ -73,9 +77,15 @@ class ScanHistoryViewer:
     def view_near_misses(self, confidence_threshold: float = 0.50):
         """View near-miss opportunities"""
 
-        console.print(Panel(f"[bold yellow]Near Misses (Confidence > {confidence_threshold})[/bold yellow]"))
+        console.print(
+            Panel(
+                f"[bold yellow]Near Misses (Confidence > {confidence_threshold})[/bold yellow]"
+            )
+        )
 
-        near_misses = self.scan_logger.get_near_misses(confidence_threshold=confidence_threshold, limit=20)
+        near_misses = self.scan_logger.get_near_misses(
+            confidence_threshold=confidence_threshold, limit=20
+        )
 
         if not near_misses:
             console.print("[yellow]No near misses found[/yellow]")
@@ -151,7 +161,9 @@ class ScanHistoryViewer:
 
             # Recommendations
             if take_rate < 0.5:
-                console.print("  [red]⚠️ Very low take rate - consider lowering thresholds[/red]")
+                console.print(
+                    "  [red]⚠️ Very low take rate - consider lowering thresholds[/red]"
+                )
             elif near_miss_rate > 10:
                 console.print(
                     "  [yellow]⚠️ High near-miss rate - consider slightly lowering confidence threshold[/yellow]"

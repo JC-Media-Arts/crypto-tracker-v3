@@ -48,7 +48,11 @@ def analyze_storage():
     for table_name, description in tables_to_check:
         try:
             # Get row count with timeout handling
-            result = supabase.client.table(table_name).select("*", count="exact", head=True).execute()
+            result = (
+                supabase.client.table(table_name)
+                .select("*", count="exact", head=True)
+                .execute()
+            )
             row_count = result.count if hasattr(result, "count") else 0
 
             if row_count > 0:
@@ -145,7 +149,9 @@ def analyze_storage():
 
                     size_mb = (count * 150) / (1024 * 1024)
 
-                    print(f"\n  {tf:6s}: {count:10,} rows | ~{days_of_data:.1f} days | ~{size_mb:.1f} MB")
+                    print(
+                        f"\n  {tf:6s}: {count:10,} rows | ~{days_of_data:.1f} days | ~{size_mb:.1f} MB"
+                    )
 
             except:
                 pass
@@ -271,7 +277,9 @@ def analyze_storage():
         print(f"  New monthly cost: ${new_cost:.2f}")
         print(f"  Monthly savings: ${monthly_cost - new_cost:.2f}")
     else:
-        print(f"\n  Current storage ({total_storage_gb:.2f} GB) fits within Supabase Pro tier (8 GB)")
+        print(
+            f"\n  Current storage ({total_storage_gb:.2f} GB) fits within Supabase Pro tier (8 GB)"
+        )
 
     print("\n" + "=" * 80)
 

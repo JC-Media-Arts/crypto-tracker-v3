@@ -37,7 +37,9 @@ class SimplifiedTradingSystem:
         if config_path.exists():
             with open(config_path, "r") as f:
                 self.recovery_config = json.load(f)
-                logger.info(f"Loaded recovery config: Phase {self.recovery_config.get('phase')}")
+                logger.info(
+                    f"Loaded recovery config: Phase {self.recovery_config.get('phase')}"
+                )
         else:
             self.recovery_config = {}
 
@@ -90,7 +92,9 @@ class SimplifiedTradingSystem:
                 password=os.getenv("HUMMINGBOT_PASSWORD", "admin"),
             )
             # Connection will be tested in main()
-            self.hummingbot_available = False  # Will be set to True after successful connection
+            self.hummingbot_available = (
+                False  # Will be set to True after successful connection
+            )
             logger.info("✅ Hummingbot API client created (awaiting connection test)")
         except Exception as e:
             logger.warning(f"⚠️ Hummingbot API not available: {e}")
@@ -111,7 +115,9 @@ class SimplifiedTradingSystem:
         self.scan_interval = 60  # Scan every minute
         self.symbols = self.get_symbols()
 
-        logger.info(f"Simplified trading system initialized for {len(self.symbols)} symbols")
+        logger.info(
+            f"Simplified trading system initialized for {len(self.symbols)} symbols"
+        )
 
     async def _test_hummingbot_connection(self):
         """Test Hummingbot API connection"""
@@ -274,12 +280,19 @@ class SimplifiedTradingSystem:
                 return False
 
             # Check position limits
-            if len(self.active_positions) >= self.config["trading_rules"]["max_open_positions"]:
-                logger.warning(f"Max positions reached ({len(self.active_positions)}), skipping {signal.symbol}")
+            if (
+                len(self.active_positions)
+                >= self.config["trading_rules"]["max_open_positions"]
+            ):
+                logger.warning(
+                    f"Max positions reached ({len(self.active_positions)}), skipping {signal.symbol}"
+                )
                 return False
 
             # Log the signal
-            logger.info(f"📊 Executing {signal.strategy_type.value} signal for {signal.symbol}")
+            logger.info(
+                f"📊 Executing {signal.strategy_type.value} signal for {signal.symbol}"
+            )
             logger.info(f"   Entry: ${signal.setup_data.get('entry_price', 0):.2f}")
             logger.info(f"   Size: ${signal.setup_data.get('position_size', 50):.2f}")
             logger.info(f"   Confidence: {signal.confidence:.1%}")
@@ -292,7 +305,11 @@ class SimplifiedTradingSystem:
                 # Convert position size from USD to amount
                 # For simplicity, using a fixed conversion (should get actual price)
                 current_price = signal.setup_data.get("entry_price", 1)
-                amount = signal.setup_data.get("position_size", 50) / current_price if current_price > 0 else 0.001
+                amount = (
+                    signal.setup_data.get("position_size", 50) / current_price
+                    if current_price > 0
+                    else 0.001
+                )
 
                 # Create order through official Hummingbot API
                 try:
@@ -324,7 +341,9 @@ class SimplifiedTradingSystem:
                                 symbol=signal.symbol,
                                 strategy=signal.strategy_type.value,
                                 entry_price=signal.setup_data.get("entry_price", 0),
-                                position_size=signal.setup_data.get("position_size", 50),
+                                position_size=signal.setup_data.get(
+                                    "position_size", 50
+                                ),
                                 confidence=signal.confidence,
                             )
 
@@ -386,7 +405,9 @@ class SimplifiedTradingSystem:
                     exit_reason = "take_profit"
 
                 # Time exit
-                elif (datetime.now() - position["entry_time"]).total_seconds() / 3600 > self.config["trading_rules"][
+                elif (
+                    datetime.now() - position["entry_time"]
+                ).total_seconds() / 3600 > self.config["trading_rules"][
                     "time_exit_hours"
                 ]:
                     should_exit = True
@@ -407,9 +428,13 @@ class SimplifiedTradingSystem:
 
         # Close positions
         for pos in positions_to_close:
-            await self.close_position(pos["symbol"], pos["reason"], pos["pnl_pct"], pos["current_price"])
+            await self.close_position(
+                pos["symbol"], pos["reason"], pos["pnl_pct"], pos["current_price"]
+            )
 
-    async def close_position(self, symbol: str, reason: str, pnl_pct: float, current_price: float):
+    async def close_position(
+        self, symbol: str, reason: str, pnl_pct: float, current_price: float
+    ):
         """Close a position"""
         try:
             position = self.active_positions.get(symbol)
@@ -419,7 +444,11 @@ class SimplifiedTradingSystem:
             logger.info(f"📊 Closing {symbol}: {reason} (P&L: {pnl_pct:+.1f}%)")
 
             # Execute close through Hummingbot
-            if self.hummingbot_available and self.hummingbot and not position.get("simulated"):
+            if (
+                self.hummingbot_available
+                and self.hummingbot
+                and not position.get("simulated")
+            ):
                 try:
                     connector = position.get("connector", "kraken_paper_trade")
                     amount = position.get("amount", 0.001)
@@ -451,7 +480,8 @@ class SimplifiedTradingSystem:
                     exit_reason=reason,
                     pnl_usd=pnl_usd,
                     pnl_pct=pnl_pct,
-                    hold_time=(datetime.now() - position["entry_time"]).total_seconds() / 3600,
+                    hold_time=(datetime.now() - position["entry_time"]).total_seconds()
+                    / 3600,
                 )
 
             # Remove from active positions
@@ -486,10 +516,14 @@ class SimplifiedTradingSystem:
                 await self.check_exits(market_data)
 
                 # Scan for new opportunities
-                signals = await self.strategy_manager.scan_for_opportunities(market_data)
+                signals = await self.strategy_manager.scan_for_opportunities(
+                    market_data
+                )
 
                 # Log scan results
-                logger.info(f"Scan complete: {len(signals)} signals, {len(self.active_positions)} positions")
+                logger.info(
+                    f"Scan complete: {len(signals)} signals, {len(self.active_positions)} positions"
+                )
 
                 # Execute signals
                 for signal in signals:
@@ -502,7 +536,9 @@ class SimplifiedTradingSystem:
 
                 # Status update
                 if self.active_positions:
-                    logger.info(f"Active positions: {list(self.active_positions.keys())}")
+                    logger.info(
+                        f"Active positions: {list(self.active_positions.keys())}"
+                    )
 
                 # Wait for next scan
                 await asyncio.sleep(self.scan_interval)

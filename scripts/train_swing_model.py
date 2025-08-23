@@ -96,17 +96,23 @@ class SwingModelTrainer:
                 entry_price = setup.get("entry_price", 0)
 
                 # 1. Breakout Strength (using actual breakout_strength or price_change)
-                breakout_strength = features.get("breakout_strength", 0) * 100  # Convert to percentage
+                breakout_strength = (
+                    features.get("breakout_strength", 0) * 100
+                )  # Convert to percentage
                 if breakout_strength == 0:
                     breakout_strength = features.get("price_change_24h", 0) * 100
 
                 # 2. Volume Profile (volume surge ratio)
                 volume_ratio = features.get("volume_ratio", 1.0)
-                volume_profile = min(volume_ratio / 2.0, 1.0)  # Normalize to 0-1 (2x volume = 1.0)
+                volume_profile = min(
+                    volume_ratio / 2.0, 1.0
+                )  # Normalize to 0-1 (2x volume = 1.0)
 
                 # 3. Resistance Cleared (using breakout strength as proxy)
                 # Higher breakout = more resistance cleared
-                resistance_cleared = min(breakout_strength / 5.0, 1.0)  # Normalize (5% = 1.0)
+                resistance_cleared = min(
+                    breakout_strength / 5.0, 1.0
+                )  # Normalize (5% = 1.0)
 
                 # 4. Trend Alignment (using SMA distances)
                 dist_sma20 = features.get("distance_from_sma20", 0)
@@ -169,7 +175,9 @@ class SwingModelTrainer:
                     # Use the TP that was hit
                     optimal_tp = tp_used
                     # Could have used tighter stop
-                    optimal_sl = min(abs(max_loss), sl_used) if max_loss < 0 else sl_used
+                    optimal_sl = (
+                        min(abs(max_loss), sl_used) if max_loss < 0 else sl_used
+                    )
                 elif outcome == "LOSS":
                     # Should have used tighter stop
                     optimal_sl = 3.0  # Tight stop for losses
@@ -253,7 +261,9 @@ class SwingModelTrainer:
 
         # Check if meets minimum accuracy requirement
         if accuracy < self.minimum_accuracy:
-            logger.warning(f"Accuracy {accuracy:.3f} below minimum {self.minimum_accuracy}")
+            logger.warning(
+                f"Accuracy {accuracy:.3f} below minimum {self.minimum_accuracy}"
+            )
 
         # 2. Train parameter optimizer (multi-output regression)
         logger.info("Training parameter optimizer...")
@@ -291,7 +301,9 @@ class SwingModelTrainer:
         feature_importance = dict(zip(feature_names, importance))
 
         logger.info("Feature Importance:")
-        for feat, imp in sorted(feature_importance.items(), key=lambda x: x[1], reverse=True):
+        for feat, imp in sorted(
+            feature_importance.items(), key=lambda x: x[1], reverse=True
+        ):
             logger.info(f"  {feat}: {imp:.3f}")
 
         # Save models and scaler
@@ -321,7 +333,9 @@ class SwingModelTrainer:
 
         return clf_model, tp_model, sl_model, scaler, results
 
-    def validate_predictions(self, clf_model, tp_model, sl_model, scaler, X, y, optimal_params):
+    def validate_predictions(
+        self, clf_model, tp_model, sl_model, scaler, X, y, optimal_params
+    ):
         """Validate model predictions with confidence filtering"""
 
         X_scaled = scaler.transform(X)
@@ -334,9 +348,13 @@ class SwingModelTrainer:
         # Apply confidence threshold
         high_conf_mask = y_prob >= self.confidence_threshold
 
-        logger.info(f"\nValidation with {self.confidence_threshold:.0%} confidence threshold:")
+        logger.info(
+            f"\nValidation with {self.confidence_threshold:.0%} confidence threshold:"
+        )
         logger.info(f"  Total predictions: {len(y)}")
-        logger.info(f"  High confidence predictions: {high_conf_mask.sum()} ({high_conf_mask.mean():.1%})")
+        logger.info(
+            f"  High confidence predictions: {high_conf_mask.sum()} ({high_conf_mask.mean():.1%})"
+        )
 
         if high_conf_mask.sum() > 0:
             # Calculate accuracy on high confidence predictions
@@ -374,7 +392,9 @@ class SwingModelTrainer:
         setups = self.load_swing_labels()
 
         if len(setups) < self.min_samples:
-            logger.warning(f"Only {len(setups)} setups found, need {self.min_samples} minimum")
+            logger.warning(
+                f"Only {len(setups)} setups found, need {self.min_samples} minimum"
+            )
             logger.info("Consider expanding to more symbols or longer timeframe")
 
         # Filter by lookback period
@@ -382,13 +402,17 @@ class SwingModelTrainer:
         filtered_setups = []
         for setup in setups:
             try:
-                setup_date = datetime.fromisoformat(setup["timestamp"].replace("Z", "+00:00"))
+                setup_date = datetime.fromisoformat(
+                    setup["timestamp"].replace("Z", "+00:00")
+                )
                 if setup_date >= cutoff_date:
                     filtered_setups.append(setup)
             except:
                 filtered_setups.append(setup)  # Keep if can't parse date
 
-        logger.info(f"Setups after {self.lookback_months}-month filter: {len(filtered_setups)}")
+        logger.info(
+            f"Setups after {self.lookback_months}-month filter: {len(filtered_setups)}"
+        )
 
         if len(filtered_setups) == 0:
             logger.error("No setups found after filtering")
@@ -405,10 +429,14 @@ class SwingModelTrainer:
             return
 
         # Train models
-        clf_model, tp_model, sl_model, scaler, results = self.train_models(X, y, optimal_params)
+        clf_model, tp_model, sl_model, scaler, results = self.train_models(
+            X, y, optimal_params
+        )
 
         # Validate with confidence threshold
-        self.validate_predictions(clf_model, tp_model, sl_model, scaler, X, y, optimal_params)
+        self.validate_predictions(
+            clf_model, tp_model, sl_model, scaler, X, y, optimal_params
+        )
 
         # Summary
         logger.info("=" * 50)
@@ -419,7 +447,9 @@ class SwingModelTrainer:
         if results["meets_requirements"]:
             logger.info("✅ Model meets minimum accuracy requirements")
         else:
-            logger.warning("⚠️ Model below minimum accuracy - consider more data or feature engineering")
+            logger.warning(
+                "⚠️ Model below minimum accuracy - consider more data or feature engineering"
+            )
 
         logger.info("=" * 50)
 

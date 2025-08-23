@@ -146,18 +146,27 @@ def main():
     for tf in timeframes:
         # Get unique symbols with data for this timeframe
         result = (
-            supabase.client.rpc("get_unique_symbols_by_timeframe", {"tf": tf}).execute() if False else None
+            supabase.client.rpc("get_unique_symbols_by_timeframe", {"tf": tf}).execute()
+            if False
+            else None
         )  # RPC might not exist
 
         # Fallback: direct query
         try:
-            result = supabase.client.table("ohlc_data").select("symbol").eq("timeframe", tf).execute()
+            result = (
+                supabase.client.table("ohlc_data")
+                .select("symbol")
+                .eq("timeframe", tf)
+                .execute()
+            )
 
             if result.data:
                 unique_symbols = list(set([r["symbol"] for r in result.data]))
                 progress_pct = (len(unique_symbols) / len(all_symbols)) * 100
 
-                print(f"{tf:4} : {len(unique_symbols):3}/{len(all_symbols)} symbols ({progress_pct:.1f}%)")
+                print(
+                    f"{tf:4} : {len(unique_symbols):3}/{len(all_symbols)} symbols ({progress_pct:.1f}%)"
+                )
 
                 # Show which symbols are done
                 if len(unique_symbols) > 0 and len(unique_symbols) < len(all_symbols):
@@ -188,13 +197,19 @@ def main():
             # This is a workaround - we need to query without limit to get true count
             # But for now, let's get sample data
             sample = (
-                supabase.client.table("ohlc_data").select("symbol,timestamp").eq("timeframe", tf).limit(5000).execute()
+                supabase.client.table("ohlc_data")
+                .select("symbol,timestamp")
+                .eq("timeframe", tf)
+                .limit(5000)
+                .execute()
             )
 
             if sample.data:
                 symbols_with_data = list(set([r["symbol"] for r in sample.data]))
                 approx_bars = len(sample.data)
-                print(f"{tf:4} : ~{approx_bars:,} bars across {len(symbols_with_data)} symbols")
+                print(
+                    f"{tf:4} : ~{approx_bars:,} bars across {len(symbols_with_data)} symbols"
+                )
 
         except Exception as e:
             logger.error(f"Error getting stats for {tf}: {e}")

@@ -72,7 +72,9 @@ async def test_simplified_strategies():
 
     logger.info(f"✅ ML disabled: {not manager.ml_enabled}")
     logger.info(f"✅ Shadow disabled: {not manager.shadow_enabled}")
-    logger.info(f"✅ Using simple rules with fixed confidence: {manager.simple_rules.fixed_confidence}")
+    logger.info(
+        f"✅ Using simple rules with fixed confidence: {manager.simple_rules.fixed_confidence}"
+    )
 
     # Create test market data
     test_data = create_test_market_data()

@@ -28,7 +28,9 @@ def cleanup_in_batches(supabase, table, timeframe_list, cutoff_date, batch_size=
     total_deleted = 0
 
     for tf in timeframe_list:
-        logger.info(f"Cleaning {table} where timeframe='{tf}' before {cutoff_date[:10]}")
+        logger.info(
+            f"Cleaning {table} where timeframe='{tf}' before {cutoff_date[:10]}"
+        )
         batch_deleted = 0
         attempts = 0
         max_attempts = 100  # Safety limit
@@ -95,7 +97,9 @@ def main():
     print("-" * 60)
 
     two_years_ago = (datetime.now(timezone.utc) - timedelta(days=730)).isoformat()
-    deleted = cleanup_in_batches(supabase, "ohlc_data", ["1h", "1hour"], two_years_ago, batch_size=5000)
+    deleted = cleanup_in_batches(
+        supabase, "ohlc_data", ["1h", "1hour"], two_years_ago, batch_size=5000
+    )
     cleanup_summary.append(("1-hour data (>2 years)", deleted))
     print(f"✅ Deleted {deleted:,} rows\n")
 
@@ -135,7 +139,12 @@ def main():
 
     try:
         seven_days_ago = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
-        result = supabase.client.table("scan_history").delete().lt("timestamp", seven_days_ago).execute()
+        result = (
+            supabase.client.table("scan_history")
+            .delete()
+            .lt("timestamp", seven_days_ago)
+            .execute()
+        )
 
         deleted = len(result.data) if result.data else 0
         cleanup_summary.append(("scan_history (>7 days)", deleted))
@@ -149,7 +158,12 @@ def main():
     print("-" * 60)
 
     try:
-        result = supabase.client.table("ml_features").delete().lt("timestamp", thirty_days_ago).execute()
+        result = (
+            supabase.client.table("ml_features")
+            .delete()
+            .lt("timestamp", thirty_days_ago)
+            .execute()
+        )
 
         deleted = len(result.data) if result.data else 0
         cleanup_summary.append(("ml_features (>30 days)", deleted))

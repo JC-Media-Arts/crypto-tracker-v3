@@ -104,7 +104,9 @@ class CryptoTrackerApp:
         except Exception as e:
             logger.error(f"Failed to initialize: {e}")
             if self.slack_notifier:
-                await self.slack_notifier.send_message(f"❌ Failed to initialize: {e}", channel="system-alerts")
+                await self.slack_notifier.send_message(
+                    f"❌ Failed to initialize: {e}", channel="system-alerts"
+                )
             raise
 
     async def start(self):
@@ -122,7 +124,9 @@ class CryptoTrackerApp:
             )
 
             logger.success("All components started!")
-            await self.slack_notifier.send_message("✅ All systems operational!", channel="system-alerts")
+            await self.slack_notifier.send_message(
+                "✅ All systems operational!", channel="system-alerts"
+            )
 
             # Keep running until stopped
             while self.running:
@@ -150,7 +154,9 @@ class CryptoTrackerApp:
 
         # Send final notification
         if self.slack_notifier:
-            await self.slack_notifier.send_message("🛑 Crypto Tracker v3 shutting down", channel="system-alerts")
+            await self.slack_notifier.send_message(
+                "🛑 Crypto Tracker v3 shutting down", channel="system-alerts"
+            )
             await self.slack_notifier.shutdown()
 
         logger.info("Shutdown complete")

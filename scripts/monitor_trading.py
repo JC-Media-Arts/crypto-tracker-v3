@@ -123,20 +123,29 @@ def get_scan_table(client):
 
 def get_shadow_table(client):
     """Get shadow trading activity"""
-    table = Table(title="👻 Shadow Testing Activity", show_header=True, header_style="bold green")
+    table = Table(
+        title="👻 Shadow Testing Activity", show_header=True, header_style="bold green"
+    )
 
     table.add_column("Metric", style="cyan", width=25)
     table.add_column("Value", justify="right", width=15)
 
     try:
         # Total shadows
-        total = client.client.table("shadow_variations").select("count", count="exact").execute()
+        total = (
+            client.client.table("shadow_variations")
+            .select("count", count="exact")
+            .execute()
+        )
         table.add_row("Total Shadows", f"{total.count:,}")
 
         # Recent shadows (10 min)
         cutoff = (datetime.utcnow() - timedelta(minutes=10)).isoformat()
         recent = (
-            client.client.table("shadow_variations").select("count", count="exact").gte("created_at", cutoff).execute()
+            client.client.table("shadow_variations")
+            .select("count", count="exact")
+            .gte("created_at", cutoff)
+            .execute()
         )
         table.add_row("Last 10 min", f"{recent.count:,}")
 
@@ -150,7 +159,11 @@ def get_shadow_table(client):
         table.add_row("Would Take Trade", f"{would_take.count:,}")
 
         # Outcomes evaluated
-        outcomes = client.client.table("shadow_outcomes").select("count", count="exact").execute()
+        outcomes = (
+            client.client.table("shadow_outcomes")
+            .select("count", count="exact")
+            .execute()
+        )
         table.add_row("Outcomes Evaluated", f"{outcomes.count:,}")
 
         # Get variation breakdown
@@ -188,8 +201,12 @@ async def monitor():
                 layout["footer"].update(get_footer())
 
                 # Update main panels
-                layout["scans"].update(Panel(get_scan_table(client), border_style="blue"))
-                layout["shadows"].update(Panel(get_shadow_table(client), border_style="green"))
+                layout["scans"].update(
+                    Panel(get_scan_table(client), border_style="blue")
+                )
+                layout["shadows"].update(
+                    Panel(get_shadow_table(client), border_style="green")
+                )
 
                 # Wait before next update
                 await asyncio.sleep(5)

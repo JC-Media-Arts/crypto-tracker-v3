@@ -45,7 +45,12 @@ async def test_auto_logging():
         # Check if it was saved to DB
         await asyncio.sleep(1)  # Give it a moment
 
-        after_open = db.client.table("paper_trades").select("*").eq("symbol", test_symbol).execute()
+        after_open = (
+            db.client.table("paper_trades")
+            .select("*")
+            .eq("symbol", test_symbol)
+            .execute()
+        )
 
         if after_open.data:
             logger.info(f"✅ OPEN position automatically saved to DB!")
@@ -72,7 +77,11 @@ async def test_auto_logging():
             await asyncio.sleep(1)  # Give it a moment
 
             after_close = (
-                db.client.table("paper_trades").select("*").eq("symbol", test_symbol).eq("side", "SELL").execute()
+                db.client.table("paper_trades")
+                .select("*")
+                .eq("symbol", test_symbol)
+                .eq("side", "SELL")
+                .execute()
             )
 
             if after_close.data:

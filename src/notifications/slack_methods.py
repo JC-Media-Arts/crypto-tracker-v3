@@ -38,7 +38,9 @@ class SlackNotificationMethods:
             "risk_reward": abs((take_profit - entry_price) / (entry_price - stop_loss)),
         }
 
-        await notifier.send_notification(NotificationType.TRADE_OPENED, title, message, details, "good")
+        await notifier.send_notification(
+            NotificationType.TRADE_OPENED, title, message, details, "good"
+        )
 
     @staticmethod
     async def notify_trade_closed(
@@ -79,7 +81,9 @@ class SlackNotificationMethods:
             "duration_hours": duration_hours,
         }
 
-        await notifier.send_notification(NotificationType.TRADE_CLOSED, title, message, details, color)
+        await notifier.send_notification(
+            NotificationType.TRADE_CLOSED, title, message, details, color
+        )
 
     @staticmethod
     async def notify_regime_change(
@@ -132,7 +136,9 @@ class SlackNotificationMethods:
             "action": actions.get(new_regime, "Unknown"),
         }
 
-        await notifier.send_notification(NotificationType.REGIME_CHANGE, title, message, details, color)
+        await notifier.send_notification(
+            NotificationType.REGIME_CHANGE, title, message, details, color
+        )
 
     @staticmethod
     async def send_daily_report(
@@ -185,7 +191,9 @@ class SlackNotificationMethods:
         if best_trade:
             details["best_trade"] = f"{best_trade['symbol']} +${best_trade['pnl']:.2f}"
         if worst_trade:
-            details["worst_trade"] = f"{worst_trade['symbol']} -${abs(worst_trade['pnl']):.2f}"
+            details[
+                "worst_trade"
+            ] = f"{worst_trade['symbol']} -${abs(worst_trade['pnl']):.2f}"
 
         # Add strategy breakdown if available
         if strategy_breakdown:
@@ -193,4 +201,6 @@ class SlackNotificationMethods:
                 details[f"{strategy.lower()}_pnl"] = stats.get("pnl", 0)
                 details[f"{strategy.lower()}_trades"] = stats.get("trades", 0)
 
-        await notifier.send_notification(NotificationType.DAILY_REPORT, title, message, details, color)
+        await notifier.send_notification(
+            NotificationType.DAILY_REPORT, title, message, details, color
+        )

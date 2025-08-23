@@ -33,7 +33,9 @@ class PaperTradingMonitor:
 
     def __init__(self):
         # Initialize paper trader to load state
-        self.paper_trader = SimplePaperTraderV2(initial_balance=1000.0, max_positions=30)
+        self.paper_trader = SimplePaperTraderV2(
+            initial_balance=1000.0, max_positions=30
+        )
 
         # Database client
         self.db_client = None
@@ -80,7 +82,13 @@ class PaperTradingMonitor:
 
         # Determine colors
         pnl_color = "green" if stats["total_pnl"] >= 0 else "red"
-        win_rate_color = "green" if stats["win_rate"] >= 50 else "yellow" if stats["win_rate"] >= 40 else "red"
+        win_rate_color = (
+            "green"
+            if stats["win_rate"] >= 50
+            else "yellow"
+            if stats["win_rate"] >= 40
+            else "red"
+        )
 
         # Create stats table
         table = Table(show_header=False, box=None, padding=(0, 2))
@@ -170,7 +178,9 @@ class PaperTradingMonitor:
                 duration_str = f"{hours:.1f}h"
 
                 # P&L color
-                pnl_style = "green" if pnl_pct > 0 else "red" if pnl_pct < 0 else "white"
+                pnl_style = (
+                    "green" if pnl_pct > 0 else "red" if pnl_pct < 0 else "white"
+                )
 
                 table.add_row(
                     symbol,
@@ -227,7 +237,9 @@ class PaperTradingMonitor:
                         "time_exit": "⏰ Timeout",
                         "manual": "👤 Manual",
                     }
-                    exit_display = exit_map.get(trade["exit_reason"], trade["exit_reason"])
+                    exit_display = exit_map.get(
+                        trade["exit_reason"], trade["exit_reason"]
+                    )
 
                     table.add_row(
                         time_str,
@@ -253,13 +265,20 @@ class PaperTradingMonitor:
         try:
             # Get today's trades
             today = datetime.now().date().isoformat()
-            result = self.db_client.client.table("paper_trades").select("*").gte("created_at", today).execute()
+            result = (
+                self.db_client.client.table("paper_trades")
+                .select("*")
+                .gte("created_at", today)
+                .execute()
+            )
 
             if result.data:
                 return {
                     "today_trades": len(result.data),
                     "today_buys": sum(1 for t in result.data if t.get("side") == "BUY"),
-                    "today_sells": sum(1 for t in result.data if t.get("side") == "SELL"),
+                    "today_sells": sum(
+                        1 for t in result.data if t.get("side") == "SELL"
+                    ),
                 }
         except:
             pass

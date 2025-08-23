@@ -55,14 +55,17 @@ class ShadowEnhancedRetrainer:
             shadow_count = self._count_shadow_trades(strategy)
 
             # Calculate effective sample size
-            effective_samples = self._calculate_effective_samples(real_count, shadow_count)
+            effective_samples = self._calculate_effective_samples(
+                real_count, shadow_count
+            )
 
             stats = {
                 "real_trades": real_count,
                 "shadow_trades": shadow_count,
                 "effective_samples": effective_samples,
                 "shadow_ratio": shadow_count / max(real_count, 1),
-                "can_retrain": real_count >= self.min_real_trades and effective_samples >= self.min_total_samples,
+                "can_retrain": real_count >= self.min_real_trades
+                and effective_samples >= self.min_total_samples,
             }
 
             logger.info(
@@ -112,7 +115,9 @@ class ShadowEnhancedRetrainer:
             )
 
             # Prepare features and labels
-            X, y, sample_weights = self._prepare_features_labels(combined_data, strategy)
+            X, y, sample_weights = self._prepare_features_labels(
+                combined_data, strategy
+            )
 
             # Add shadow consensus features
             X = self._add_shadow_features(X, combined_data)
@@ -146,11 +151,17 @@ class ShadowEnhancedRetrainer:
                 self._update_metadata(strategy, result)
                 result["action"] = "deployed"
                 result["message"] = f"Model updated with {improvement:.1%} improvement"
-                logger.info(f"✅ Deployed new {strategy} model with {improvement:.1%} improvement")
+                logger.info(
+                    f"✅ Deployed new {strategy} model with {improvement:.1%} improvement"
+                )
             else:
                 result["action"] = "rejected"
-                result["message"] = f"Insufficient improvement ({improvement:.1%} < {self.improvement_threshold:.1%})"
-                logger.info(f"❌ Kept existing {strategy} model (improvement only {improvement:.1%})")
+                result[
+                    "message"
+                ] = f"Insufficient improvement ({improvement:.1%} < {self.improvement_threshold:.1%})"
+                logger.info(
+                    f"❌ Kept existing {strategy} model (improvement only {improvement:.1%})"
+                )
 
             return result
 
@@ -179,7 +190,9 @@ class ShadowEnhancedRetrainer:
         """Count evaluated shadow trades"""
         try:
             # Complex query through joins
-            result = self.supabase.rpc("count_shadow_trades_by_strategy", {"p_strategy": strategy}).execute()
+            result = self.supabase.rpc(
+                "count_shadow_trades_by_strategy", {"p_strategy": strategy}
+            ).execute()
 
             if result.data and len(result.data) > 0:
                 return result.data[0].get("count", 0)
@@ -252,7 +265,9 @@ class ShadowEnhancedRetrainer:
                 df["is_shadow"] = True
 
                 # Calculate dynamic weights for each shadow
-                df["sample_weight"] = df.apply(lambda row: self._calculate_shadow_weight(row), axis=1)
+                df["sample_weight"] = df.apply(
+                    lambda row: self._calculate_shadow_weight(row), axis=1
+                )
 
                 return df
 
@@ -269,12 +284,18 @@ class ShadowEnhancedRetrainer:
         base_weight = 0.1
 
         # Factor 1: Shadow consensus (how many shadows agreed)
-        if "shadow_consensus_score" in shadow_row and shadow_row["shadow_consensus_score"]:
+        if (
+            "shadow_consensus_score" in shadow_row
+            and shadow_row["shadow_consensus_score"]
+        ):
             if shadow_row["shadow_consensus_score"] > 0.7:  # 70% agreement
                 base_weight += 0.1
 
         # Factor 2: Performance delta (is this variation performing well)
-        if "shadow_performance_delta" in shadow_row and shadow_row["shadow_performance_delta"]:
+        if (
+            "shadow_performance_delta" in shadow_row
+            and shadow_row["shadow_performance_delta"]
+        ):
             if shadow_row["shadow_performance_delta"] > 0.05:  # 5% better
                 base_weight += 0.1
 
@@ -284,13 +305,18 @@ class ShadowEnhancedRetrainer:
                 base_weight += 0.2
 
         # Factor 4: Statistical significance
-        if "shadow_avg_confidence" in shadow_row and shadow_row["shadow_avg_confidence"]:
+        if (
+            "shadow_avg_confidence" in shadow_row
+            and shadow_row["shadow_avg_confidence"]
+        ):
             if shadow_row["shadow_avg_confidence"] > 0.65:
                 base_weight += 0.1
 
         return min(base_weight, 0.5)  # Cap at 0.5
 
-    def _combine_training_data(self, real_data: pd.DataFrame, shadow_data: pd.DataFrame) -> pd.DataFrame:
+    def _combine_training_data(
+        self, real_data: pd.DataFrame, shadow_data: pd.DataFrame
+    ) -> pd.DataFrame:
         """Combine real and shadow data"""
         if real_data.empty:
             return pd.DataFrame()
@@ -307,7 +333,9 @@ class ShadowEnhancedRetrainer:
 
         return combined
 
-    def _prepare_features_labels(self, data: pd.DataFrame, strategy: str) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def _prepare_features_labels(
+        self, data: pd.DataFrame, strategy: str
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         Prepare features, labels, and sample weights
         """
@@ -317,7 +345,11 @@ class ShadowEnhancedRetrainer:
         else:
             # Use numeric columns as features
             feature_cols = data.select_dtypes(include=[np.number]).columns
-            feature_cols = [c for c in feature_cols if c not in ["outcome_label", "sample_weight", "is_shadow"]]
+            feature_cols = [
+                c
+                for c in feature_cols
+                if c not in ["outcome_label", "sample_weight", "is_shadow"]
+            ]
             features_df = data[feature_cols]
 
         # Get labels (1 for win, 0 for loss)
@@ -328,7 +360,11 @@ class ShadowEnhancedRetrainer:
             labels = (data["status"] == "CLOSED_WIN").astype(int).values
 
         # Get sample weights
-        weights = data["sample_weight"].values if "sample_weight" in data.columns else np.ones(len(data))
+        weights = (
+            data["sample_weight"].values
+            if "sample_weight" in data.columns
+            else np.ones(len(data))
+        )
 
         return features_df.values, labels, weights
 
@@ -340,15 +376,21 @@ class ShadowEnhancedRetrainer:
 
         # Shadow consensus score
         if "shadow_consensus_score" in data.columns:
-            shadow_features.append(data["shadow_consensus_score"].fillna(0).values.reshape(-1, 1))
+            shadow_features.append(
+                data["shadow_consensus_score"].fillna(0).values.reshape(-1, 1)
+            )
 
         # Shadow performance delta
         if "shadow_performance_delta" in data.columns:
-            shadow_features.append(data["shadow_performance_delta"].fillna(0).values.reshape(-1, 1))
+            shadow_features.append(
+                data["shadow_performance_delta"].fillna(0).values.reshape(-1, 1)
+            )
 
         # Shadow average confidence
         if "shadow_avg_confidence" in data.columns:
-            shadow_features.append(data["shadow_avg_confidence"].fillna(0).values.reshape(-1, 1))
+            shadow_features.append(
+                data["shadow_avg_confidence"].fillna(0).values.reshape(-1, 1)
+            )
 
         if shadow_features:
             shadow_array = np.hstack(shadow_features)
@@ -365,7 +407,9 @@ class ShadowEnhancedRetrainer:
         stratify_groups = is_real.astype(int) * 2 + y  # Creates 4 groups
 
         indices = np.arange(len(X))
-        train_idx, val_idx = train_test_split(indices, test_size=test_size, random_state=42, stratify=stratify_groups)
+        train_idx, val_idx = train_test_split(
+            indices, test_size=test_size, random_state=42, stratify=stratify_groups
+        )
 
         return (
             X[train_idx],
@@ -407,7 +451,9 @@ class ShadowEnhancedRetrainer:
 
         model_params = params.get(strategy, params["DCA"])
 
-        model = xgb.XGBClassifier(**model_params, random_state=42, use_label_encoder=False)
+        model = xgb.XGBClassifier(
+            **model_params, random_state=42, use_label_encoder=False
+        )
 
         # Train with sample weights
         model.fit(X_train, y_train, sample_weight=sample_weights, verbose=False)
@@ -423,8 +469,12 @@ class ShadowEnhancedRetrainer:
 
         # Calculate weighted metrics
         accuracy = accuracy_score(y_val, predictions, sample_weight=sample_weights)
-        precision = precision_score(y_val, predictions, sample_weight=sample_weights, zero_division=0)
-        recall = recall_score(y_val, predictions, sample_weight=sample_weights, zero_division=0)
+        precision = precision_score(
+            y_val, predictions, sample_weight=sample_weights, zero_division=0
+        )
+        recall = recall_score(
+            y_val, predictions, sample_weight=sample_weights, zero_division=0
+        )
         auc = roc_auc_score(y_val, probabilities, sample_weight=sample_weights)
 
         return {
@@ -432,10 +482,16 @@ class ShadowEnhancedRetrainer:
             "precision": precision,
             "recall": recall,
             "auc": auc,
-            "f1_score": (2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0),
+            "f1_score": (
+                2 * (precision * recall) / (precision + recall)
+                if (precision + recall) > 0
+                else 0
+            ),
         }
 
-    def _compare_with_current(self, new_model, X_val, y_val, strategy: str) -> Optional[float]:
+    def _compare_with_current(
+        self, new_model, X_val, y_val, strategy: str
+    ) -> Optional[float]:
         """
         Compare new model with current model
         Returns improvement percentage
@@ -474,7 +530,9 @@ class ShadowEnhancedRetrainer:
         """Save model and metadata"""
         try:
             # Save model
-            model_file = os.path.join(self.model_dir, f"{strategy.lower()}_shadow_model.pkl")
+            model_file = os.path.join(
+                self.model_dir, f"{strategy.lower()}_shadow_model.pkl"
+            )
             with open(model_file, "wb") as f:
                 pickle.dump(model, f)
 
@@ -486,7 +544,9 @@ class ShadowEnhancedRetrainer:
                 "shadow_enhanced": True,
             }
 
-            metadata_file = os.path.join(self.model_dir, f"{strategy.lower()}_shadow_metadata.json")
+            metadata_file = os.path.join(
+                self.model_dir, f"{strategy.lower()}_shadow_metadata.json"
+            )
             with open(metadata_file, "w") as f:
                 json.dump(metadata, f, indent=2)
 
@@ -535,9 +595,13 @@ class ShadowEnhancedRetrainer:
 
             # Log summary
             if result["status"] == "success" and result.get("action") == "deployed":
-                logger.info(f"✅ {strategy}: Model updated with {result['improvement']:.1%} improvement")
+                logger.info(
+                    f"✅ {strategy}: Model updated with {result['improvement']:.1%} improvement"
+                )
             elif result["status"] == "success":
-                logger.info(f"❌ {strategy}: Model not updated (insufficient improvement)")
+                logger.info(
+                    f"❌ {strategy}: Model not updated (insufficient improvement)"
+                )
             else:
                 logger.info(f"⏭️ {strategy}: {result.get('reason', 'Skipped')}")
 

@@ -65,8 +65,12 @@ class FeatureAnalyzer:
             if self.df[col].dtype in ["float64", "int64"]:
                 self.df[col].fillna(self.df[col].median(), inplace=True)
 
-        logger.info(f"Loaded {len(self.df)} samples with {len(self.feature_cols)} features")
-        logger.info(f"Target distribution: {self.df['outcome_binary'].value_counts().to_dict()}")
+        logger.info(
+            f"Loaded {len(self.df)} samples with {len(self.feature_cols)} features"
+        )
+        logger.info(
+            f"Target distribution: {self.df['outcome_binary'].value_counts().to_dict()}"
+        )
 
     def correlation_analysis(self):
         """Analyze correlation between features and target."""
@@ -75,7 +79,11 @@ class FeatureAnalyzer:
         logger.info("=" * 80)
 
         # Calculate correlations with target
-        correlations = self.df[self.feature_cols + [self.target_col]].corr()[self.target_col].drop(self.target_col)
+        correlations = (
+            self.df[self.feature_cols + [self.target_col]]
+            .corr()[self.target_col]
+            .drop(self.target_col)
+        )
         correlations = correlations.sort_values(ascending=False)
 
         # Top positive correlations
@@ -101,7 +109,9 @@ class FeatureAnalyzer:
 
         # Calculate mutual information
         mi_scores = mutual_info_classif(X, y, random_state=42)
-        mi_scores = pd.Series(mi_scores, index=self.feature_cols).sort_values(ascending=False)
+        mi_scores = pd.Series(mi_scores, index=self.feature_cols).sort_values(
+            ascending=False
+        )
 
         logger.info("\nTop 15 Features by Mutual Information:")
         for feat, score in mi_scores.head(15).items():
@@ -119,14 +129,20 @@ class FeatureAnalyzer:
         y = self.df[self.target_col]
 
         # Split data
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=0.2, random_state=42, stratify=y
+        )
 
         # Train Random Forest
-        rf = RandomForestClassifier(n_estimators=100, max_depth=10, random_state=42, n_jobs=-1)
+        rf = RandomForestClassifier(
+            n_estimators=100, max_depth=10, random_state=42, n_jobs=-1
+        )
         rf.fit(X_train, y_train)
 
         # Get feature importances
-        importances = pd.Series(rf.feature_importances_, index=self.feature_cols).sort_values(ascending=False)
+        importances = pd.Series(
+            rf.feature_importances_, index=self.feature_cols
+        ).sort_values(ascending=False)
 
         logger.info("\nTop 15 Features by Random Forest Importance:")
         for feat, imp in importances.head(15).items():
@@ -162,10 +178,14 @@ class FeatureAnalyzer:
                 y = regime_df[self.target_col]
 
                 # Quick RF for this subset
-                rf = RandomForestClassifier(n_estimators=50, max_depth=5, random_state=42)
+                rf = RandomForestClassifier(
+                    n_estimators=50, max_depth=5, random_state=42
+                )
                 rf.fit(X, y)
 
-                importances = pd.Series(rf.feature_importances_, index=self.feature_cols).sort_values(ascending=False)
+                importances = pd.Series(
+                    rf.feature_importances_, index=self.feature_cols
+                ).sort_values(ascending=False)
                 logger.info(f"  Top 5 Features:")
                 for feat, imp in importances.head(5).items():
                     logger.info(f"    {feat:25s}: {imp:.3f}")
@@ -219,10 +239,14 @@ class FeatureAnalyzer:
 
         # By market cap tier
         logger.info("\nPerformance by Market Cap Tier:")
-        tier_stats = self.df.groupby("market_cap_tier")["outcome_binary"].agg(["mean", "count"])
+        tier_stats = self.df.groupby("market_cap_tier")["outcome_binary"].agg(
+            ["mean", "count"]
+        )
         for tier, row in tier_stats.iterrows():
             tier_str = str(tier) if not isinstance(tier, str) else tier
-            logger.info(f"  {tier_str:10s}: {row['mean']:.1%} win rate ({int(row['count'])} setups)")
+            logger.info(
+                f"  {tier_str:10s}: {row['mean']:.1%} win rate ({int(row['count'])} setups)"
+            )
 
     def create_feature_report(self):
         """Create a comprehensive feature importance report."""
@@ -248,7 +272,9 @@ class FeatureAnalyzer:
         for col in feature_summary.columns:
             min_val = feature_summary[col].min()
             max_val = feature_summary[col].max()
-            feature_summary[f"{col}_norm"] = (feature_summary[col] - min_val) / (max_val - min_val)
+            feature_summary[f"{col}_norm"] = (feature_summary[col] - min_val) / (
+                max_val - min_val
+            )
 
         # Calculate composite score
         feature_summary["composite_score"] = (
@@ -257,7 +283,9 @@ class FeatureAnalyzer:
             + feature_summary["rf_importance_norm"] * 0.5
         )
 
-        feature_summary = feature_summary.sort_values("composite_score", ascending=False)
+        feature_summary = feature_summary.sort_values(
+            "composite_score", ascending=False
+        )
 
         logger.info("\n🏆 TOP 20 MOST PREDICTIVE FEATURES (Composite Score):")
         logger.info("-" * 80)
@@ -298,10 +326,14 @@ class FeatureAnalyzer:
             logger.info("\n2. VOLATILITY MATTERS:")
             logger.info(f"   - Key features: {', '.join(volatility_features)}")
             logger.info("   - Higher volatility slightly improves win rate")
-            logger.info("   → Recommendation: Increase positions during volatile periods")
+            logger.info(
+                "   → Recommendation: Increase positions during volatile periods"
+            )
 
         # Symbol-specific insights
-        symbol_features = [f for f in top_features if "symbol_vs_btc" in f or "correlation" in f]
+        symbol_features = [
+            f for f in top_features if "symbol_vs_btc" in f or "correlation" in f
+        ]
         if symbol_features:
             logger.info("\n3. RELATIVE PERFORMANCE IS PREDICTIVE:")
             logger.info(f"   - Key features: {', '.join(symbol_features)}")
@@ -316,7 +348,9 @@ class FeatureAnalyzer:
             logger.info("   → Recommendation: Tier-specific thresholds and targets")
 
         # Technical insights
-        technical_features = [f for f in top_features if "sma" in f or "drop" in f or "volume" in f]
+        technical_features = [
+            f for f in top_features if "sma" in f or "drop" in f or "volume" in f
+        ]
         if technical_features:
             logger.info("\n5. TECHNICAL INDICATORS:")
             logger.info(f"   - Key features: {', '.join(technical_features[:3])}")

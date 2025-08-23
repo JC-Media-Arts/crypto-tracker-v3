@@ -33,13 +33,19 @@ def get_connection_info():
 
     print("\n3. Find the connection string that looks like ONE of these formats:")
     print("\n   Format A (Direct Connection - Port 5432):")
-    print("   postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.com:5432/postgres")
+    print(
+        "   postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.com:5432/postgres"
+    )
 
     print("\n   Format B (Pooled Connection - Port 6543):")
-    print("   postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres")
+    print(
+        "   postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres"
+    )
 
     print("\n   Format C (Legacy Format):")
-    print("   postgresql://postgres:[password]@db.[project-ref].supabase.co:5432/postgres")
+    print(
+        "   postgresql://postgres:[password]@db.[project-ref].supabase.co:5432/postgres"
+    )
 
     print("\n4. Copy the ENTIRE connection string")
 
@@ -65,7 +71,9 @@ def get_connection_info():
     # Add psql to PATH
     import os
 
-    os.environ["PATH"] = "/opt/homebrew/opt/postgresql@16/bin:" + os.environ.get("PATH", "")
+    os.environ["PATH"] = "/opt/homebrew/opt/postgresql@16/bin:" + os.environ.get(
+        "PATH", ""
+    )
 
     try:
         result = subprocess.run(
@@ -98,7 +106,9 @@ def get_connection_info():
             print("1. Password is incorrect (try resetting it again)")
             print("2. Connection string format is wrong")
             print("3. Database is not accepting connections")
-            print("\nTry copying the connection string directly from Supabase Dashboard")
+            print(
+                "\nTry copying the connection string directly from Supabase Dashboard"
+            )
             return None
 
     except subprocess.TimeoutExpired:

@@ -189,7 +189,9 @@ class DCALabelGenerator:
             current_start = current_end
 
         if len(all_data) < 100:
-            logger.warning(f"Insufficient data for {symbol}: only {len(all_data)} records")
+            logger.warning(
+                f"Insufficient data for {symbol}: only {len(all_data)} records"
+            )
             return []
 
         # Convert to DataFrame
@@ -235,12 +237,16 @@ class DCALabelGenerator:
 
         return setups
 
-    def simulate_dca_outcome(self, setup: Dict, df: pd.DataFrame, ml_confidence: float = 0.6) -> Dict:
+    def simulate_dca_outcome(
+        self, setup: Dict, df: pd.DataFrame, ml_confidence: float = 0.6
+    ) -> Dict:
         """
         Simulate DCA grid execution and determine outcome.
         """
         # Get grid configuration
-        grid = self.grid_calculator.calculate_grid(setup_price=setup["setup_price"], ml_confidence=ml_confidence)
+        grid = self.grid_calculator.calculate_grid(
+            setup_price=setup["setup_price"], ml_confidence=ml_confidence
+        )
 
         # Simulate grid entries
         start_idx = setup["df_index"]
@@ -267,7 +273,9 @@ class DCALabelGenerator:
 
             # If we have positions, check exit conditions
             if grid_fills:
-                avg_price = sum(g["price"] * g["size"] for g in grid_fills) / sum(g["size"] for g in grid_fills)
+                avg_price = sum(g["price"] * g["size"] for g in grid_fills) / sum(
+                    g["size"] for g in grid_fills
+                )
                 current_pnl = ((current_price - avg_price) / avg_price) * 100
 
                 # Check take profit (use 10% for now, will be ML-optimized later)
@@ -344,7 +352,9 @@ class DCALabelGenerator:
         rsi = 100 - (100 / (1 + rs))
         return rsi.fillna(50)  # Default to neutral
 
-    def generate_labels_for_symbol(self, symbol: str, lookback_days: int = 180) -> pd.DataFrame:
+    def generate_labels_for_symbol(
+        self, symbol: str, lookback_days: int = 180
+    ) -> pd.DataFrame:
         """Generate labels for a single symbol."""
         print(f"\n{'='*60}")
         print(f"Processing {symbol}")
@@ -361,7 +371,9 @@ class DCALabelGenerator:
 
         # Get full data for simulation
         end_time = datetime.now()
-        start_time = end_time - timedelta(days=lookback_days + 7)  # Extra week for simulation
+        start_time = end_time - timedelta(
+            days=lookback_days + 7
+        )  # Extra week for simulation
 
         # Fetch all data (with chunking)
         chunk_hours = 12
@@ -432,7 +444,9 @@ class DCALabelGenerator:
 
         return pd.DataFrame(results)
 
-    def generate_labels(self, symbols: Optional[List[str]] = None, lookback_days: int = 180) -> pd.DataFrame:
+    def generate_labels(
+        self, symbols: Optional[List[str]] = None, lookback_days: int = 180
+    ) -> pd.DataFrame:
         """
         Generate DCA labels from historical data.
 
@@ -464,7 +478,9 @@ class DCALabelGenerator:
 
                     if wins + losses > 0:
                         win_rate = wins / (wins + losses)
-                        print(f"  Results: {wins} wins, {losses} losses, {breakeven} breakeven")
+                        print(
+                            f"  Results: {wins} wins, {losses} losses, {breakeven} breakeven"
+                        )
                         print(f"  Win rate: {win_rate:.1%}")
 
                         if wins > 0:
@@ -486,7 +502,9 @@ class DCALabelGenerator:
         else:
             return pd.DataFrame()
 
-    def save_labels(self, df: pd.DataFrame, filename: str = "dca_training_labels_all.csv"):
+    def save_labels(
+        self, df: pd.DataFrame, filename: str = "dca_training_labels_all.csv"
+    ):
         """Save labels to CSV file."""
         output_dir = Path("data/training")
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -592,7 +610,11 @@ def main():
                 }
 
                 try:
-                    result = supabase.client.table("strategy_setups").insert(setup_data).execute()
+                    result = (
+                        supabase.client.table("strategy_setups")
+                        .insert(setup_data)
+                        .execute()
+                    )
                     if result.data:
                         saved_count += 1
                 except Exception as e:

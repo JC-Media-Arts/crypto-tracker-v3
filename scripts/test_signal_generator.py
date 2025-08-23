@@ -209,7 +209,9 @@ async def test_signal_generator():
     active = generator.get_active_signals()
     print(f"   Active signals: {len(active)}")
     for sig in active:
-        print(f"   - {sig['symbol']}: {sig['status']} (confidence: {sig['confidence']:.1%})")
+        print(
+            f"   - {sig['symbol']}: {sig['status']} (confidence: {sig['confidence']:.1%})"
+        )
 
     # Test 3: Process pending signals
     print("\n3. Processing pending signals...")
@@ -255,7 +257,9 @@ async def test_signal_generator():
     if generator.active_signals:
         # Set first signal to expired time
         first_signal_id = list(generator.active_signals.keys())[0]
-        generator.active_signals[first_signal_id]["expires_at"] = datetime.now() - timedelta(seconds=1)
+        generator.active_signals[first_signal_id][
+            "expires_at"
+        ] = datetime.now() - timedelta(seconds=1)
 
         # Run cleanup
         generator.cleanup_expired_signals()

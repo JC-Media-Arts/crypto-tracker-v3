@@ -102,9 +102,14 @@ class HealthChecker:
                     )
                 else:
                     # Check how long since last data
-                    time_since_data = (datetime.utcnow() - self.last_data_time).total_seconds()
+                    time_since_data = (
+                        datetime.utcnow() - self.last_data_time
+                    ).total_seconds()
 
-                    if time_since_data > self.HEALTH_CONFIG["data_flow"]["alert_threshold"]:
+                    if (
+                        time_since_data
+                        > self.HEALTH_CONFIG["data_flow"]["alert_threshold"]
+                    ):
                         self.data_flow_healthy = False
                         await self._send_alert(
                             "Data Flow Issue",
@@ -129,9 +134,14 @@ class HealthChecker:
 
                     if symbol in price_changes and current_price:
                         last_price = price_changes[symbol]
-                        change_pct = abs((current_price - last_price) / last_price * 100)
+                        change_pct = abs(
+                            (current_price - last_price) / last_price * 100
+                        )
 
-                        if change_pct > self.HEALTH_CONFIG["price_sanity"]["max_change_pct"]:
+                        if (
+                            change_pct
+                            > self.HEALTH_CONFIG["price_sanity"]["max_change_pct"]
+                        ):
                             await self._send_alert(
                                 "Price Anomaly",
                                 f"{symbol} changed {change_pct:.1f}% in 1 minute",
@@ -139,7 +149,9 @@ class HealthChecker:
 
                     price_changes[symbol] = current_price
 
-                await asyncio.sleep(self.HEALTH_CONFIG["price_sanity"]["check_frequency"])
+                await asyncio.sleep(
+                    self.HEALTH_CONFIG["price_sanity"]["check_frequency"]
+                )
 
             except Exception as e:
                 logger.error(f"Error checking price sanity: {e}")
@@ -159,9 +171,14 @@ class HealthChecker:
                     if ml_status["active_predictions"] > 0:
                         self.last_prediction_time = datetime.utcnow()
                     else:
-                        time_since_prediction = (datetime.utcnow() - self.last_prediction_time).total_seconds()
+                        time_since_prediction = (
+                            datetime.utcnow() - self.last_prediction_time
+                        ).total_seconds()
 
-                        if time_since_prediction > self.HEALTH_CONFIG["ml_health"]["alert_threshold"]:
+                        if (
+                            time_since_prediction
+                            > self.HEALTH_CONFIG["ml_health"]["alert_threshold"]
+                        ):
                             self.ml_healthy = False
                             await self._send_alert(
                                 "ML Issue",
@@ -210,7 +227,9 @@ class HealthChecker:
                     )
 
                 if trading_status["daily_pnl"] < -50:
-                    await self._send_alert("P&L Alert", f'Daily P&L: ${trading_status["daily_pnl"]:.2f}')
+                    await self._send_alert(
+                        "P&L Alert", f'Daily P&L: ${trading_status["daily_pnl"]:.2f}'
+                    )
 
                 await self._record_metric(
                     {
@@ -261,5 +280,7 @@ class HealthChecker:
             "trading_system": self.trading_healthy,
             "last_data": self.last_data_time.isoformat(),
             "last_prediction": self.last_prediction_time.isoformat(),
-            "overall_health": all([self.data_flow_healthy, self.ml_healthy, self.trading_healthy]),
+            "overall_health": all(
+                [self.data_flow_healthy, self.ml_healthy, self.trading_healthy]
+            ),
         }

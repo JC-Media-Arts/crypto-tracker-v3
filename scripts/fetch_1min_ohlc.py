@@ -70,7 +70,9 @@ class OneMinuteFetcher:
             logger.error(f"Error checking {symbol}: {e}")
             return False, 0
 
-    def fetch_batch(self, symbol: str, start_date: datetime, end_date: datetime) -> List[Dict]:
+    def fetch_batch(
+        self, symbol: str, start_date: datetime, end_date: datetime
+    ) -> List[Dict]:
         """Fetch a batch of 1-minute OHLC data"""
         try:
             ticker = f"X:{symbol}USD"
@@ -92,7 +94,9 @@ class OneMinuteFetcher:
             for bar in bars:
                 data.append(
                     {
-                        "timestamp": pd.Timestamp(bar.timestamp, unit="ms", tz="UTC").isoformat(),
+                        "timestamp": pd.Timestamp(
+                            bar.timestamp, unit="ms", tz="UTC"
+                        ).isoformat(),
                         "symbol": symbol,
                         "timeframe": "1m",
                         "open": float(bar.open),
@@ -100,8 +104,16 @@ class OneMinuteFetcher:
                         "low": float(bar.low),
                         "close": float(bar.close),
                         "volume": float(bar.volume) if bar.volume else 0,
-                        "vwap": (float(bar.vwap) if hasattr(bar, "vwap") and bar.vwap else None),
-                        "trades": (int(bar.transactions) if hasattr(bar, "transactions") else None),
+                        "vwap": (
+                            float(bar.vwap)
+                            if hasattr(bar, "vwap") and bar.vwap
+                            else None
+                        ),
+                        "trades": (
+                            int(bar.transactions)
+                            if hasattr(bar, "transactions")
+                            else None
+                        ),
                     }
                 )
 
@@ -135,7 +147,11 @@ class OneMinuteFetcher:
                     for j in range(0, len(batch), 500):
                         small_batch = batch[j : j + 500]
                         try:
-                            result = self.supabase.client.table("ohlc_data").upsert(small_batch).execute()
+                            result = (
+                                self.supabase.client.table("ohlc_data")
+                                .upsert(small_batch)
+                                .execute()
+                            )
                             logger.success(f"Saved {len(small_batch)} bars (retry)")
                         except:
                             return False
@@ -173,7 +189,9 @@ class OneMinuteFetcher:
 
             if data:
                 # Save immediately for 1-minute data (too much to hold in memory)
-                logger.info(f"Saving batch: {current_date.date()} to {batch_end.date()} - {len(data)} bars")
+                logger.info(
+                    f"Saving batch: {current_date.date()} to {batch_end.date()} - {len(data)} bars"
+                )
                 if not self.save_batch(data):
                     logger.error(f"Failed to save batch for {symbol}")
                     return len(all_data)
@@ -223,7 +241,9 @@ class OneMinuteFetcher:
         logger.info("1-MINUTE DATA COMPLETE")
         logger.info("=" * 80)
 
-        successful = sum(1 for r in self.results.values() if r.get("status") == "completed")
+        successful = sum(
+            1 for r in self.results.values() if r.get("status") == "completed"
+        )
         skipped = sum(1 for r in self.results.values() if r.get("status") == "skipped")
         failed = sum(1 for r in self.results.values() if r.get("status") == "failed")
 

@@ -93,7 +93,8 @@ def save_trades_to_db():
                             "created_at": trade["entry_time"],
                             "filled_at": trade["entry_time"],
                             "strategy_name": trade["strategy"],
-                            "fees": trade["fees_paid"] / 2,  # Split fees between entry and exit
+                            "fees": trade["fees_paid"]
+                            / 2,  # Split fees between entry and exit
                         }
 
                         db.client.table("paper_trades").insert(entry_data).execute()
@@ -117,12 +118,16 @@ def save_trades_to_db():
 
                         # Try to add exit_reason if column exists
                         try:
-                            exit_data["exit_reason"] = trade.get("exit_reason", "unknown")
+                            exit_data["exit_reason"] = trade.get(
+                                "exit_reason", "unknown"
+                            )
                         except:
                             pass
 
                         db.client.table("paper_trades").insert(exit_data).execute()
-                        logger.info(f"✅ Saved completed trade to DB: {trade['symbol']} (P&L: ${trade['pnl_usd']:.2f})")
+                        logger.info(
+                            f"✅ Saved completed trade to DB: {trade['symbol']} (P&L: ${trade['pnl_usd']:.2f})"
+                        )
                     else:
                         logger.info(f"Trade already in DB: {trade['symbol']}")
 
@@ -141,7 +146,9 @@ def save_trades_to_db():
             # Calculate P&L
             initial_balance = state.get("initial_balance", 1000)
             current_balance = state.get("balance", 1000)
-            positions_value = sum(p["usd_value"] for p in state.get("positions", {}).values())
+            positions_value = sum(
+                p["usd_value"] for p in state.get("positions", {}).values()
+            )
             total_pnl = (current_balance + positions_value) - initial_balance
 
             # Check if record exists
@@ -180,9 +187,9 @@ def save_trades_to_db():
                     "setups_taken": total_trades,
                 }
 
-                db.client.table("paper_performance").update(perf_data).eq("date", today).eq(
-                    "trading_engine", "simple_paper_trader"
-                ).execute()
+                db.client.table("paper_performance").update(perf_data).eq(
+                    "date", today
+                ).eq("trading_engine", "simple_paper_trader").execute()
                 logger.info(f"✅ Updated daily performance in DB: P&L ${total_pnl:.2f}")
 
         except Exception as e:

@@ -46,7 +46,9 @@ class SimplifiedPaperTradingSystem:
 
         # Initialize components
         self.data_fetcher = HybridDataFetcher()
-        self.paper_trader = SimplePaperTraderV2(initial_balance=1000.0, max_positions=50)
+        self.paper_trader = SimplePaperTraderV2(
+            initial_balance=1000.0, max_positions=50
+        )
 
         # Initialize notifier for system-level alerts
         self.notifier = None
@@ -97,7 +99,9 @@ class SimplifiedPaperTradingSystem:
         logger.info(f"   Max Positions: {self.paper_trader.max_positions}")
         logger.info(f"   DCA Threshold: {self.config['dca_drop_threshold']}%")
         logger.info(f"   Swing Threshold: {self.config['swing_breakout_threshold']}%")
-        logger.info(f"   Channel Threshold: {self.config['channel_position_threshold']}")
+        logger.info(
+            f"   Channel Threshold: {self.config['channel_position_threshold']}"
+        )
         logger.info("=" * 80)
 
     def get_symbols(self) -> List[str]:
@@ -222,7 +226,9 @@ class SimplifiedPaperTradingSystem:
         for symbol in available_symbols:
             try:
                 # Get 1-minute data for faster signals
-                data = await self.data_fetcher.get_recent_data(symbol=symbol, timeframe="1m", hours=24)
+                data = await self.data_fetcher.get_recent_data(
+                    symbol=symbol, timeframe="1m", hours=24
+                )
                 if data and len(data) > 100:
                     market_data[symbol] = data
             except Exception as e:
@@ -256,7 +262,9 @@ class SimplifiedPaperTradingSystem:
                     dca_signal["strategy"] = "DCA"
                     # Ensure we have current_price in all signals
                     if "current_price" not in dca_signal:
-                        dca_signal["current_price"] = dca_signal.get("price", data[-1]["close"])
+                        dca_signal["current_price"] = dca_signal.get(
+                            "price", data[-1]["close"]
+                        )
                     signals.append(dca_signal)
                     logger.info(
                         f"📊 DCA Signal: {symbol} - drop {dca_signal.get('drop_pct', 0):.1f}% "
@@ -270,7 +278,9 @@ class SimplifiedPaperTradingSystem:
                     swing_signal["strategy"] = "SWING"
                     # Ensure we have current_price
                     if "current_price" not in swing_signal:
-                        swing_signal["current_price"] = swing_signal.get("price", data[-1]["close"])
+                        swing_signal["current_price"] = swing_signal.get(
+                            "price", data[-1]["close"]
+                        )
                     signals.append(swing_signal)
                     logger.info(
                         f"📊 Swing Signal: {symbol} - breakout {swing_signal.get('breakout_pct', 0):.1f}% "
@@ -284,7 +294,9 @@ class SimplifiedPaperTradingSystem:
                     channel_signal["strategy"] = "CHANNEL"
                     # Ensure we have current_price
                     if "current_price" not in channel_signal:
-                        channel_signal["current_price"] = channel_signal.get("price", data[-1]["close"])
+                        channel_signal["current_price"] = channel_signal.get(
+                            "price", data[-1]["close"]
+                        )
                     signals.append(channel_signal)
                     logger.info(
                         f"📊 Channel Signal: {symbol} - position {channel_signal.get('position', 0):.2f} "
@@ -331,7 +343,9 @@ class SimplifiedPaperTradingSystem:
             )
 
             if success:
-                logger.info(f"✅ Opened {strategy} position: {symbol} @ ${trading_signal['current_price']:.4f}")
+                logger.info(
+                    f"✅ Opened {strategy} position: {symbol} @ ${trading_signal['current_price']:.4f}"
+                )
 
                 # Log to scan_history for research system to analyze later
                 # Note: Skipping scan_history logging for now - table schema mismatch
@@ -360,7 +374,9 @@ class SimplifiedPaperTradingSystem:
         for symbol in list(self.active_positions.keys()):
             try:
                 # Get current price
-                data = await self.data_fetcher.get_recent_data(symbol=symbol, timeframe="1m", hours=1)
+                data = await self.data_fetcher.get_recent_data(
+                    symbol=symbol, timeframe="1m", hours=1
+                )
 
                 if data:
                     current_prices[symbol] = data[-1]["close"]
@@ -376,7 +392,10 @@ class SimplifiedPaperTradingSystem:
             )
 
             for trade in closed_trades:
-                logger.info(f"📊 Closed {trade.symbol}: {trade.exit_reason} " f"P&L: ${trade.pnl:.2f}")
+                logger.info(
+                    f"📊 Closed {trade.symbol}: {trade.exit_reason} "
+                    f"P&L: ${trade.pnl:.2f}"
+                )
 
                 # Log outcome for research
                 try:
@@ -464,7 +483,9 @@ async def main():
                 s.bind(("", 8080))
             except OSError:
                 port_available = False
-                logger.warning("Port 8080 is already in use - dashboard may be running in another process")
+                logger.warning(
+                    "Port 8080 is already in use - dashboard may be running in another process"
+                )
 
         if port_available:
             from live_dashboard import app

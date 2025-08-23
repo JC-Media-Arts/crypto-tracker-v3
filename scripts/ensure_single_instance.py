@@ -75,7 +75,11 @@ def kill_existing_collectors():
             cmdline = " ".join(proc.info["cmdline"] or [])
 
             # Check for data collector processes
-            if "collector" in cmdline.lower() or "websocket" in cmdline.lower() or "run_data_collector" in cmdline:
+            if (
+                "collector" in cmdline.lower()
+                or "websocket" in cmdline.lower()
+                or "run_data_collector" in cmdline
+            ):
                 # Don't kill ourselves
                 if proc.info["pid"] != os.getpid():
                     proc.terminate()

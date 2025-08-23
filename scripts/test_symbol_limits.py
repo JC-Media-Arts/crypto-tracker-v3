@@ -175,7 +175,9 @@ class SymbolLimitTester:
         ws.send(json.dumps(auth_message))
 
         # Subscribe to symbols
-        subscriptions = ",".join([f"XA.{symbol}-USD" for symbol in self.symbols_to_test])
+        subscriptions = ",".join(
+            [f"XA.{symbol}-USD" for symbol in self.symbols_to_test]
+        )
         subscribe_message = {"action": "subscribe", "params": subscriptions}
 
         ws.send(json.dumps(subscribe_message))

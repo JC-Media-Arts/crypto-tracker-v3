@@ -63,10 +63,14 @@ class ShadowDashboard:
         )
 
         # Split main into columns
-        layout["main"].split_row(Layout(name="performance", ratio=2), Layout(name="recommendations", ratio=1))
+        layout["main"].split_row(
+            Layout(name="performance", ratio=2), Layout(name="recommendations", ratio=1)
+        )
 
         # Split performance into rows
-        layout["performance"].split_column(Layout(name="champion_vs_challengers"), Layout(name="recent_outcomes"))
+        layout["performance"].split_column(
+            Layout(name="champion_vs_challengers"), Layout(name="recent_outcomes")
+        )
 
         # Populate sections
         layout["header"].update(self._create_header())
@@ -81,7 +85,9 @@ class ShadowDashboard:
         """Create header panel"""
         header_text = Text()
         header_text.append("🔬 Shadow Testing Dashboard\n", style="bold cyan")
-        header_text.append(f"Last Updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", style="dim")
+        header_text.append(
+            f"Last Updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", style="dim"
+        )
 
         return Panel(header_text, style="bold blue")
 
@@ -179,7 +185,9 @@ class ShadowDashboard:
 
             result = (
                 self.supabase.client.table("shadow_outcomes")
-                .select("*, shadow_variations!inner(variation_name, scan_history!inner(symbol, strategy_name))")
+                .select(
+                    "*, shadow_variations!inner(variation_name, scan_history!inner(symbol, strategy_name))"
+                )
                 .gte("evaluated_at", cutoff)
                 .order("evaluated_at", desc=True)
                 .limit(15)
@@ -194,7 +202,9 @@ class ShadowDashboard:
                     strategy = row["shadow_variations"]["scan_history"]["strategy_name"]
 
                     # Format time
-                    eval_time = datetime.fromisoformat(row["evaluated_at"].replace("Z", "+00:00"))
+                    eval_time = datetime.fromisoformat(
+                        row["evaluated_at"].replace("Z", "+00:00")
+                    )
                     time_str = eval_time.strftime("%H:%M")
 
                     # Color code result
@@ -242,7 +252,9 @@ class ShadowDashboard:
 
                 for i, rec in enumerate(recommendations[:3], 1):
                     # Confidence emoji
-                    conf_emoji = {"HIGH": "🟢", "MEDIUM": "🟡", "LOW": "⚪"}.get(rec.confidence_level, "⚪")
+                    conf_emoji = {"HIGH": "🟢", "MEDIUM": "🟡", "LOW": "⚪"}.get(
+                        rec.confidence_level, "⚪"
+                    )
 
                     text.append(
                         f"{i}. {rec.strategy_name} - {rec.parameter_name}\n",
@@ -257,9 +269,15 @@ class ShadowDashboard:
                         f"   Recommended: {rec.recommended_value:.2f}\n",
                         style="bold green",
                     )
-                    text.append(f"   Evidence: {rec.evidence_trades} trades\n", style="dim")
-                    text.append(f"   Outperformance: {rec.outperformance:+.1%}\n", style="green")
-                    text.append(f"   Source: {rec.variation_source}\n", style="dim cyan")
+                    text.append(
+                        f"   Evidence: {rec.evidence_trades} trades\n", style="dim"
+                    )
+                    text.append(
+                        f"   Outperformance: {rec.outperformance:+.1%}\n", style="green"
+                    )
+                    text.append(
+                        f"   Source: {rec.variation_source}\n", style="dim cyan"
+                    )
                     text.append(f"   Reason: {rec.reason}\n\n", style="italic")
             else:
                 text = Text("No recommendations at this time.\n", style="dim")
@@ -281,7 +299,9 @@ class ShadowDashboard:
         active_vars = ShadowConfig.get_active_variations()
 
         footer_text = Text()
-        footer_text.append(f"Active Variations: {', '.join(active_vars)}\n", style="dim cyan")
+        footer_text.append(
+            f"Active Variations: {', '.join(active_vars)}\n", style="dim cyan"
+        )
         footer_text.append("Press Ctrl+C to exit", style="dim italic")
 
         return Panel(footer_text, style="dim blue")
@@ -330,11 +350,17 @@ class ShadowDashboard:
                 stats_table.add_column("Metric", style="cyan")
                 stats_table.add_column("Value", justify="right", style="white")
 
-                stats_table.add_row("Total Opportunities", str(champion["total_opportunities"]))
+                stats_table.add_row(
+                    "Total Opportunities", str(champion["total_opportunities"])
+                )
                 stats_table.add_row("Trades Taken", str(champion["trades_taken"]))
-                stats_table.add_row("Trades Completed", str(champion["trades_completed"]))
+                stats_table.add_row(
+                    "Trades Completed", str(champion["trades_completed"])
+                )
                 stats_table.add_row("Win Rate", f"{champion['win_rate']:.1%}")
-                stats_table.add_row("Average P&L", f"{champion['avg_pnl_percentage']:.2f}%")
+                stats_table.add_row(
+                    "Average P&L", f"{champion['avg_pnl_percentage']:.2f}%"
+                )
                 stats_table.add_row("Sharpe Ratio", f"{champion['sharpe_ratio']:.2f}")
                 stats_table.add_row("Max Drawdown", f"{champion['max_drawdown']:.2f}%")
 
@@ -349,8 +375,12 @@ async def main():
     import argparse
 
     parser = argparse.ArgumentParser(description="Shadow Testing Dashboard")
-    parser.add_argument("--live", action="store_true", help="Run live updating dashboard")
-    parser.add_argument("--refresh", type=int, default=60, help="Refresh interval in seconds")
+    parser.add_argument(
+        "--live", action="store_true", help="Run live updating dashboard"
+    )
+    parser.add_argument(
+        "--refresh", type=int, default=60, help="Refresh interval in seconds"
+    )
 
     args = parser.parse_args()
 

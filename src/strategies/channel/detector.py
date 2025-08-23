@@ -60,11 +60,21 @@ class ChannelDetector:
 
         # Channel detection parameters
         self.min_touches = self.config.get("min_touches", 2)  # Min touches per line
-        self.lookback_periods = self.config.get("lookback_periods", 100)  # Bars to analyze
-        self.touch_tolerance = self.config.get("touch_tolerance", 0.002)  # 0.2% tolerance
-        self.min_channel_width = self.config.get("min_channel_width", 0.01)  # 1% minimum
-        self.max_channel_width = self.config.get("max_channel_width", 0.10)  # 10% maximum
-        self.parallel_tolerance = self.config.get("parallel_tolerance", 0.15)  # 15% slope difference
+        self.lookback_periods = self.config.get(
+            "lookback_periods", 100
+        )  # Bars to analyze
+        self.touch_tolerance = self.config.get(
+            "touch_tolerance", 0.002
+        )  # 0.2% tolerance
+        self.min_channel_width = self.config.get(
+            "min_channel_width", 0.01
+        )  # 1% minimum
+        self.max_channel_width = self.config.get(
+            "max_channel_width", 0.10
+        )  # 10% maximum
+        self.parallel_tolerance = self.config.get(
+            "parallel_tolerance", 0.15
+        )  # 15% slope difference
 
         # Trading zones
         self.buy_zone = self.config.get("buy_zone", 0.25)  # Bottom 25% of channel
@@ -121,7 +131,9 @@ class ChannelDetector:
 
         return None
 
-    def _find_local_extremes(self, prices: np.ndarray, is_high: bool, window: int = 3) -> List[int]:
+    def _find_local_extremes(
+        self, prices: np.ndarray, is_high: bool, window: int = 3
+    ) -> List[int]:
         """
         Find local highs or lows in price data
         """
@@ -146,13 +158,19 @@ class ChannelDetector:
                 if is_high and prices[i] > prices[i - 1] and prices[i] > prices[i + 1]:
                     if i not in extremes:
                         extremes.append(i)
-                elif not is_high and prices[i] < prices[i - 1] and prices[i] < prices[i + 1]:
+                elif (
+                    not is_high
+                    and prices[i] < prices[i - 1]
+                    and prices[i] < prices[i + 1]
+                ):
                     if i not in extremes:
                         extremes.append(i)
 
         return extremes
 
-    def _fit_line(self, indices: List[int], prices: np.ndarray) -> Optional[Tuple[float, float]]:
+    def _fit_line(
+        self, indices: List[int], prices: np.ndarray
+    ) -> Optional[Tuple[float, float]]:
         """
         Fit a line to price points using linear regression
         Returns (slope, intercept)
@@ -174,7 +192,9 @@ class ChannelDetector:
         except:
             return None
 
-    def _are_parallel(self, line1: Tuple[float, float], line2: Tuple[float, float]) -> bool:
+    def _are_parallel(
+        self, line1: Tuple[float, float], line2: Tuple[float, float]
+    ) -> bool:
         """
         Check if two lines are approximately parallel
         """
@@ -190,7 +210,11 @@ class ChannelDetector:
             return False
 
         slope_ratio = abs(slope1 / slope2)
-        return (1 - self.parallel_tolerance) <= slope_ratio <= (1 + self.parallel_tolerance)
+        return (
+            (1 - self.parallel_tolerance)
+            <= slope_ratio
+            <= (1 + self.parallel_tolerance)
+        )
 
     def _create_channel(
         self,
@@ -225,7 +249,9 @@ class ChannelDetector:
         touches_lower = self._count_touches(df["low"].values, lower_line)
 
         # Calculate channel strength (based on touches and consistency)
-        strength = self._calculate_strength(df, upper_line, lower_line, touches_upper, touches_lower)
+        strength = self._calculate_strength(
+            df, upper_line, lower_line, touches_upper, touches_lower
+        )
 
         # Current position in channel
         current_price = df["close"].iloc[-1]
@@ -331,7 +357,9 @@ class ChannelDetector:
 
         return None
 
-    def calculate_targets(self, channel: Channel, entry_price: float, signal: str) -> Dict[str, float]:
+    def calculate_targets(
+        self, channel: Channel, entry_price: float, signal: str
+    ) -> Dict[str, float]:
         """
         Calculate take profit and stop loss for channel trade
         """

@@ -42,7 +42,9 @@ class SystemStatusChecker:
         """Run comprehensive system check (synchronous)"""
         print(f"{Fore.CYAN}{'='*60}")
         print(f"{Fore.CYAN}COMPLETE SYSTEM STATUS CHECK")
-        print(f"{Fore.CYAN}Time: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}")
+        print(
+            f"{Fore.CYAN}Time: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}"
+        )
         print(f"{Fore.CYAN}{'='*60}\n")
 
         # Check all major components
@@ -75,7 +77,12 @@ class SystemStatusChecker:
 
         # Check open positions
         try:
-            result = self.supabase.client.table("trade_logs").select("*", count="exact").eq("status", "OPEN").execute()
+            result = (
+                self.supabase.client.table("trade_logs")
+                .select("*", count="exact")
+                .eq("status", "OPEN")
+                .execute()
+            )
 
             open_positions = result.count if result else 0
             checks["Open Positions"] = open_positions
@@ -94,7 +101,9 @@ class SystemStatusChecker:
 
             if result.data and len(result.data) > 0:
                 last_trade_str = result.data[0]["created_at"]
-                last_trade = datetime.fromisoformat(last_trade_str.replace("Z", "+00:00"))
+                last_trade = datetime.fromisoformat(
+                    last_trade_str.replace("Z", "+00:00")
+                )
                 time_since = datetime.now(timezone.utc) - last_trade
                 hours_ago = time_since.total_seconds() / 3600
                 checks["Last Trade"] = f"{hours_ago:.1f} hours ago"
@@ -116,11 +125,15 @@ class SystemStatusChecker:
         checks = {}
 
         # Check ML predictor process
-        ml_running = self.check_process("predictor") or self.check_process("feature_calculator")
+        ml_running = self.check_process("predictor") or self.check_process(
+            "feature_calculator"
+        )
         checks["ML Process"] = ml_running
 
         # Check recent ML features
-        recent_features = self.check_recent_table_activity("ml_features", "timestamp", 30)
+        recent_features = self.check_recent_table_activity(
+            "ml_features", "timestamp", 30
+        )
         checks["Recent Features (30 min)"] = f"{recent_features} records"
 
         # Check model files exist
@@ -144,7 +157,9 @@ class SystemStatusChecker:
 
             if result.data and len(result.data) > 0:
                 last_feature_str = result.data[0]["timestamp"]
-                last_feature = datetime.fromisoformat(last_feature_str.replace("Z", "+00:00"))
+                last_feature = datetime.fromisoformat(
+                    last_feature_str.replace("Z", "+00:00")
+                )
                 time_since = datetime.now(timezone.utc) - last_feature
                 minutes_ago = time_since.total_seconds() / 60
                 checks["Feature Freshness"] = f"{minutes_ago:.1f} min ago"
@@ -174,7 +189,11 @@ class SystemStatusChecker:
         for table, time_col in shadow_tables:
             try:
                 # Check if table exists and has recent activity
-                result = self.supabase.client.table(table).select("*", count="exact").execute()
+                result = (
+                    self.supabase.client.table(table)
+                    .select("*", count="exact")
+                    .execute()
+                )
 
                 if result:
                     total_records = result.count if result.count else 0
@@ -189,7 +208,9 @@ class SystemStatusChecker:
                     checks[f"{table}"] = f"Error: {str(e)[:30]}"
 
         # Check shadow evaluator process
-        shadow_running = self.check_process("shadow") and self.check_process("evaluator")
+        shadow_running = self.check_process("shadow") and self.check_process(
+            "evaluator"
+        )
         checks["Shadow Evaluator Process"] = shadow_running
 
         self.print_component_status("Shadow Testing", checks)
@@ -236,7 +257,12 @@ class SystemStatusChecker:
         # Check symbol coverage (last hour)
         try:
             one_hour_ago = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
-            result = self.supabase.client.table("ohlc_data").select("symbol").gte("timestamp", one_hour_ago).execute()
+            result = (
+                self.supabase.client.table("ohlc_data")
+                .select("symbol")
+                .gte("timestamp", one_hour_ago)
+                .execute()
+            )
 
             if result.data:
                 unique_symbols = len(set(row["symbol"] for row in result.data))
@@ -248,7 +274,11 @@ class SystemStatusChecker:
 
         # Check total OHLC records
         try:
-            result = self.supabase.client.table("ohlc_data").select("*", count="exact").execute()
+            result = (
+                self.supabase.client.table("ohlc_data")
+                .select("*", count="exact")
+                .execute()
+            )
 
             if result:
                 total_records = result.count if result.count else 0
@@ -271,7 +301,9 @@ class SystemStatusChecker:
         for strategy in strategies:
             # Check recent scans in scan_history
             try:
-                one_hour_ago = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
+                one_hour_ago = (
+                    datetime.now(timezone.utc) - timedelta(hours=1)
+                ).isoformat()
                 result = (
                     self.supabase.client.table("scan_history")
                     .select("*", count="exact")
@@ -289,7 +321,11 @@ class SystemStatusChecker:
             strategy_table = f"{strategy.lower()}_strategy_setups"
             try:
                 # Try to get recent setups from strategy-specific table
-                result = self.supabase.client.table(strategy_table).select("*", count="exact").execute()
+                result = (
+                    self.supabase.client.table(strategy_table)
+                    .select("*", count="exact")
+                    .execute()
+                )
 
                 if result:
                     setup_count = result.count if result.count else 0
@@ -298,7 +334,9 @@ class SystemStatusChecker:
                 if "relation" in str(e) and "does not exist" in str(e):
                     # Table doesn't exist, check scan_history for signals instead
                     try:
-                        twenty_four_hours_ago = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
+                        twenty_four_hours_ago = (
+                            datetime.now(timezone.utc) - timedelta(hours=24)
+                        ).isoformat()
                         result = (
                             self.supabase.client.table("scan_history")
                             .select("*", count="exact")
@@ -316,7 +354,9 @@ class SystemStatusChecker:
                     checks[f"{strategy} Setups"] = "Error"
 
         # Check strategy manager process
-        manager_running = self.check_process("strategy_manager") or self.check_process("signal_generator")
+        manager_running = self.check_process("strategy_manager") or self.check_process(
+            "signal_generator"
+        )
         checks["Strategy Manager Process"] = manager_running
 
         self.print_component_status("Strategy Engines", checks)
@@ -331,7 +371,12 @@ class SystemStatusChecker:
 
         # Check open positions count
         try:
-            result = self.supabase.client.table("trade_logs").select("*", count="exact").eq("status", "OPEN").execute()
+            result = (
+                self.supabase.client.table("trade_logs")
+                .select("*", count="exact")
+                .eq("status", "OPEN")
+                .execute()
+            )
 
             open_positions = result.count if result and result.count else 0
             max_positions = 5  # Your configured max
@@ -342,13 +387,28 @@ class SystemStatusChecker:
 
         # Check daily P&L
         try:
-            today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
-            result = self.supabase.client.table("trade_logs").select("pnl").gte("created_at", today_start).execute()
+            today_start = (
+                datetime.now(timezone.utc)
+                .replace(hour=0, minute=0, second=0, microsecond=0)
+                .isoformat()
+            )
+            result = (
+                self.supabase.client.table("trade_logs")
+                .select("pnl")
+                .gte("created_at", today_start)
+                .execute()
+            )
 
             if result.data:
-                daily_pnl = sum(float(trade.get("pnl", 0)) for trade in result.data if trade.get("pnl"))
+                daily_pnl = sum(
+                    float(trade.get("pnl", 0))
+                    for trade in result.data
+                    if trade.get("pnl")
+                )
                 checks["Daily P&L"] = f"${daily_pnl:.2f}"
-                checks["Daily Loss Limit OK"] = daily_pnl > -100  # Assuming $100 daily loss limit
+                checks["Daily Loss Limit OK"] = (
+                    daily_pnl > -100
+                )  # Assuming $100 daily loss limit
             else:
                 checks["Daily P&L"] = "$0.00"
                 checks["Daily Loss Limit OK"] = True
@@ -357,10 +417,17 @@ class SystemStatusChecker:
 
         # Check if stop losses are set on open positions
         try:
-            result = self.supabase.client.table("trade_logs").select("stop_loss_price").eq("status", "OPEN").execute()
+            result = (
+                self.supabase.client.table("trade_logs")
+                .select("stop_loss_price")
+                .eq("status", "OPEN")
+                .execute()
+            )
 
             if result.data and len(result.data) > 0:
-                stops_set = sum(1 for trade in result.data if trade.get("stop_loss_price"))
+                stops_set = sum(
+                    1 for trade in result.data if trade.get("stop_loss_price")
+                )
                 total_open = len(result.data)
                 checks["Stop Losses Set"] = f"{stops_set}/{total_open}"
             else:
@@ -380,7 +447,9 @@ class SystemStatusChecker:
 
         # Check if railway CLI is available
         try:
-            result = subprocess.run(["railway", "status"], capture_output=True, text=True, timeout=5)
+            result = subprocess.run(
+                ["railway", "status"], capture_output=True, text=True, timeout=5
+            )
             railway_available = result.returncode == 0
 
             if railway_available:
@@ -425,7 +494,11 @@ class SystemStatusChecker:
         tables = ["ohlc_data", "ml_features", "trade_logs", "scan_history"]
         for table in tables:
             try:
-                result = self.supabase.client.table(table).select("*", count="exact").execute()
+                result = (
+                    self.supabase.client.table(table)
+                    .select("*", count="exact")
+                    .execute()
+                )
 
                 if result:
                     count = result.count if result.count else 0
@@ -476,10 +549,14 @@ class SystemStatusChecker:
                 continue
         return False
 
-    def check_recent_table_activity(self, table_name: str, time_column: str, minutes: int) -> int:
+    def check_recent_table_activity(
+        self, table_name: str, time_column: str, minutes: int
+    ) -> int:
         """Check if table has recent activity"""
         try:
-            cutoff_time = (datetime.now(timezone.utc) - timedelta(minutes=minutes)).isoformat()
+            cutoff_time = (
+                datetime.now(timezone.utc) - timedelta(minutes=minutes)
+            ).isoformat()
 
             result = (
                 self.supabase.client.table(table_name)
@@ -501,7 +578,11 @@ class SystemStatusChecker:
         if not critical_checks:
             # No boolean checks, look at other indicators
             all_good = all(
-                (isinstance(v, str) and "Error" not in v and "not found" not in v.lower())
+                (
+                    isinstance(v, str)
+                    and "Error" not in v
+                    and "not found" not in v.lower()
+                )
                 or (isinstance(v, (int, float)) and v > 0)
                 for v in checks.values()
             )
@@ -581,9 +662,15 @@ class SystemStatusChecker:
             for check, value in checks.items():
                 if isinstance(value, bool) and not value:
                     issues.append(f"Fix {component}: {check}")
-                elif isinstance(value, str) and ("Error" in value or "not found" in value.lower()):
+                elif isinstance(value, str) and (
+                    "Error" in value or "not found" in value.lower()
+                ):
                     issues.append(f"Fix {component}: {check}")
-                elif isinstance(value, (int, float)) and value == 0 and "rows" not in check:
+                elif (
+                    isinstance(value, (int, float))
+                    and value == 0
+                    and "rows" not in check
+                ):
                     issues.append(f"Check {component}: {check}")
 
         if issues:
@@ -603,7 +690,12 @@ class SystemStatusChecker:
                 for k, v in checks.items()
                 if (isinstance(v, bool) and v)
                 or (isinstance(v, (int, float)) and v > 0)
-                or (isinstance(v, str) and "Error" not in v and "not found" not in v.lower() and v != "0")
+                or (
+                    isinstance(v, str)
+                    and "Error" not in v
+                    and "not found" not in v.lower()
+                    and v != "0"
+                )
             ]
             if positive_checks:
                 working.append(f"{component}: {', '.join(positive_checks[:3])}")

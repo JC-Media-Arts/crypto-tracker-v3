@@ -73,17 +73,23 @@ def test_score_fix():
         # Test with score
         print("\n1. Testing setup WITH score field:")
         analysis1 = analyzer.analyze_setup(setup_with_score, market_data)
-        print(f"   ✅ Analysis successful - adjusted_score: {analysis1.get('adjusted_score', 'N/A')}")
+        print(
+            f"   ✅ Analysis successful - adjusted_score: {analysis1.get('adjusted_score', 'N/A')}"
+        )
 
         # Test without score
         print("\n2. Testing setup WITHOUT score field:")
         analysis2 = analyzer.analyze_setup(setup_without_score, market_data)
-        print(f"   ✅ Analysis successful - adjusted_score: {analysis2.get('adjusted_score', 'N/A')}")
+        print(
+            f"   ✅ Analysis successful - adjusted_score: {analysis2.get('adjusted_score', 'N/A')}"
+        )
 
         # Test with None score
         print("\n3. Testing setup with None score:")
         analysis3 = analyzer.analyze_setup(setup_none_score, market_data)
-        print(f"   ✅ Analysis successful - adjusted_score: {analysis3.get('adjusted_score', 'N/A')}")
+        print(
+            f"   ✅ Analysis successful - adjusted_score: {analysis3.get('adjusted_score', 'N/A')}"
+        )
 
         # Test that the critical methods don't crash
         print("\n4. Testing that critical methods handle missing score:")
@@ -97,8 +103,12 @@ def test_score_fix():
             print(f"   ❌ rank_opportunities failed: {e}")
             raise
 
-        print("\n✅ ALL TESTS PASSED! SwingAnalyzer now handles missing score field gracefully.")
-        print("The fix respects the system design where SimpleRules is a valid fallback path.")
+        print(
+            "\n✅ ALL TESTS PASSED! SwingAnalyzer now handles missing score field gracefully."
+        )
+        print(
+            "The fix respects the system design where SimpleRules is a valid fallback path."
+        )
 
         return True
 

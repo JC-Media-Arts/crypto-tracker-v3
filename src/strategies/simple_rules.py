@@ -16,8 +16,12 @@ class SimpleRules:
         self.config = config or {}
 
         # Simplified thresholds (30% lower than original)
-        self.dca_drop_threshold = self.config.get("dca_drop_threshold", -1.0)  # AGGRESSIVE TEST: Was -3.5
-        self.swing_breakout_threshold = self.config.get("swing_breakout_threshold", 0.3)  # AGGRESSIVE TEST: Was 2.1
+        self.dca_drop_threshold = self.config.get(
+            "dca_drop_threshold", -1.0
+        )  # AGGRESSIVE TEST: Was -3.5
+        self.swing_breakout_threshold = self.config.get(
+            "swing_breakout_threshold", 0.3
+        )  # AGGRESSIVE TEST: Was 2.1
         self.channel_position_threshold = self.config.get(
             "channel_position_threshold", 0.35
         )  # AGGRESSIVE TEST: Was 0.2
@@ -25,7 +29,9 @@ class SimpleRules:
         # Fixed confidence for all signals (no ML)
         self.fixed_confidence = 0.5
 
-        logger.info(f"Simple Rules initialized: DCA={self.dca_drop_threshold}%, Swing={self.swing_breakout_threshold}%")
+        logger.info(
+            f"Simple Rules initialized: DCA={self.dca_drop_threshold}%, Swing={self.swing_breakout_threshold}%"
+        )
 
     def check_dca_setup(self, symbol: str, data: List[Dict]) -> Optional[Dict]:
         """

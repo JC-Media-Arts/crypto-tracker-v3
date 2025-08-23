@@ -82,7 +82,9 @@ async def test_full_flow():
             try:
                 # This might be where the error occurs
                 multiplier = setup["position_size_multiplier"]
-                logger.info(f"  ✅ Direct access to position_size_multiplier: {multiplier}")
+                logger.info(
+                    f"  ✅ Direct access to position_size_multiplier: {multiplier}"
+                )
             except KeyError as e:
                 logger.error(f"  ❌ KeyError on direct access: {e}")
 

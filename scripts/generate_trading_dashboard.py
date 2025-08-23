@@ -57,18 +57,28 @@ def calculate_trade_metrics(trade, current_price):
 
     if is_closed and trade.get("pnl") is not None:
         # For closed trades, use the actual P&L value
-        metrics["current_price"] = float(trade["exit_price"]) if trade.get("exit_price") else entry_price
+        metrics["current_price"] = (
+            float(trade["exit_price"]) if trade.get("exit_price") else entry_price
+        )
         # If we have the actual P&L amount, calculate the percentage
         if trade.get("amount") and entry_price > 0:
             position_value = entry_price * float(trade["amount"])
-            metrics["pnl_pct"] = (float(trade["pnl"]) / position_value) * 100 if position_value > 0 else 0
+            metrics["pnl_pct"] = (
+                (float(trade["pnl"]) / position_value) * 100
+                if position_value > 0
+                else 0
+            )
         else:
             # Fallback: just use the P&L as percentage if we can't calculate it
             metrics["pnl_pct"] = float(trade["pnl"]) if trade.get("pnl") else 0
     elif current_price and is_open:
         # For open trades, use current price
         metrics["current_price"] = current_price
-        metrics["pnl_pct"] = ((current_price - entry_price) / entry_price) * 100 if entry_price > 0 else 0
+        metrics["pnl_pct"] = (
+            ((current_price - entry_price) / entry_price) * 100
+            if entry_price > 0
+            else 0
+        )
     else:
         metrics["current_price"] = None
         metrics["pnl_pct"] = 0
@@ -109,10 +119,18 @@ def calculate_trade_metrics(trade, current_price):
             metrics["ts_display"] = "Not Set"
     else:
         # For closed trades, just show the limits that were set
-        metrics["sl_display"] = f"${trade.get('stop_loss'):.2f}" if trade.get("stop_loss") else "Not Set"
-        metrics["tp_display"] = f"${trade.get('take_profit'):.2f}" if trade.get("take_profit") else "Not Set"
+        metrics["sl_display"] = (
+            f"${trade.get('stop_loss'):.2f}" if trade.get("stop_loss") else "Not Set"
+        )
+        metrics["tp_display"] = (
+            f"${trade.get('take_profit'):.2f}"
+            if trade.get("take_profit")
+            else "Not Set"
+        )
         metrics["ts_display"] = (
-            f"{float(trade.get('trailing_stop_pct'))*100:.1f}%" if trade.get("trailing_stop_pct") else "Not Set"
+            f"{float(trade.get('trailing_stop_pct'))*100:.1f}%"
+            if trade.get("trailing_stop_pct")
+            else "Not Set"
         )
 
     # Calculate duration
@@ -122,18 +140,24 @@ def calculate_trade_metrics(trade, current_price):
         # For closed trades, use exit_time if available (from the SELL trade)
         # Otherwise for open trades, use current time
         if is_closed and trade.get("exit_time"):
-            exit_time = datetime.fromisoformat(trade["exit_time"].replace("Z", "+00:00"))
+            exit_time = datetime.fromisoformat(
+                trade["exit_time"].replace("Z", "+00:00")
+            )
             duration = exit_time - entry_time
         elif is_closed and trade.get("filled_at"):
             # Fallback to filled_at if exit_time is not available
-            exit_time = datetime.fromisoformat(trade["filled_at"].replace("Z", "+00:00"))
+            exit_time = datetime.fromisoformat(
+                trade["filled_at"].replace("Z", "+00:00")
+            )
             duration = exit_time - entry_time
         elif not is_closed:
             # For open trades, calculate duration from entry to now
             duration = datetime.now(timezone.utc) - entry_time
         else:
             # If we can't determine the exit time for a closed trade, show N/A
-            logger.warning(f"Cannot determine exit time for closed trade {trade.get('symbol')}")
+            logger.warning(
+                f"Cannot determine exit time for closed trade {trade.get('symbol')}"
+            )
             metrics["duration"] = "N/A"
             return metrics
 
@@ -494,7 +518,9 @@ def generate_html(trades_data):
     <div class="container">
         <h1>Trading Dashboard</h1>
         <p class="subtitle">Last updated: """
-        + datetime.now(pytz.timezone("America/Los_Angeles")).strftime("%Y-%m-%d %I:%M:%S %p PST")
+        + datetime.now(pytz.timezone("America/Los_Angeles")).strftime(
+            "%Y-%m-%d %I:%M:%S %p PST"
+        )
         + """</p>
 
         <div class="stats-container">
@@ -575,8 +601,12 @@ def generate_html(trades_data):
 
         # Format prices
         entry_price = f"${float(trade['price']):.2f}" if trade.get("price") else "—"
-        current_price = f"${metrics['current_price']:.2f}" if metrics["current_price"] else "—"
-        exit_price = f"${float(trade['exit_price']):.2f}" if trade.get("exit_price") else "—"
+        current_price = (
+            f"${metrics['current_price']:.2f}" if metrics["current_price"] else "—"
+        )
+        exit_price = (
+            f"${float(trade['exit_price']):.2f}" if trade.get("exit_price") else "—"
+        )
 
         # Format limits
         sl_display = (
@@ -597,7 +627,9 @@ def generate_html(trades_data):
 
         # Exit reason
         exit_reason = (
-            f'<span class="exit-reason">{trade.get("exit_reason", "")}</span>' if trade.get("exit_reason") else "—"
+            f'<span class="exit-reason">{trade.get("exit_reason", "")}</span>'
+            if trade.get("exit_reason")
+            else "—"
         )
 
         # Strategy name
@@ -741,7 +773,10 @@ def main():
                 # Find the first unmatched buy that came before this sell
                 matching_buy = None
                 for i, buy in enumerate(symbol_trades["buys"]):
-                    if i not in matched_buys and buy["created_at"] <= sell_trade["created_at"]:
+                    if (
+                        i not in matched_buys
+                        and buy["created_at"] <= sell_trade["created_at"]
+                    ):
                         matching_buy = buy
                         matched_buys.add(i)
                         break
@@ -749,7 +784,9 @@ def main():
                 if matching_buy:
                     # Use filled_at from SELL trade if available, otherwise use updated_at or created_at
                     exit_timestamp = (
-                        sell_trade.get("filled_at") or sell_trade.get("updated_at") or sell_trade.get("created_at")
+                        sell_trade.get("filled_at")
+                        or sell_trade.get("updated_at")
+                        or sell_trade.get("created_at")
                     )
 
                     # Create a combined trade record
@@ -790,9 +827,13 @@ def main():
                     trades_data["stats"]["unrealized_pnl"] += metrics["pnl_pct"]
 
         # Calculate win rate
-        total_closed = trades_data["stats"]["win_count"] + trades_data["stats"]["loss_count"]
+        total_closed = (
+            trades_data["stats"]["win_count"] + trades_data["stats"]["loss_count"]
+        )
         if total_closed > 0:
-            trades_data["stats"]["win_rate"] = (trades_data["stats"]["win_count"] / total_closed) * 100
+            trades_data["stats"]["win_rate"] = (
+                trades_data["stats"]["win_count"] / total_closed
+            ) * 100
 
         # Sort trades: open first, then by created time
         trades_data["trades"].sort(

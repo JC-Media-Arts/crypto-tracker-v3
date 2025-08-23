@@ -71,7 +71,9 @@ async def test_kraken_connection():
         from src.config import get_settings
 
         settings = get_settings()
-        kraken = krakenex.API(key=settings.kraken_api_key, secret=settings.kraken_api_secret)
+        kraken = krakenex.API(
+            key=settings.kraken_api_key, secret=settings.kraken_api_secret
+        )
 
         # Test with server time (public endpoint)
         response = kraken.query_public("Time")
@@ -118,7 +120,9 @@ async def test_websocket_connection():
         settings = get_settings()
 
         # Create WebSocket client
-        ws = WebSocketClient(api_key=settings.polygon_api_key, feed="delayed", market="crypto")
+        ws = WebSocketClient(
+            api_key=settings.polygon_api_key, feed="delayed", market="crypto"
+        )
 
         # Test subscription
         ws.subscribe("XA.BTC-USD")
@@ -134,7 +138,9 @@ async def main():
     console.print("\n[bold cyan]Crypto Tracker v3 - Connection Tests[/bold cyan]\n")
 
     # Create results table
-    table = Table(title="Data Source Connections", show_header=True, header_style="bold magenta")
+    table = Table(
+        title="Data Source Connections", show_header=True, header_style="bold magenta"
+    )
     table.add_column("Service", style="cyan", width=20)
     table.add_column("Status", width=60)
 
@@ -171,7 +177,9 @@ async def main():
         console.print("3. Run database migrations")
         return 0
     else:
-        console.print("\n[bold red]❌ Some connections failed. Check your API keys in .env[/bold red]")
+        console.print(
+            "\n[bold red]❌ Some connections failed. Check your API keys in .env[/bold red]"
+        )
         return 1
 
 

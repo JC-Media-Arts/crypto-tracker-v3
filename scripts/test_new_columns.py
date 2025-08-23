@@ -41,7 +41,12 @@ async def test_new_columns():
         await asyncio.sleep(1)
 
         # Check if all fields were saved
-        result = db.client.table("paper_trades").select("*").eq("symbol", test_symbol).execute()
+        result = (
+            db.client.table("paper_trades")
+            .select("*")
+            .eq("symbol", test_symbol)
+            .execute()
+        )
 
         if result.data:
             trade = result.data[0]
@@ -54,9 +59,15 @@ async def test_new_columns():
             logger.info(f"   - Trading Engine: {trade['trading_engine']}")
 
             # Verify the values are reasonable
-            if trade["stop_loss"] and trade["take_profit"] and trade["trailing_stop_pct"]:
+            if (
+                trade["stop_loss"]
+                and trade["take_profit"]
+                and trade["trailing_stop_pct"]
+            ):
                 logger.info("\n✅ ALL NEW COLUMNS ARE WORKING!")
-                logger.info("   Stop loss, take profit, and trailing stop are all being saved correctly.")
+                logger.info(
+                    "   Stop loss, take profit, and trailing stop are all being saved correctly."
+                )
             else:
                 logger.warning("\n⚠️ Some columns may be NULL")
         else:

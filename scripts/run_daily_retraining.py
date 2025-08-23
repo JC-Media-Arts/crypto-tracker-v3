@@ -20,7 +20,9 @@ async def run_daily_retraining():
     """Run the daily retraining process"""
 
     logger.info("=" * 60)
-    logger.info(f"DAILY MODEL RETRAINING - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    logger.info(
+        f"DAILY MODEL RETRAINING - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+    )
     logger.info("=" * 60)
 
     # Initialize components
@@ -58,7 +60,9 @@ async def run_daily_retraining():
             "results": "\n".join(summary_lines),
         }
 
-        await slack.send_notification(NotificationType.DAILY_REPORT, title, message, details, color)
+        await slack.send_notification(
+            NotificationType.DAILY_REPORT, title, message, details, color
+        )
 
     logger.info("=" * 60)
     logger.info(f"Retraining complete. {models_updated} models updated.")
@@ -91,13 +95,17 @@ def check_current_status():
         model_file = os.path.join(retrainer.model_dir, f"{strategy.lower()}_model.pkl")
         if os.path.exists(model_file):
             # Load metadata if available
-            metadata_file = os.path.join(retrainer.model_dir, f"{strategy.lower()}_metadata.json")
+            metadata_file = os.path.join(
+                retrainer.model_dir, f"{strategy.lower()}_metadata.json"
+            )
             if os.path.exists(metadata_file):
                 import json
 
                 with open(metadata_file, "r") as f:
                     metadata = json.load(f)
-                    print(f"  - Current model score: {metadata.get('score', 'N/A'):.3f}")
+                    print(
+                        f"  - Current model score: {metadata.get('score', 'N/A'):.3f}"
+                    )
                     print(f"  - Last trained: {metadata.get('timestamp', 'Unknown')}")
             else:
                 print(f"  - Current model: Exists (no metadata)")
@@ -111,7 +119,9 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="Daily Model Retraining")
-    parser.add_argument("--check", action="store_true", help="Check status without retraining")
+    parser.add_argument(
+        "--check", action="store_true", help="Check status without retraining"
+    )
     parser.add_argument(
         "--force",
         action="store_true",

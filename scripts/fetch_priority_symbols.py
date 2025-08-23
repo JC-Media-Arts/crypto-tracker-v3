@@ -71,7 +71,9 @@ class PriorityOHLCFetcher:
             logger.error(f"Error checking {symbol} {timeframe}: {e}")
             return False, 0
 
-    def fetch_ohlc_batch(self, symbol: str, timeframe: str, start_date: datetime, end_date: datetime) -> List[Dict]:
+    def fetch_ohlc_batch(
+        self, symbol: str, timeframe: str, start_date: datetime, end_date: datetime
+    ) -> List[Dict]:
         """Fetch a batch of OHLC data from Polygon"""
         try:
             ticker = f"X:{symbol}USD"
@@ -105,7 +107,9 @@ class PriorityOHLCFetcher:
             for bar in bars:
                 data.append(
                     {
-                        "timestamp": pd.Timestamp(bar.timestamp, unit="ms", tz="UTC").isoformat(),
+                        "timestamp": pd.Timestamp(
+                            bar.timestamp, unit="ms", tz="UTC"
+                        ).isoformat(),
                         "symbol": symbol,
                         "timeframe": timeframe,
                         "open": float(bar.open),
@@ -113,13 +117,23 @@ class PriorityOHLCFetcher:
                         "low": float(bar.low),
                         "close": float(bar.close),
                         "volume": float(bar.volume) if bar.volume else 0,
-                        "vwap": (float(bar.vwap) if hasattr(bar, "vwap") and bar.vwap else None),
-                        "trades": (int(bar.transactions) if hasattr(bar, "transactions") else None),
+                        "vwap": (
+                            float(bar.vwap)
+                            if hasattr(bar, "vwap") and bar.vwap
+                            else None
+                        ),
+                        "trades": (
+                            int(bar.transactions)
+                            if hasattr(bar, "transactions")
+                            else None
+                        ),
                     }
                 )
 
             if not data:
-                logger.info(f"No data available for {symbol} {timeframe} from {start_date.date()} to {end_date.date()}")
+                logger.info(
+                    f"No data available for {symbol} {timeframe} from {start_date.date()} to {end_date.date()}"
+                )
             else:
                 logger.info(f"Fetched {len(data)} bars for {symbol} {timeframe}")
 
@@ -142,11 +156,15 @@ class PriorityOHLCFetcher:
 
             for retry in range(max_retries):
                 try:
-                    result = self.supabase.client.table("ohlc_data").upsert(batch).execute()
+                    result = (
+                        self.supabase.client.table("ohlc_data").upsert(batch).execute()
+                    )
                     logger.success(f"Saved {len(batch)} bars")
                     break
                 except Exception as e:
-                    logger.error(f"Error saving batch (attempt {retry+1}/{max_retries}): {e}")
+                    logger.error(
+                        f"Error saving batch (attempt {retry+1}/{max_retries}): {e}"
+                    )
                     if retry == max_retries - 1:
                         return False
                     time.sleep(2**retry)  # Exponential backoff
@@ -179,7 +197,9 @@ class PriorityOHLCFetcher:
 
             if data:
                 all_data.extend(data)
-                logger.info(f"Collected {len(data)} bars from {current_date.date()} to {batch_end.date()}")
+                logger.info(
+                    f"Collected {len(data)} bars from {current_date.date()} to {batch_end.date()}"
+                )
 
             current_date = batch_end + timedelta(days=1)
 
@@ -188,9 +208,13 @@ class PriorityOHLCFetcher:
 
         # Save all data at once for this symbol
         if all_data:
-            logger.info(f"Saving {len(all_data)} total bars for {symbol} {timeframe}...")
+            logger.info(
+                f"Saving {len(all_data)} total bars for {symbol} {timeframe}..."
+            )
             if self.save_batch(all_data):
-                logger.success(f"✅ Completed {symbol} {timeframe}: {len(all_data)} bars saved")
+                logger.success(
+                    f"✅ Completed {symbol} {timeframe}: {len(all_data)} bars saved"
+                )
                 return len(all_data)
             else:
                 logger.error(f"❌ Failed to save data for {symbol} {timeframe}")
@@ -269,8 +293,18 @@ class PriorityOHLCFetcher:
         logger.info("PRIORITY SYMBOLS COMPLETE")
         logger.info("=" * 80)
 
-        successful = sum(1 for s in self.results.values() for tf in s.values() if tf.get("status") == "completed")
-        failed = sum(1 for s in self.results.values() for tf in s.values() if tf.get("status") == "failed")
+        successful = sum(
+            1
+            for s in self.results.values()
+            for tf in s.values()
+            if tf.get("status") == "completed"
+        )
+        failed = sum(
+            1
+            for s in self.results.values()
+            for tf in s.values()
+            if tf.get("status") == "failed"
+        )
 
         logger.info(f"Successful: {successful}")
         logger.info(f"Failed: {failed}")

@@ -130,14 +130,23 @@ class SimpleChannelLabelGenerator:
                                 "features": {
                                     "range_width": range_width,
                                     "position_in_range": position_in_range,
-                                    "total_touches": int(resistance_touches + support_touches),
-                                    "volatility": float(window["close"].std() / avg_price),
-                                    "volume_trend": float(window["volume"].iloc[-10:].mean() / window["volume"].mean()),
+                                    "total_touches": int(
+                                        resistance_touches + support_touches
+                                    ),
+                                    "volatility": float(
+                                        window["close"].std() / avg_price
+                                    ),
+                                    "volume_trend": float(
+                                        window["volume"].iloc[-10:].mean()
+                                        / window["volume"].mean()
+                                    ),
                                 },
                             }
 
                             # Calculate outcome
-                            outcome = self._calculate_outcome(setup, df.iloc[i : i + 50])  # Look forward 50 bars
+                            outcome = self._calculate_outcome(
+                                setup, df.iloc[i : i + 50]
+                            )  # Look forward 50 bars
                             setup.update(outcome)
 
                             setups.append(setup)
@@ -173,7 +182,9 @@ class SimpleChannelLabelGenerator:
                     outcome["outcome"] = "WIN"
                     outcome["exit_price"] = take_profit
                     outcome["exit_bars"] = i + 1
-                    outcome["actual_pnl_pct"] = (take_profit - entry_price) / entry_price * 100
+                    outcome["actual_pnl_pct"] = (
+                        (take_profit - entry_price) / entry_price * 100
+                    )
                     break
 
                 # Check if hit stop loss
@@ -181,7 +192,9 @@ class SimpleChannelLabelGenerator:
                     outcome["outcome"] = "LOSS"
                     outcome["exit_price"] = stop_loss
                     outcome["exit_bars"] = i + 1
-                    outcome["actual_pnl_pct"] = (stop_loss - entry_price) / entry_price * 100
+                    outcome["actual_pnl_pct"] = (
+                        (stop_loss - entry_price) / entry_price * 100
+                    )
                     break
 
                 # Track max profit/loss
@@ -196,7 +209,9 @@ class SimpleChannelLabelGenerator:
                     outcome["outcome"] = "WIN"
                     outcome["exit_price"] = take_profit
                     outcome["exit_bars"] = i + 1
-                    outcome["actual_pnl_pct"] = (entry_price - take_profit) / entry_price * 100
+                    outcome["actual_pnl_pct"] = (
+                        (entry_price - take_profit) / entry_price * 100
+                    )
                     break
 
                 # Check if hit stop loss (price goes up)
@@ -204,7 +219,9 @@ class SimpleChannelLabelGenerator:
                     outcome["outcome"] = "LOSS"
                     outcome["exit_price"] = stop_loss
                     outcome["exit_bars"] = i + 1
-                    outcome["actual_pnl_pct"] = (entry_price - stop_loss) / entry_price * 100
+                    outcome["actual_pnl_pct"] = (
+                        (entry_price - stop_loss) / entry_price * 100
+                    )
                     break
 
                 # Track max profit/loss
@@ -217,9 +234,13 @@ class SimpleChannelLabelGenerator:
         if outcome["outcome"] == "EXPIRED" and not future_df.empty:
             last_price = future_df.iloc[min(71, len(future_df) - 1)]["close"]
             if signal == "BUY":
-                outcome["actual_pnl_pct"] = (last_price - entry_price) / entry_price * 100
+                outcome["actual_pnl_pct"] = (
+                    (last_price - entry_price) / entry_price * 100
+                )
             else:
-                outcome["actual_pnl_pct"] = (entry_price - last_price) / entry_price * 100
+                outcome["actual_pnl_pct"] = (
+                    (entry_price - last_price) / entry_price * 100
+                )
             outcome["exit_price"] = last_price
             outcome["exit_bars"] = min(72, len(future_df))
 
@@ -256,7 +277,9 @@ class SimpleChannelLabelGenerator:
 
         all_labels = []
 
-        logger.info(f"Generating simple channel/range labels for {len(symbols)} symbols...")
+        logger.info(
+            f"Generating simple channel/range labels for {len(symbols)} symbols..."
+        )
 
         for symbol in symbols:
             logger.info(f"Processing {symbol}...")
@@ -278,7 +301,9 @@ class SimpleChannelLabelGenerator:
                 win_rate = wins / len(setups) * 100 if setups else 0
 
                 logger.info(f"  Found {len(setups)} range setups for {symbol}")
-                logger.info(f"  Outcomes: {wins} wins, {losses} losses, {expired} expired")
+                logger.info(
+                    f"  Outcomes: {wins} wins, {losses} losses, {expired} expired"
+                )
                 logger.info(f"  Win rate: {win_rate:.1f}%")
 
                 # Analyze by signal type
@@ -288,12 +313,16 @@ class SimpleChannelLabelGenerator:
                 if buy_setups:
                     buy_wins = sum(1 for s in buy_setups if s["outcome"] == "WIN")
                     buy_wr = buy_wins / len(buy_setups) * 100
-                    logger.info(f"    BUY signals: {len(buy_setups)} setups, {buy_wr:.1f}% win rate")
+                    logger.info(
+                        f"    BUY signals: {len(buy_setups)} setups, {buy_wr:.1f}% win rate"
+                    )
 
                 if sell_setups:
                     sell_wins = sum(1 for s in sell_setups if s["outcome"] == "WIN")
                     sell_wr = sell_wins / len(sell_setups) * 100
-                    logger.info(f"    SELL signals: {len(sell_setups)} setups, {sell_wr:.1f}% win rate")
+                    logger.info(
+                        f"    SELL signals: {len(sell_setups)} setups, {sell_wr:.1f}% win rate"
+                    )
 
                 all_labels.extend(setups)
 
@@ -339,12 +368,16 @@ class SimpleChannelLabelGenerator:
             if buy_labels:
                 buy_wins = sum(1 for s in buy_labels if s["outcome"] == "WIN")
                 buy_wr = buy_wins / len(buy_labels) * 100
-                logger.info(f"  BUY signals: {len(buy_labels)} total, {buy_wr:.1f}% win rate")
+                logger.info(
+                    f"  BUY signals: {len(buy_labels)} total, {buy_wr:.1f}% win rate"
+                )
 
             if sell_labels:
                 sell_wins = sum(1 for s in sell_labels if s["outcome"] == "WIN")
                 sell_wr = sell_wins / len(sell_labels) * 100
-                logger.info(f"  SELL signals: {len(sell_labels)} total, {sell_wr:.1f}% win rate")
+                logger.info(
+                    f"  SELL signals: {len(sell_labels)} total, {sell_wr:.1f}% win rate"
+                )
 
 
 def main():

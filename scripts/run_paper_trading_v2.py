@@ -282,12 +282,22 @@ class PaperTradingSystem:
 
             # Handle both old format (None/bool) and new format (dict)
             if result and isinstance(result, dict) and result.get("success"):
-                logger.info(f"✅ Opened {signal.strategy_type.value} position for {signal.symbol}")
+                logger.info(
+                    f"✅ Opened {signal.strategy_type.value} position for {signal.symbol}"
+                )
             elif result is True:  # Old format compatibility
-                logger.info(f"✅ Opened {signal.strategy_type.value} position for {signal.symbol}")
+                logger.info(
+                    f"✅ Opened {signal.strategy_type.value} position for {signal.symbol}"
+                )
             else:
-                error_msg = result.get("error") if isinstance(result, dict) and result else "Position opening failed"
-                logger.warning(f"Failed to open position for {signal.symbol}: {error_msg}")
+                error_msg = (
+                    result.get("error")
+                    if isinstance(result, dict) and result
+                    else "Position opening failed"
+                )
+                logger.warning(
+                    f"Failed to open position for {signal.symbol}: {error_msg}"
+                )
 
         except Exception as e:
             logger.error(f"Error executing signal for {signal.symbol}: {e}")
@@ -327,7 +337,9 @@ class PaperTradingSystem:
                     continue
 
                 # Scan for opportunities
-                signals = await self.strategy_manager.scan_for_opportunities(market_data)
+                signals = await self.strategy_manager.scan_for_opportunities(
+                    market_data
+                )
 
                 # Get portfolio stats
                 stats = self.paper_trader.get_portfolio_stats()
@@ -335,7 +347,9 @@ class PaperTradingSystem:
                 logger.info(
                     f"Scan complete: {len(signals)} signals, {stats['positions']}/{stats['max_positions']} positions"
                 )
-                logger.info(f"Portfolio: ${stats['total_value']:.2f} ({stats['total_pnl_pct']:+.2f}%)")
+                logger.info(
+                    f"Portfolio: ${stats['total_value']:.2f} ({stats['total_pnl_pct']:+.2f}%)"
+                )
 
                 # Execute signals (only if we have room for more positions)
                 if stats["positions"] < stats["max_positions"]:
@@ -349,17 +363,24 @@ class PaperTradingSystem:
                 # Display current positions
                 if self.paper_trader.positions:
                     logger.info("Current positions:")
-                    prices = await self.get_current_prices(list(self.paper_trader.positions.keys()))
+                    prices = await self.get_current_prices(
+                        list(self.paper_trader.positions.keys())
+                    )
 
                     for symbol, position in self.paper_trader.positions.items():
                         current_price = prices.get(symbol, position.entry_price)
-                        pnl_pct = ((current_price - position.entry_price) / position.entry_price) * 100
+                        pnl_pct = (
+                            (current_price - position.entry_price)
+                            / position.entry_price
+                        ) * 100
                         emoji = "🟢" if pnl_pct > 0 else "🔴"
 
                         # Show trailing stop info
                         trailing_info = ""
                         if position.highest_price > position.entry_price:
-                            trailing_stop_price = position.highest_price * (1 - position.trailing_stop_pct)
+                            trailing_stop_price = position.highest_price * (
+                                1 - position.trailing_stop_pct
+                            )
                             trailing_info = f" | Trail: ${trailing_stop_price:.4f}"
 
                         logger.info(
@@ -367,7 +388,10 @@ class PaperTradingSystem:
                         )
 
                 # Summary every 5 trades
-                if self.paper_trader.total_trades > 0 and self.paper_trader.total_trades % 5 == 0:
+                if (
+                    self.paper_trader.total_trades > 0
+                    and self.paper_trader.total_trades % 5 == 0
+                ):
                     await self.print_summary()
 
             except Exception as e:
@@ -403,7 +427,9 @@ class PaperTradingSystem:
         logger.info(f"   Balance: ${stats['balance']:.2f}")
         logger.info(f"   Positions: {stats['positions']}/{stats['max_positions']}")
         logger.info(f"   Total Value: ${stats['total_value']:.2f}")
-        logger.info(f"   P&L: ${stats['total_pnl']:.2f} ({stats['total_pnl_pct']:+.2f}%)")
+        logger.info(
+            f"   P&L: ${stats['total_pnl']:.2f} ({stats['total_pnl_pct']:+.2f}%)"
+        )
         logger.info(f"   Total Trades: {stats['total_trades']}")
         logger.info(f"   Win Rate: {stats['win_rate']:.1f}%")
         logger.info(f"   Fees Paid: ${stats['total_fees']:.2f}")
@@ -412,7 +438,9 @@ class PaperTradingSystem:
 
         # Send daily report every 24 hours
         if hasattr(self, "last_daily_report"):
-            if (datetime.now() - self.last_daily_report).total_seconds() > 86400:  # 24 hours
+            if (
+                datetime.now() - self.last_daily_report
+            ).total_seconds() > 86400:  # 24 hours
                 await self.send_daily_report()
         else:
             self.last_daily_report = datetime.now()
@@ -427,7 +455,9 @@ class PaperTradingSystem:
             trades_today = self.paper_trader.get_trades_today()
             open_positions = self.paper_trader.get_open_positions_summary()
 
-            await self.notifier.send_daily_report(stats=stats, trades_today=trades_today, open_positions=open_positions)
+            await self.notifier.send_daily_report(
+                stats=stats, trades_today=trades_today, open_positions=open_positions
+            )
 
             self.last_daily_report = datetime.now()
             logger.info("Daily report sent to Slack")
@@ -446,7 +476,9 @@ class PaperTradingSystem:
         logger.info("📊 FINAL TRADING STATISTICS:")
         logger.info(f"   Initial Balance: ${self.paper_trader.initial_balance:.2f}")
         logger.info(f"   Final Balance: ${stats['balance']:.2f}")
-        logger.info(f"   Total P&L: ${stats['total_pnl']:.2f} ({stats['total_pnl_pct']:+.2f}%)")
+        logger.info(
+            f"   Total P&L: ${stats['total_pnl']:.2f} ({stats['total_pnl_pct']:+.2f}%)"
+        )
         logger.info(f"   Total Trades: {stats['total_trades']}")
         logger.info(f"   Win Rate: {stats['win_rate']:.1f}%")
         logger.info(f"   Total Fees Paid: ${stats['total_fees']:.2f}")
@@ -461,7 +493,9 @@ async def main():
     # Setup signal handlers
     loop = asyncio.get_event_loop()
     for sig in (signal.SIGTERM, signal.SIGINT):
-        loop.add_signal_handler(sig, lambda: asyncio.create_task(system.shutdown_handler()))
+        loop.add_signal_handler(
+            sig, lambda: asyncio.create_task(system.shutdown_handler())
+        )
 
     # Run trading loop
     try:

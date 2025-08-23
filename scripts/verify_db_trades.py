@@ -9,7 +9,12 @@ def verify_trades():
     client = SupabaseClient()
 
     # Check all paper_trades
-    trades = client.client.table("paper_trades").select("*").order("created_at", desc=True).execute()
+    trades = (
+        client.client.table("paper_trades")
+        .select("*")
+        .order("created_at", desc=True)
+        .execute()
+    )
 
     print("=" * 60)
     print("📊 PAPER TRADES IN DATABASE")

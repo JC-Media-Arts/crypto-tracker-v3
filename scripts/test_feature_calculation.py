@@ -45,7 +45,9 @@ def main():
     if data_count >= calculator.min_periods:
         try:
             # Calculate features
-            features_df = calculator.calculate_features_for_symbol(symbol, lookback_hours=168)  # 7 days
+            features_df = calculator.calculate_features_for_symbol(
+                symbol, lookback_hours=168
+            )  # 7 days
 
             if features_df is not None and not features_df.empty:
                 print("\n✅ Feature calculation successful!")
@@ -85,7 +87,9 @@ def main():
 
             traceback.print_exc()
     else:
-        print(f"\n❌ Not enough data. Need at least {calculator.min_periods - data_count} more data points")
+        print(
+            f"\n❌ Not enough data. Need at least {calculator.min_periods - data_count} more data points"
+        )
         print("Keep the data collector running and try again later.")
 
 

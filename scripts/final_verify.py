@@ -14,9 +14,7 @@ print("=" * 60)
 
 # Use the connection string that worked
 # Note: aws-1 (not aws-0) worked during creation
-conn_str = (
-    "postgresql://postgres.xlvikqykeavxyncvsqay:q!YMDKArF5#Ssx!G@aws-1-us-west-1.pooler.supabase.com:5432/postgres"
-)
+conn_str = "postgresql://postgres.xlvikqykeavxyncvsqay:q!YMDKArF5#Ssx!G@aws-1-us-west-1.pooler.supabase.com:5432/postgres"
 
 sql = """
 SELECT
@@ -29,7 +27,9 @@ ORDER BY indexname;
 
 print("\n🔍 Checking indexes...")
 
-result = subprocess.run(["psql", conn_str, "-c", sql, "-t"], capture_output=True, text=True)
+result = subprocess.run(
+    ["psql", conn_str, "-c", sql, "-t"], capture_output=True, text=True
+)
 
 if result.returncode == 0:
     output = result.stdout.strip()

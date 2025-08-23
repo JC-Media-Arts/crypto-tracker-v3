@@ -35,7 +35,11 @@ def verify_environment():
         if var_value:
             # Mask sensitive values
             if "KEY" in var_name or "WEBHOOK" in var_name:
-                display_value = f"{var_value[:8]}...{var_value[-4:]}" if len(var_value) > 12 else "***"
+                display_value = (
+                    f"{var_value[:8]}...{var_value[-4:]}"
+                    if len(var_value) > 12
+                    else "***"
+                )
             else:
                 display_value = var_value
             print(f"✅ {var_name}: {display_value}")
@@ -57,7 +61,12 @@ def verify_database_connection():
         client = SupabaseClient()
 
         # Test query - count rows in ohlc_data
-        result = client.client.table("ohlc_data").select("*", count="exact").limit(1).execute()
+        result = (
+            client.client.table("ohlc_data")
+            .select("*", count="exact")
+            .limit(1)
+            .execute()
+        )
 
         print(f"✅ Database connected successfully")
         print(f"   Total rows in ohlc_data: {result.count:,}")

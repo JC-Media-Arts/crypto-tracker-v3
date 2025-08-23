@@ -28,7 +28,9 @@ def check_data():
 
             if result.data:
                 logger.info(f"✅ Table '{table}' has data:")
-                logger.info(f"   Latest: {result.data[0]['timestamp']} - {result.data[0]['symbol']}")
+                logger.info(
+                    f"   Latest: {result.data[0]['timestamp']} - {result.data[0]['symbol']}"
+                )
 
                 # Get count for BTC
                 btc_result = (

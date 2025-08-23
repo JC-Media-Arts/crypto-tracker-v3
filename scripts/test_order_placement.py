@@ -7,7 +7,9 @@ import inspect
 
 
 async def test():
-    client = HummingbotAPIClient(base_url="http://localhost:8000", username="admin", password="admin")
+    client = HummingbotAPIClient(
+        base_url="http://localhost:8000", username="admin", password="admin"
+    )
 
     await client.init()
 
@@ -21,7 +23,9 @@ async def test():
         params = sig.parameters
         print("\nParameters:")
         for name, param in params.items():
-            print(f"  - {name}: {param.annotation if param.annotation != inspect.Parameter.empty else 'Any'}")
+            print(
+                f"  - {name}: {param.annotation if param.annotation != inspect.Parameter.empty else 'Any'}"
+            )
 
     # Try to check what bots are available
     if hasattr(client, "bot_orchestration"):

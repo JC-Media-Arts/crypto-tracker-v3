@@ -132,7 +132,9 @@ async def main():
         )
 
         if sample_check.count > 0:
-            print(f"  ⚠️  Found {sample_check.count:,} 1-minute rows older than 30 days")
+            print(
+                f"  ⚠️  Found {sample_check.count:,} 1-minute rows older than 30 days"
+            )
             print(f"     These will be cleaned on next run")
         else:
             print(f"  ✓ No 1-minute data older than 30 days found")

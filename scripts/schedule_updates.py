@@ -62,17 +62,23 @@ class OHLCScheduler:
             },
             "1h": {
                 "frequency": "every_hour",
-                "schedule_func": lambda: schedule.every().hour.at(":05"),  # 5 minutes past the hour
+                "schedule_func": lambda: schedule.every().hour.at(
+                    ":05"
+                ),  # 5 minutes past the hour
                 "command": "python3 scripts/incremental_ohlc_updater.py --timeframe 1h",
             },
             "1d": {
                 "frequency": "daily_at_midnight",
-                "schedule_func": lambda: schedule.every().day.at("00:05"),  # 12:05 AM PST
+                "schedule_func": lambda: schedule.every().day.at(
+                    "00:05"
+                ),  # 12:05 AM PST
                 "command": "python3 scripts/incremental_ohlc_updater.py --timeframe 1d",
             },
             "gap_check": {
                 "frequency": "daily_at_1am",
-                "schedule_func": lambda: schedule.every().day.at("01:00"),  # 1:00 AM PST
+                "schedule_func": lambda: schedule.every().day.at(
+                    "01:00"
+                ),  # 1:00 AM PST
                 "command": "python3 scripts/validate_and_heal_gaps.py --action scan",
             },
             "health_check": {
@@ -130,7 +136,9 @@ class OHLCScheduler:
             # For daemon mode, don't wait for completion
             if self.mode == "daemon":
                 # Start a thread to monitor completion
-                Thread(target=self.monitor_job, args=(job_name, process, start_time)).start()
+                Thread(
+                    target=self.monitor_job, args=(job_name, process, start_time)
+                ).start()
             else:
                 # For cron mode, wait for completion
                 stdout, stderr = process.communicate()
@@ -139,7 +147,9 @@ class OHLCScheduler:
                 if return_code == 0:
                     logger.success(f"Job {job_name} completed successfully")
                 else:
-                    logger.error(f"Job {job_name} failed with return code {return_code}")
+                    logger.error(
+                        f"Job {job_name} failed with return code {return_code}"
+                    )
                     if stderr:
                         logger.error(f"Error output: {stderr}")
 
@@ -150,7 +160,9 @@ class OHLCScheduler:
         except Exception as e:
             logger.error(f"Error running job {job_name}: {e}")
 
-    def monitor_job(self, job_name: str, process: subprocess.Popen, start_time: datetime):
+    def monitor_job(
+        self, job_name: str, process: subprocess.Popen, start_time: datetime
+    ):
         """Monitor a running job (for daemon mode)"""
         stdout, stderr = process.communicate()
         return_code = process.returncode
@@ -158,7 +170,9 @@ class OHLCScheduler:
         duration = (datetime.now(tz.UTC) - start_time).total_seconds()
 
         if return_code == 0:
-            logger.success(f"Job {job_name} completed successfully in {duration:.1f} seconds")
+            logger.success(
+                f"Job {job_name} completed successfully in {duration:.1f} seconds"
+            )
         else:
             logger.error(f"Job {job_name} failed with return code {return_code}")
             if stderr:

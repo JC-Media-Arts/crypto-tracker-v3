@@ -79,7 +79,11 @@ def test_ml_predictor():
     print("=" * 60)
 
     # Return True if all models loaded
-    return predictor.dca_model is not None or predictor.swing_model is not None or predictor.channel_model is not None
+    return (
+        predictor.dca_model is not None
+        or predictor.swing_model is not None
+        or predictor.channel_model is not None
+    )
 
 
 if __name__ == "__main__":

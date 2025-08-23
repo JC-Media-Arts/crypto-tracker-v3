@@ -41,7 +41,9 @@ class DataHealthMonitor:
     def __init__(self):
         self.settings = get_settings()
         self.supabase = SupabaseClient()
-        self.slack = SlackNotifier() if hasattr(self.settings, "slack_webhook_url") else None
+        self.slack = (
+            SlackNotifier() if hasattr(self.settings, "slack_webhook_url") else None
+        )
 
         # Health check thresholds
         self.thresholds = {
@@ -216,14 +218,20 @@ class DataHealthMonitor:
                                 }
                             )
                     else:
-                        stale_symbols.append({"symbol": symbol, "latest": None, "age_minutes": None})
+                        stale_symbols.append(
+                            {"symbol": symbol, "latest": None, "age_minutes": None}
+                        )
 
                 except Exception as e:
-                    logger.error(f"Error checking freshness for {symbol}/{timeframe}: {e}")
+                    logger.error(
+                        f"Error checking freshness for {symbol}/{timeframe}: {e}"
+                    )
 
             if stale_symbols:
                 freshness_results["status"] = "unhealthy"
-                freshness_results["issues"].append({"timeframe": timeframe, "stale_symbols": stale_symbols})
+                freshness_results["issues"].append(
+                    {"timeframe": timeframe, "stale_symbols": stale_symbols}
+                )
 
             freshness_results["details"][timeframe] = {
                 "checked": len(priority_symbols),
@@ -273,7 +281,11 @@ class DataHealthMonitor:
 
                 # Check for negative values
                 negative_values = df[
-                    (df["open"] < 0) | (df["high"] < 0) | (df["low"] < 0) | (df["close"] < 0) | (df["volume"] < 0)
+                    (df["open"] < 0)
+                    | (df["high"] < 0)
+                    | (df["low"] < 0)
+                    | (df["close"] < 0)
+                    | (df["volume"] < 0)
                 ]
 
                 if not negative_values.empty:
@@ -291,7 +303,9 @@ class DataHealthMonitor:
                     symbol_data = df[df["symbol"] == symbol].copy()
                     if len(symbol_data) > 1:
                         symbol_data["price_change"] = symbol_data["close"].pct_change()
-                        extreme_changes = symbol_data[symbol_data["price_change"].abs() > 0.5]
+                        extreme_changes = symbol_data[
+                            symbol_data["price_change"].abs() > 0.5
+                        ]
 
                         if not extreme_changes.empty:
                             quality_results["issues"].append(
@@ -349,7 +363,9 @@ class DataHealthMonitor:
                 # Check for long-running jobs
                 df["started_at"] = pd.to_datetime(df["started_at"])
                 df["completed_at"] = pd.to_datetime(df["completed_at"])
-                df["duration_minutes"] = (df["completed_at"] - df["started_at"]).dt.total_seconds() / 60
+                df["duration_minutes"] = (
+                    df["completed_at"] - df["started_at"]
+                ).dt.total_seconds() / 60
 
                 long_runs = df[df["duration_minutes"] > 30]  # Jobs taking > 30 minutes
                 if not long_runs.empty:
@@ -402,8 +418,13 @@ class DataHealthMonitor:
                     tf_gaps = df[df["timeframe"] == timeframe]
                     if not tf_gaps.empty:
                         # Check if any gaps exceed threshold
-                        tf_gaps["duration_td"] = pd.to_timedelta(tf_gaps["duration_minutes"], unit="minutes")
-                        critical_gaps = tf_gaps[tf_gaps["duration_td"] > self.thresholds["max_gap_duration"][timeframe]]
+                        tf_gaps["duration_td"] = pd.to_timedelta(
+                            tf_gaps["duration_minutes"], unit="minutes"
+                        )
+                        critical_gaps = tf_gaps[
+                            tf_gaps["duration_td"]
+                            > self.thresholds["max_gap_duration"][timeframe]
+                        ]
 
                         if not critical_gaps.empty:
                             gap_results["status"] = "unhealthy"
@@ -411,7 +432,9 @@ class DataHealthMonitor:
                                 {
                                     "timeframe": timeframe,
                                     "critical_gaps": len(critical_gaps),
-                                    "symbols": critical_gaps["symbol"].unique().tolist(),
+                                    "symbols": critical_gaps["symbol"]
+                                    .unique()
+                                    .tolist(),
                                 }
                             )
 
@@ -505,7 +528,9 @@ class DataHealthMonitor:
                     message += f"**{check_name.replace('_', ' ').title()}**: {check_result['status']}\n"
 
                     if check_result.get("issues"):
-                        for issue in check_result["issues"][:3]:  # Limit to first 3 issues
+                        for issue in check_result["issues"][
+                            :3
+                        ]:  # Limit to first 3 issues
                             if isinstance(issue, dict):
                                 if "type" in issue:
                                     message += f"  - {issue['type']}: "

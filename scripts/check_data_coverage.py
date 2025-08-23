@@ -105,7 +105,9 @@ def check_data_coverage():
 
                     # Get count (approximate)
                     # Since we can't count directly, estimate based on date range
-                    earliest_dt = datetime.fromisoformat(earliest.replace("Z", "+00:00"))
+                    earliest_dt = datetime.fromisoformat(
+                        earliest.replace("Z", "+00:00")
+                    )
                     latest_dt = datetime.fromisoformat(latest.replace("Z", "+00:00"))
                     days = (latest_dt - earliest_dt).days
                     estimated_records = days * 1440  # Approximate minute bars
@@ -144,7 +146,9 @@ def check_data_coverage():
             if result.data:
                 record_count = len(result.data)
                 latest_price = result.data[0]["price"]
-                print(f"{symbol}: {record_count} records in last 24h, Latest price: ${latest_price:.2f}")
+                print(
+                    f"{symbol}: {record_count} records in last 24h, Latest price: ${latest_price:.2f}"
+                )
             else:
                 print(f"{symbol}: No recent data")
 

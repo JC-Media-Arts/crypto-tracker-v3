@@ -69,7 +69,9 @@ def analyze_dca_simulation():
     if len(close_to_stop) > 0:
         print("Examples:")
         for _, row in close_to_stop.head(3).iterrows():
-            print(f"  {row['symbol']}: drawdown {row['max_drawdown']:.2f}%, outcome: {row['label']}")
+            print(
+                f"  {row['symbol']}: drawdown {row['max_drawdown']:.2f}%, outcome: {row['label']}"
+            )
 
     # Let's manually check one setup
     print("\n" + "=" * 80)
@@ -78,7 +80,9 @@ def analyze_dca_simulation():
 
     # Get a setup with significant drawdown
     test_setup = (
-        labels_df[labels_df["max_drawdown"] < -5].iloc[0] if any(labels_df["max_drawdown"] < -5) else labels_df.iloc[0]
+        labels_df[labels_df["max_drawdown"] < -5].iloc[0]
+        if any(labels_df["max_drawdown"] < -5)
+        else labels_df.iloc[0]
     )
 
     print(f"\nChecking: {test_setup['symbol']} on {test_setup['setup_time'][:10]}")

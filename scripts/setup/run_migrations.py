@@ -54,7 +54,9 @@ def run_migration(client: Client, migration_file: Path):
                     # We'll use RPC or raw postgrest calls
                     # For now, we'll print the statements and provide instructions
                     console.print(f"[yellow]Statement {i+1}:[/yellow]")
-                    console.print(statement[:100] + "..." if len(statement) > 100 else statement)
+                    console.print(
+                        statement[:100] + "..." if len(statement) > 100 else statement
+                    )
 
                 except Exception as e:
                     console.print(f"[red]Error in statement {i+1}: {e}[/red]")
@@ -96,7 +98,9 @@ def check_tables_exist(client: Client):
 
 def main():
     """Run all pending migrations."""
-    console.print("\n[bold cyan]Crypto Tracker v3 - Database Migration Runner[/bold cyan]\n")
+    console.print(
+        "\n[bold cyan]Crypto Tracker v3 - Database Migration Runner[/bold cyan]\n"
+    )
 
     # Get settings
     try:
@@ -117,19 +121,25 @@ def main():
     # Check existing tables
     existing_tables = check_tables_exist(client)
     if existing_tables:
-        console.print(f"\n[yellow]Found existing tables: {', '.join(existing_tables)}[/yellow]")
+        console.print(
+            f"\n[yellow]Found existing tables: {', '.join(existing_tables)}[/yellow]"
+        )
 
     # Get migration files
     migration_files = get_migration_files()
     if not migration_files:
-        console.print("[yellow]No migration files found in migrations/ directory[/yellow]")
+        console.print(
+            "[yellow]No migration files found in migrations/ directory[/yellow]"
+        )
         return 0
 
     console.print(f"\n[cyan]Found {len(migration_files)} migration file(s)[/cyan]")
 
     # Important note about Supabase SQL execution
     console.print("\n[bold yellow]⚠️  Important: Supabase SQL Execution[/bold yellow]")
-    console.print("\nThe Supabase Python client doesn't directly support raw SQL execution.")
+    console.print(
+        "\nThe Supabase Python client doesn't directly support raw SQL execution."
+    )
     console.print("You have two options to run the migrations:\n")
 
     console.print("[bold]Option 1: Use Supabase Dashboard (Recommended)[/bold]")
@@ -160,7 +170,9 @@ def main():
                 console.print(content)
 
     # Create a summary table
-    table = Table(title="Tables to be Created", show_header=True, header_style="bold magenta")
+    table = Table(
+        title="Tables to be Created", show_header=True, header_style="bold magenta"
+    )
     table.add_column("Table Name", style="cyan")
     table.add_column("Purpose", style="white")
 

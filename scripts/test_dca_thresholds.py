@@ -75,7 +75,9 @@ class DCAThresholdTester:
         setups = []
 
         # Calculate 4-hour rolling high
-        df["high_4h"] = df["high"].rolling(window=16, min_periods=1).max()  # 16 * 15min = 4 hours
+        df["high_4h"] = (
+            df["high"].rolling(window=16, min_periods=1).max()
+        )  # 16 * 15min = 4 hours
 
         # Look for drops
         i = 16  # Start after we have 4h of history
@@ -185,7 +187,9 @@ class DCAThresholdTester:
                 for setup in setups:
                     outcome = self.simulate_dca_outcome(df, setup)
                     outcomes.append(outcome)
-                    print(f"  {setup['timestamp']}: Drop {setup['drop_pct']:.2f}% → {outcome}")
+                    print(
+                        f"  {setup['timestamp']}: Drop {setup['drop_pct']:.2f}% → {outcome}"
+                    )
 
                 # Calculate statistics
                 wins = outcomes.count("WIN")
@@ -243,7 +247,10 @@ class DCAThresholdTester:
             if symbol in all_results:
                 print(f"\n{symbol}:")
                 for threshold, stats in all_results[symbol].items():
-                    print(f"  {threshold}% threshold: {stats['setups']} setups, " f"{stats['win_rate']:.1f}% win rate")
+                    print(
+                        f"  {threshold}% threshold: {stats['setups']} setups, "
+                        f"{stats['win_rate']:.1f}% win rate"
+                    )
 
         # Recommendations
         print("\n" + "=" * 80)
@@ -264,7 +271,9 @@ class DCAThresholdTester:
                             best_threshold = threshold
 
                 if best_threshold:
-                    print(f"{cap_tier.upper()} ({symbol}): Use {best_threshold}% threshold")
+                    print(
+                        f"{cap_tier.upper()} ({symbol}): Use {best_threshold}% threshold"
+                    )
                 else:
                     print(f"{cap_tier.upper()} ({symbol}): No viable threshold found")
 

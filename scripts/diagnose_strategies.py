@@ -34,12 +34,18 @@ def diagnose_strategies():
     # Check SWING settings
     print(f"\n   SWING min_volume: {getattr(settings, 'swing_min_volume', 'Not set')}")
     print(f"   SWING enabled: {getattr(settings, 'enable_swing_strategy', True)}")
-    print(f"   SWING min_breakout: {getattr(settings, 'swing_min_breakout_strength', 'Not set')}")
+    print(
+        f"   SWING min_breakout: {getattr(settings, 'swing_min_breakout_strength', 'Not set')}"
+    )
 
     # Check CHANNEL settings
-    print(f"\n   CHANNEL min_volume: {getattr(settings, 'channel_min_volume', 'Not set')}")
+    print(
+        f"\n   CHANNEL min_volume: {getattr(settings, 'channel_min_volume', 'Not set')}"
+    )
     print(f"   CHANNEL enabled: {getattr(settings, 'enable_channel_strategy', True)}")
-    print(f"   CHANNEL min_touches: {getattr(settings, 'channel_min_touches', 'Not set')}")
+    print(
+        f"   CHANNEL min_touches: {getattr(settings, 'channel_min_touches', 'Not set')}"
+    )
 
     # Check if detector classes exist and can be imported
     print("\n2. Checking Strategy Modules:")

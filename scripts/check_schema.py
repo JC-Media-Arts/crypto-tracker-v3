@@ -45,9 +45,9 @@ def check_schema():
 
         # Clean up test data
         try:
-            supabase.client.table("scan_history").delete().eq("strategy_name", "TEST").eq(
-                "metadata", {"test": True}
-            ).execute()
+            supabase.client.table("scan_history").delete().eq(
+                "strategy_name", "TEST"
+            ).eq("metadata", {"test": True}).execute()
             print("   ✅ Test data cleaned up")
         except:
             pass
@@ -78,12 +78,18 @@ def check_schema():
     }
 
     try:
-        result = supabase.client.table("shadow_testing_scans").insert(shadow_test_data).execute()
+        result = (
+            supabase.client.table("shadow_testing_scans")
+            .insert(shadow_test_data)
+            .execute()
+        )
         print("   ✅ Successfully inserted into shadow_testing_scans!")
 
         # Clean up
         try:
-            supabase.client.table("shadow_testing_scans").delete().eq("strategy_name", "TEST").execute()
+            supabase.client.table("shadow_testing_scans").delete().eq(
+                "strategy_name", "TEST"
+            ).execute()
             print("   ✅ Test data cleaned up")
         except:
             pass
@@ -101,7 +107,10 @@ def check_schema():
     try:
         # Try to query the new columns
         result = (
-            supabase.client.table("trade_logs").select("id, pnl, stop_loss_price, take_profit_price").limit(1).execute()
+            supabase.client.table("trade_logs")
+            .select("id, pnl, stop_loss_price, take_profit_price")
+            .limit(1)
+            .execute()
         )
         print("   ✅ New columns (pnl, stop_loss_price, etc.) are accessible!")
     except Exception as e:

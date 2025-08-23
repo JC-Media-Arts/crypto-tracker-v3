@@ -42,7 +42,9 @@ async def check():
             if "not found" in str(e).lower():
                 logger.error("❌ kraken_paper_trade connector NOT available")
             else:
-                logger.success("✅ kraken_paper_trade connector seems available (got different error)")
+                logger.success(
+                    "✅ kraken_paper_trade connector seems available (got different error)"
+                )
 
     except Exception as e:
         logger.error(f"Failed to initialize: {e}")

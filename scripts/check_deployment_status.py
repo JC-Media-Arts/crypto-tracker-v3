@@ -164,7 +164,9 @@ def check_recent_logs():
         return
 
     # Get recent log files
-    log_files = sorted(log_dir.glob("*.log"), key=lambda x: x.stat().st_mtime, reverse=True)
+    log_files = sorted(
+        log_dir.glob("*.log"), key=lambda x: x.stat().st_mtime, reverse=True
+    )
 
     if log_files:
         print(f"Found {len(log_files)} log files:")

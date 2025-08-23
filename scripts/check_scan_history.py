@@ -17,7 +17,12 @@ def check_scan_history():
     # Check if scan_history table has any data
     try:
         # Get count of records
-        result = client.client.table("scan_history").select("*", count="exact").limit(10).execute()
+        result = (
+            client.client.table("scan_history")
+            .select("*", count="exact")
+            .limit(10)
+            .execute()
+        )
 
         count = result.count if hasattr(result, "count") else len(result.data)
 

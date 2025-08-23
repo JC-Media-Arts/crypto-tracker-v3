@@ -30,7 +30,9 @@ class MigrationVerifier:
 
     def __init__(self):
         settings = get_settings()
-        self.supabase: Client = create_client(settings.supabase_url, settings.supabase_key)
+        self.supabase: Client = create_client(
+            settings.supabase_url, settings.supabase_key
+        )
         self.results = {
             "tables_exist": {},
             "indexes_exist": {},
@@ -136,12 +138,18 @@ class MigrationVerifier:
                     # Table is empty, try inserting a test row to get column info
                     test_row = self._get_test_row(table)
                     try:
-                        insert_result = self.supabase.table(table).insert(test_row).execute()
+                        insert_result = (
+                            self.supabase.table(table).insert(test_row).execute()
+                        )
                         actual_cols = set(insert_result.data[0].keys())
                         # Delete test row
-                        self.supabase.table(table).delete().eq("id", insert_result.data[0]["id"]).execute()
+                        self.supabase.table(table).delete().eq(
+                            "id", insert_result.data[0]["id"]
+                        ).execute()
                     except Exception as e:
-                        print(f"  ⚠️  Could not verify columns (empty table): {str(e)[:100]}")
+                        print(
+                            f"  ⚠️  Could not verify columns (empty table): {str(e)[:100]}"
+                        )
                         self.results["columns_correct"][table] = "unknown"
                         continue
 
@@ -180,14 +188,20 @@ class MigrationVerifier:
             "strategy_dca_labels": [
                 (
                     "symbol_timestamp",
-                    lambda t: t.select("*").eq("symbol", "BTC").order("timestamp", desc=True).limit(10),
+                    lambda t: t.select("*")
+                    .eq("symbol", "BTC")
+                    .order("timestamp", desc=True)
+                    .limit(10),
                 ),
                 ("outcome", lambda t: t.select("*").eq("outcome", "WIN").limit(10)),
             ],
             "strategy_swing_labels": [
                 (
                     "symbol_timestamp",
-                    lambda t: t.select("*").eq("symbol", "ETH").order("timestamp", desc=True).limit(10),
+                    lambda t: t.select("*")
+                    .eq("symbol", "ETH")
+                    .order("timestamp", desc=True)
+                    .limit(10),
                 ),
                 (
                     "breakout",
@@ -197,7 +211,10 @@ class MigrationVerifier:
             "strategy_channel_labels": [
                 (
                     "symbol_timestamp",
-                    lambda t: t.select("*").eq("symbol", "SOL").order("timestamp", desc=True).limit(10),
+                    lambda t: t.select("*")
+                    .eq("symbol", "SOL")
+                    .order("timestamp", desc=True)
+                    .limit(10),
                 ),
                 (
                     "position",
@@ -219,10 +236,14 @@ class MigrationVerifier:
                     elapsed = time.time() - start
 
                     if elapsed < 1.0:  # Query should be fast with index
-                        print(f"  ✅ Index '{index_name}' appears to be working (query: {elapsed:.3f}s)")
+                        print(
+                            f"  ✅ Index '{index_name}' appears to be working (query: {elapsed:.3f}s)"
+                        )
                         self.results["indexes_exist"][f"{table}.{index_name}"] = True
                     else:
-                        print(f"  ⚠️  Index '{index_name}' may be missing (query: {elapsed:.3f}s)")
+                        print(
+                            f"  ⚠️  Index '{index_name}' may be missing (query: {elapsed:.3f}s)"
+                        )
                         self.results["indexes_exist"][f"{table}.{index_name}"] = "slow"
 
                 except Exception as e:
@@ -257,7 +278,12 @@ class MigrationVerifier:
                     print(f"  ✅ Insert successful (ID: {row_id})")
 
                     # Retrieve and verify
-                    retrieve_result = self.supabase.table(table).select("*").eq("id", row_id).execute()
+                    retrieve_result = (
+                        self.supabase.table(table)
+                        .select("*")
+                        .eq("id", row_id)
+                        .execute()
+                    )
 
                     if retrieve_result.data:
                         retrieved = retrieve_result.data[0]
@@ -299,7 +325,9 @@ class MigrationVerifier:
             if result.data:
                 print("\nSummary Data:")
                 for row in result.data:
-                    print(f"  {row.get('strategy', 'N/A')}: {row.get('total_labels', 0)} labels")
+                    print(
+                        f"  {row.get('strategy', 'N/A')}: {row.get('total_labels', 0)} labels"
+                    )
 
             return True
         except:

@@ -57,14 +57,18 @@ async def monitor_trading():
                 # Show latest scans
                 print("\nLatest 5 Scans:")
                 for scan in scans.data[:5]:
-                    time_str = scan["timestamp"][:19] if scan.get("timestamp") else "unknown"
+                    time_str = (
+                        scan["timestamp"][:19] if scan.get("timestamp") else "unknown"
+                    )
                     symbol = scan.get("symbol", "???")
                     strategy = scan.get("strategy_name", "???")
                     decision = scan.get("decision", "???")
                     confidence = scan.get("ml_confidence")
                     conf_str = f"{confidence:.2f}" if confidence is not None else "N/A"
 
-                    print(f"  {time_str} | {symbol:6s} | {strategy:8s} | {decision:15s} | Conf: {conf_str}")
+                    print(
+                        f"  {time_str} | {symbol:6s} | {strategy:8s} | {decision:15s} | Conf: {conf_str}"
+                    )
             else:
                 print("No recent scans found")
 
@@ -73,7 +77,11 @@ async def monitor_trading():
             print("-" * 60)
 
             # Total shadows
-            total_shadows = client.client.table("shadow_variations").select("count", count="exact").execute()
+            total_shadows = (
+                client.client.table("shadow_variations")
+                .select("count", count="exact")
+                .execute()
+            )
             print(f"Total Shadow Variations: {total_shadows.count:,}")
 
             # Recent shadows (last 5 minutes)
@@ -96,7 +104,11 @@ async def monitor_trading():
             print(f"Would Take Trade: {would_take.count}")
 
             # Shadow outcomes
-            outcomes = client.client.table("shadow_outcomes").select("count", count="exact").execute()
+            outcomes = (
+                client.client.table("shadow_outcomes")
+                .select("count", count="exact")
+                .execute()
+            )
             print(f"Evaluated Outcomes: {outcomes.count}")
 
             # Get recent outcomes
@@ -110,7 +122,9 @@ async def monitor_trading():
                 )
 
                 if recent_outcomes.data:
-                    outcome_counts = Counter(o["outcome_status"] for o in recent_outcomes.data)
+                    outcome_counts = Counter(
+                        o["outcome_status"] for o in recent_outcomes.data
+                    )
                     print("\nRecent Outcome Status:")
                     for status, count in outcome_counts.items():
                         print(f"  {status}: {count}")

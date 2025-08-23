@@ -50,7 +50,9 @@ class SimpleStrategyManager:
 
         for symbol in symbols:
             # Get data
-            data = await self.data_fetcher.get_recent_data(symbol=symbol, hours=24, timeframe="15m")
+            data = await self.data_fetcher.get_recent_data(
+                symbol=symbol, hours=24, timeframe="15m"
+            )
 
             if not data:
                 continue
@@ -159,7 +161,9 @@ async def main():
             signals = await manager.scan_all(symbols)
 
             for signal in signals:
-                logger.info(f"📊 {signal['strategy']} Signal: {signal['symbol']} @ ${signal['entry_price']:.2f}")
+                logger.info(
+                    f"📊 {signal['strategy']} Signal: {signal['symbol']} @ ${signal['entry_price']:.2f}"
+                )
 
             await asyncio.sleep(60)
 

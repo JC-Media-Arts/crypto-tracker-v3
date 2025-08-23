@@ -50,12 +50,19 @@ def update_existing_positions():
                     "trailing_stop_pct": position.get("trailing_stop_pct"),
                 }
 
-                result = db.client.table("paper_trades").update(update_data).eq("trade_id", trade_id).execute()
+                result = (
+                    db.client.table("paper_trades")
+                    .update(update_data)
+                    .eq("trade_id", trade_id)
+                    .execute()
+                )
 
                 logger.info(f"✅ Updated {symbol}:")
                 logger.info(f"   - Stop Loss: ${position.get('stop_loss', 0):.4f}")
                 logger.info(f"   - Take Profit: ${position.get('take_profit', 0):.4f}")
-                logger.info(f"   - Trailing Stop: {position.get('trailing_stop_pct', 0)*100:.1f}%")
+                logger.info(
+                    f"   - Trailing Stop: {position.get('trailing_stop_pct', 0)*100:.1f}%"
+                )
             else:
                 logger.warning(f"No database record found for {symbol}")
 

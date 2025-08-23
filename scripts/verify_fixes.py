@@ -59,7 +59,12 @@ def verify_fixes():
 
     # Check shadow tables exist
     try:
-        result = supabase.client.table("shadow_testing_scans").select("*", count="exact").limit(1).execute()
+        result = (
+            supabase.client.table("shadow_testing_scans")
+            .select("*", count="exact")
+            .limit(1)
+            .execute()
+        )
         shadow_scans_exists = True
         print("   ✅ shadow_testing_scans table exists")
     except Exception as e:
@@ -67,7 +72,12 @@ def verify_fixes():
         print("   ❌ shadow_testing_scans table missing")
 
     try:
-        result = supabase.client.table("shadow_testing_trades").select("*", count="exact").limit(1).execute()
+        result = (
+            supabase.client.table("shadow_testing_trades")
+            .select("*", count="exact")
+            .limit(1)
+            .execute()
+        )
         shadow_trades_exists = True
         print("   ✅ shadow_testing_trades table exists")
     except Exception as e:
@@ -80,7 +90,10 @@ def verify_fixes():
     try:
         # Try to query the new columns
         result = (
-            supabase.client.table("trade_logs").select("pnl, stop_loss_price, take_profit_price").limit(1).execute()
+            supabase.client.table("trade_logs")
+            .select("pnl, stop_loss_price, take_profit_price")
+            .limit(1)
+            .execute()
         )
         pnl_columns_exist = True
         print("   ✅ trade_logs PNL columns exist")
@@ -104,7 +117,9 @@ def verify_fixes():
             config = json.load(f)
             ml_threshold = config.get("ml_confidence_threshold", 1.0)
             results["Loosened Thresholds"] = ml_threshold <= 0.60
-            print(f"   ML threshold: {ml_threshold} {'✅' if ml_threshold <= 0.60 else '❌ Too strict!'}")
+            print(
+                f"   ML threshold: {ml_threshold} {'✅' if ml_threshold <= 0.60 else '❌ Too strict!'}"
+            )
 
             # Check strategies are enabled
             strategies = config.get("strategies", {})
@@ -116,7 +131,9 @@ def verify_fixes():
             print(f"   SWING enabled: {'✅' if swing_enabled else '❌'}")
             print(f"   CHANNEL enabled: {'✅' if channel_enabled else '❌'}")
 
-            results["All Strategies Enabled"] = dca_enabled and swing_enabled and channel_enabled
+            results["All Strategies Enabled"] = (
+                dca_enabled and swing_enabled and channel_enabled
+            )
     else:
         results["Loosened Thresholds"] = False
         results["All Strategies Enabled"] = False
@@ -132,7 +149,10 @@ def verify_fixes():
     for strategy in ["DCA", "SWING", "CHANNEL"]:
         try:
             result = (
-                supabase.client.table("scan_history").select("*", count="exact").eq("strategy_name", strategy).execute()
+                supabase.client.table("scan_history")
+                .select("*", count="exact")
+                .eq("strategy_name", strategy)
+                .execute()
             )
             baseline_scans[strategy] = result.count if result else 0
         except:
@@ -150,7 +170,10 @@ def verify_fixes():
     for strategy in ["DCA", "SWING", "CHANNEL"]:
         try:
             result = (
-                supabase.client.table("scan_history").select("*", count="exact").eq("strategy_name", strategy).execute()
+                supabase.client.table("scan_history")
+                .select("*", count="exact")
+                .eq("strategy_name", strategy)
+                .execute()
             )
             current_count = result.count if result else 0
             new_scans = current_count - baseline_scans.get(strategy, 0)
@@ -196,13 +219,23 @@ def verify_fixes():
     print("-" * 40)
 
     try:
-        result = supabase.client.table("ohlc_data").select("timestamp").order("timestamp", desc=True).limit(1).execute()
+        result = (
+            supabase.client.table("ohlc_data")
+            .select("timestamp")
+            .order("timestamp", desc=True)
+            .limit(1)
+            .execute()
+        )
 
         if result.data and len(result.data) > 0:
-            last_data = datetime.fromisoformat(result.data[0]["timestamp"].replace("Z", "+00:00"))
+            last_data = datetime.fromisoformat(
+                result.data[0]["timestamp"].replace("Z", "+00:00")
+            )
             age_minutes = (datetime.now(timezone.utc) - last_data).total_seconds() / 60
             results["Data Fresh"] = age_minutes < 5
-            print(f"   Data age: {age_minutes:.1f} minutes {'✅' if age_minutes < 5 else '⚠️'}")
+            print(
+                f"   Data age: {age_minutes:.1f} minutes {'✅' if age_minutes < 5 else '⚠️'}"
+            )
         else:
             results["Data Fresh"] = False
             print("   ❌ No data found")
@@ -249,7 +282,9 @@ def verify_fixes():
         f"| Active Strategies | 3/3 | {sum([results.get('DCA Activity', False), results.get('SWING Activity', False), results.get('CHANNEL Activity', False)])}/3 |"
     )
     print(f"| Processes Running | 3+ | {process_count} |")
-    print(f"| Shadow Testing | Active | {'Yes' if results.get('Shadow Testing Active') else 'No'} |")
+    print(
+        f"| Shadow Testing | Active | {'Yes' if results.get('Shadow Testing Active') else 'No'} |"
+    )
     print(f"| Data Fresh | <5 min | {'Yes' if results.get('Data Fresh') else 'No'} |")
 
     return results

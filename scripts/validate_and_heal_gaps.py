@@ -269,7 +269,9 @@ class GapDetector:
             gap_end = pd.to_datetime(gap["gap_end"])
 
             if not gap_start:
-                logger.warning(f"Cannot heal gap for {symbol}/{timeframe} - no start time")
+                logger.warning(
+                    f"Cannot heal gap for {symbol}/{timeframe} - no start time"
+                )
                 return False
 
             # Ensure timezone aware
@@ -278,21 +280,29 @@ class GapDetector:
             if gap_end.tzinfo is None:
                 gap_end = gap_end.replace(tzinfo=tz.UTC)
 
-            logger.info(f"Attempting to heal gap for {symbol}/{timeframe} from {gap_start} to {gap_end}")
+            logger.info(
+                f"Attempting to heal gap for {symbol}/{timeframe} from {gap_start} to {gap_end}"
+            )
 
             # Fetch data for the gap period
-            data = updater.fetch_ohlc_from_polygon(symbol, timeframe, gap_start, gap_end)
+            data = updater.fetch_ohlc_from_polygon(
+                symbol, timeframe, gap_start, gap_end
+            )
 
             if data:
                 records_saved = updater.save_ohlc_batch(data, symbol, timeframe)
                 if records_saved > 0:
-                    logger.success(f"Healed gap for {symbol}/{timeframe}: {records_saved} records added")
+                    logger.success(
+                        f"Healed gap for {symbol}/{timeframe}: {records_saved} records added"
+                    )
                     return True
                 else:
                     logger.warning(f"No records saved for gap in {symbol}/{timeframe}")
                     return False
             else:
-                logger.warning(f"No data available to heal gap for {symbol}/{timeframe}")
+                logger.warning(
+                    f"No data available to heal gap for {symbol}/{timeframe}"
+                )
                 return False
 
         except Exception as e:
@@ -312,7 +322,9 @@ class GapDetector:
         symbols = self.get_all_symbols()
         timeframes = [timeframe] if timeframe else ["1m", "15m", "1h", "1d"]
 
-        logger.info(f"Starting gap scan for {len(symbols)} symbols across {len(timeframes)} timeframes")
+        logger.info(
+            f"Starting gap scan for {len(symbols)} symbols across {len(timeframes)} timeframes"
+        )
 
         for tf in timeframes:
             logger.info(f"Scanning {tf} timeframe...")
@@ -421,11 +433,15 @@ class GapDetector:
                         )
 
                         if response.data:
-                            last_timestamp = pd.to_datetime(response.data[0]["timestamp"])
+                            last_timestamp = pd.to_datetime(
+                                response.data[0]["timestamp"]
+                            )
 
                             # Calculate expected vs actual bars
                             time_range = last_timestamp - first_timestamp
-                            expected_bars = time_range.total_seconds() / (self.expected_intervals[timeframe] * 60)
+                            expected_bars = time_range.total_seconds() / (
+                                self.expected_intervals[timeframe] * 60
+                            )
 
                             # Get actual count
                             count_response = (
@@ -436,9 +452,17 @@ class GapDetector:
                                 .execute()
                             )
 
-                            actual_bars = count_response.count if hasattr(count_response, "count") else 0
+                            actual_bars = (
+                                count_response.count
+                                if hasattr(count_response, "count")
+                                else 0
+                            )
 
-                            completeness = (actual_bars / expected_bars * 100) if expected_bars > 0 else 0
+                            completeness = (
+                                (actual_bars / expected_bars * 100)
+                                if expected_bars > 0
+                                else 0
+                            )
 
                             sym_stats[timeframe] = {
                                 "first_date": first_timestamp.isoformat(),
@@ -449,7 +473,9 @@ class GapDetector:
                             }
 
                 except Exception as e:
-                    logger.error(f"Error calculating completeness for {sym}/{timeframe}: {e}")
+                    logger.error(
+                        f"Error calculating completeness for {sym}/{timeframe}: {e}"
+                    )
                     sym_stats[timeframe] = {"error": str(e)}
 
             results[sym] = sym_stats

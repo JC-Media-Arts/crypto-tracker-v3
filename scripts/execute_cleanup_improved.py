@@ -21,7 +21,9 @@ from src.data.supabase_client import SupabaseClient
 from loguru import logger
 
 
-def cleanup_by_date_ranges(supabase, table, timeframe_list, cutoff_date, days_per_batch=30):
+def cleanup_by_date_ranges(
+    supabase, table, timeframe_list, cutoff_date, days_per_batch=30
+):
     """
     Clean up data by deleting in date range chunks to avoid timeouts.
     IMPROVED: Properly handles timeouts and prevents infinite loops.
@@ -30,7 +32,9 @@ def cleanup_by_date_ranges(supabase, table, timeframe_list, cutoff_date, days_pe
     current_date = datetime.now(timezone.utc)
 
     for tf in timeframe_list:
-        logger.info(f"Cleaning {table} where timeframe='{tf}' before {cutoff_date[:10]}")
+        logger.info(
+            f"Cleaning {table} where timeframe='{tf}' before {cutoff_date[:10]}"
+        )
         batch_deleted = 0
 
         # Parse cutoff date
@@ -47,7 +51,9 @@ def cleanup_by_date_ranges(supabase, table, timeframe_list, cutoff_date, days_pe
         # Track the current batch size for this timeframe
         current_batch_size = days_per_batch
 
-        while end_date > cutoff_dt - timedelta(days=365 * 10):  # Don't go back more than 10 years
+        while end_date > cutoff_dt - timedelta(
+            days=365 * 10
+        ):  # Don't go back more than 10 years
             start_date = end_date - timedelta(days=current_batch_size)
 
             try:
@@ -78,7 +84,9 @@ def cleanup_by_date_ranges(supabase, table, timeframe_list, cutoff_date, days_pe
                 # If we had reduced batch size due to failures, try increasing it again
                 if current_batch_size < days_per_batch:
                     current_batch_size = min(days_per_batch, current_batch_size * 2)
-                    logger.info(f"    Increasing batch size back to {current_batch_size} days")
+                    logger.info(
+                        f"    Increasing batch size back to {current_batch_size} days"
+                    )
 
                 # Brief pause between batches
                 time.sleep(0.5)
@@ -93,24 +101,34 @@ def cleanup_by_date_ranges(supabase, table, timeframe_list, cutoff_date, days_pe
                 consecutive_failures += 1
 
                 if "timeout" in error_msg.lower():
-                    logger.warning(f"  Timeout on range (attempt {consecutive_failures}/{max_retries_per_range})")
+                    logger.warning(
+                        f"  Timeout on range (attempt {consecutive_failures}/{max_retries_per_range})"
+                    )
 
                     if consecutive_failures >= max_retries_per_range:
                         # Too many failures on this range
                         if current_batch_size > min_batch_days:
                             # Try with smaller batch
-                            current_batch_size = max(min_batch_days, current_batch_size // 2)
+                            current_batch_size = max(
+                                min_batch_days, current_batch_size // 2
+                            )
                             consecutive_failures = 0  # Reset counter for new batch size
-                            logger.warning(f"  Reducing batch size to {current_batch_size} days")
+                            logger.warning(
+                                f"  Reducing batch size to {current_batch_size} days"
+                            )
                         else:
                             # Already at minimum batch size, skip this range
                             logger.error(
                                 f"  Failed to delete range after {max_retries_per_range} attempts, skipping..."
                             )
-                            logger.error(f"  Problematic range: {start_date.date()} to {end_date.date()}")
+                            logger.error(
+                                f"  Problematic range: {start_date.date()} to {end_date.date()}"
+                            )
                             end_date = start_date  # Move past this range
                             consecutive_failures = 0
-                            current_batch_size = days_per_batch  # Reset batch size for next range
+                            current_batch_size = (
+                                days_per_batch  # Reset batch size for next range
+                            )
                     else:
                         # Retry the same range
                         logger.info(f"  Retrying in 2 seconds...")
@@ -125,7 +143,9 @@ def cleanup_by_date_ranges(supabase, table, timeframe_list, cutoff_date, days_pe
 
                     if consecutive_failures >= max_retries_per_range:
                         # Skip this range after max retries
-                        logger.error(f"  Skipping range after {max_retries_per_range} failures")
+                        logger.error(
+                            f"  Skipping range after {max_retries_per_range} failures"
+                        )
                         end_date = start_date
                         consecutive_failures = 0
                     else:
@@ -145,7 +165,12 @@ def cleanup_simple_tables(supabase):
     # Clean scan_history (>7 days)
     try:
         seven_days_ago = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
-        result = supabase.client.table("scan_history").delete().lt("timestamp", seven_days_ago).execute()
+        result = (
+            supabase.client.table("scan_history")
+            .delete()
+            .lt("timestamp", seven_days_ago)
+            .execute()
+        )
 
         deleted = len(result.data) if result.data else 0
         cleanup_summary.append(("scan_history (>7 days)", deleted))
@@ -158,7 +183,12 @@ def cleanup_simple_tables(supabase):
     # Clean ML features (>30 days)
     try:
         thirty_days_ago = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
-        result = supabase.client.table("ml_features").delete().lt("timestamp", thirty_days_ago).execute()
+        result = (
+            supabase.client.table("ml_features")
+            .delete()
+            .lt("timestamp", thirty_days_ago)
+            .execute()
+        )
 
         deleted = len(result.data) if result.data else 0
         cleanup_summary.append(("ml_features (>30 days)", deleted))
@@ -171,7 +201,12 @@ def cleanup_simple_tables(supabase):
     # Clean shadow testing tables
     try:
         thirty_days_ago = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
-        result = supabase.client.table("shadow_testing_scans").delete().lt("scan_time", thirty_days_ago).execute()
+        result = (
+            supabase.client.table("shadow_testing_scans")
+            .delete()
+            .lt("scan_time", thirty_days_ago)
+            .execute()
+        )
 
         deleted = len(result.data) if result.data else 0
         cleanup_summary.append(("shadow_testing_scans (>30 days)", deleted))

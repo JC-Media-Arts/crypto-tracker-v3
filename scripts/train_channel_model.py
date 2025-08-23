@@ -90,7 +90,13 @@ class ChannelModelTrainer:
             if row["outcome"] == "WIN":
                 # Use actual successful targets
                 y_optimal_tp.append(abs(row["actual_pnl_pct"]))
-                y_optimal_sl.append(abs((row["stop_loss"] - row["entry_price"]) / row["entry_price"] * 100))
+                y_optimal_sl.append(
+                    abs(
+                        (row["stop_loss"] - row["entry_price"])
+                        / row["entry_price"]
+                        * 100
+                    )
+                )
                 y_hold_time.append(row.get("exit_bars", 24))
             else:
                 # For losses, suggest better targets based on max profit
@@ -125,7 +131,9 @@ class ChannelModelTrainer:
             y_sl_test,
             y_hold_train,
             y_hold_test,
-        ) = train_test_split(X, y_binary, y_tp, y_sl, y_hold, test_size=0.2, random_state=42)
+        ) = train_test_split(
+            X, y_binary, y_tp, y_sl, y_hold, test_size=0.2, random_state=42
+        )
 
         # Scale features
         X_train_scaled = self.scaler.fit_transform(X_train)
@@ -180,7 +188,9 @@ class ChannelModelTrainer:
 
         # 2. Regression model for take profit optimization
         logger.info("Training take profit optimizer...")
-        tp_model = xgb.XGBRegressor(n_estimators=100, max_depth=4, learning_rate=0.1, random_state=42)
+        tp_model = xgb.XGBRegressor(
+            n_estimators=100, max_depth=4, learning_rate=0.1, random_state=42
+        )
         tp_model.fit(X_train_scaled, y_tp_train)
 
         y_tp_pred = tp_model.predict(X_test_scaled)
@@ -195,7 +205,9 @@ class ChannelModelTrainer:
 
         # 3. Regression model for stop loss optimization
         logger.info("Training stop loss optimizer...")
-        sl_model = xgb.XGBRegressor(n_estimators=100, max_depth=4, learning_rate=0.1, random_state=42)
+        sl_model = xgb.XGBRegressor(
+            n_estimators=100, max_depth=4, learning_rate=0.1, random_state=42
+        )
         sl_model.fit(X_train_scaled, y_sl_train)
 
         y_sl_pred = sl_model.predict(X_test_scaled)
@@ -210,7 +222,9 @@ class ChannelModelTrainer:
 
         # 4. Regression model for hold time prediction
         logger.info("Training hold time predictor...")
-        hold_model = xgb.XGBRegressor(n_estimators=100, max_depth=4, learning_rate=0.1, random_state=42)
+        hold_model = xgb.XGBRegressor(
+            n_estimators=100, max_depth=4, learning_rate=0.1, random_state=42
+        )
         hold_model.fit(X_train_scaled, y_hold_train)
 
         y_hold_pred = hold_model.predict(X_test_scaled)
@@ -236,12 +250,14 @@ class ChannelModelTrainer:
         feature_importance = clf.feature_importances_
         # Ensure arrays have same length
         if len(feature_importance) != len(feature_names):
-            logger.warning(f"Feature importance length mismatch: {len(feature_importance)} vs {len(feature_names)}")
+            logger.warning(
+                f"Feature importance length mismatch: {len(feature_importance)} vs {len(feature_names)}"
+            )
             feature_importance = feature_importance[: len(feature_names)]
 
-        importance_df = pd.DataFrame({"feature": feature_names, "importance": list(feature_importance)}).sort_values(
-            "importance", ascending=False
-        )
+        importance_df = pd.DataFrame(
+            {"feature": feature_names, "importance": list(feature_importance)}
+        ).sort_values("importance", ascending=False)
 
         logger.info("\nFeature Importance (Binary Classifier):")
         for _, row in importance_df.iterrows():
@@ -335,7 +351,9 @@ class ChannelModelTrainer:
         logger.info("✅ Channel ML Model Training Complete!")
         logger.info(f"Models saved to models/channel/")
         logger.info(f"Binary classifier accuracy: {results['accuracy']:.1%}")
-        logger.info(f"Optimal confidence threshold: {results['confidence_threshold']:.2f}")
+        logger.info(
+            f"Optimal confidence threshold: {results['confidence_threshold']:.2f}"
+        )
 
 
 def main():

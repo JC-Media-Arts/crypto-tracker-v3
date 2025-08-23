@@ -75,7 +75,9 @@ def test_entry_price_fix():
         trade_plan2 = analysis2.get("trade_plan", {})
         print(f"   ✅ Analysis successful")
         print(f"   Entry price in trade plan: ${trade_plan2.get('entry_price', 'N/A')}")
-        print(f"   Stop loss: ${trade_plan2.get('stop_loss', 'N/A')} (should be default)")
+        print(
+            f"   Stop loss: ${trade_plan2.get('stop_loss', 'N/A')} (should be default)"
+        )
 
         # Test with minimal fields
         print("\n3. Testing setup with minimal fields:")
@@ -100,7 +102,9 @@ def test_entry_price_fix():
         print(f"   Adjusted take profit: ${analysis4.get('take_profit', 'N/A')}")
 
         print("\n✅ ALL TESTS PASSED! SwingAnalyzer now handles price fields correctly.")
-        print("The fix standardizes on 'price' field and uses defensive access throughout.")
+        print(
+            "The fix standardizes on 'price' field and uses defensive access throughout."
+        )
 
         return True
 

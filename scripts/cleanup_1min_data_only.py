@@ -27,7 +27,9 @@ def cleanup_1min_data_smart(supabase):
     total_deleted = 0
 
     for tf in timeframes:
-        logger.info(f"Cleaning {table} where timeframe='{tf}' before {thirty_days_ago.date()}")
+        logger.info(
+            f"Cleaning {table} where timeframe='{tf}' before {thirty_days_ago.date()}"
+        )
 
         # Start with very small batches (1 day) and increase on success
         batch_days = 1
@@ -92,7 +94,9 @@ def cleanup_1min_data_smart(supabase):
                 consecutive_failures += 1
                 consecutive_successes = 0
 
-                logger.warning(f"    ⚠ Error (attempt {consecutive_failures}/{max_failures}): {error_msg[:100]}")
+                logger.warning(
+                    f"    ⚠ Error (attempt {consecutive_failures}/{max_failures}): {error_msg[:100]}"
+                )
 
                 if consecutive_failures >= max_failures:
                     if batch_days > 1:

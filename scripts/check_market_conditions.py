@@ -55,9 +55,13 @@ async def check_conditions():
             logger.info(f"\n{symbol}:")
             logger.info(f"  Price: ${latest_close:,.2f}")
             logger.info(f"  Drop from high: {drop_pct:.2f}% (DCA triggers at -3.5%)")
-            logger.info(f"  Recent change: {price_change_pct:.2f}% (Swing triggers at +2.1%)")
+            logger.info(
+                f"  Recent change: {price_change_pct:.2f}% (Swing triggers at +2.1%)"
+            )
             logger.info(f"  Volume ratio: {volume_ratio:.2f}x (Swing needs 1.5x)")
-            logger.info(f"  Channel position: {position_in_channel:.1%} (signals at <20% or >80%)")
+            logger.info(
+                f"  Channel position: {position_in_channel:.1%} (signals at <20% or >80%)"
+            )
 
             # Check if close to triggering
             if drop_pct < -2.5:

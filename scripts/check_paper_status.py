@@ -43,6 +43,8 @@ if trades_file.exists():
         print(f"\n📜 Recent Trades: {len(trades)} total")
         for trade in trades[-3:]:  # Last 3 trades
             emoji = "🟢" if trade["pnl_usd"] > 0 else "🔴"
-            print(f"   {emoji} {trade['symbol']}: ${trade['pnl_usd']:.2f} ({trade['pnl_percent']:.2f}%)")
+            print(
+                f"   {emoji} {trade['symbol']}: ${trade['pnl_usd']:.2f} ({trade['pnl_percent']:.2f}%)"
+            )
 
 print("\n" + "=" * 60)

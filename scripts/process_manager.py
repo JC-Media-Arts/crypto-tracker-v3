@@ -55,7 +55,9 @@ class ProcessManager:
 
     def signal_handler(self, signum, frame):
         """Handle shutdown signals"""
-        print(f"\n{datetime.now()} - Received shutdown signal, stopping all processes...")
+        print(
+            f"\n{datetime.now()} - Received shutdown signal, stopping all processes..."
+        )
         self.running = False
         self.stop_all()
         sys.exit(0)
@@ -98,12 +100,16 @@ class ProcessManager:
                     print(f"⚠️  {name}: Process exited with code {exit_code}")
 
                 if config["restart_count"] > 0:
-                    print(f"   Waiting {config['restart_delay']} seconds before restart...")
+                    print(
+                        f"   Waiting {config['restart_delay']} seconds before restart..."
+                    )
                     time.sleep(config["restart_delay"])
 
                 if self.running:  # Check again after sleep
                     config["restart_count"] += 1
-                    print(f"🔄 {name}: Restarting (attempt {config['restart_count']}/{config['max_restarts']})")
+                    print(
+                        f"🔄 {name}: Restarting (attempt {config['restart_count']}/{config['max_restarts']})"
+                    )
 
                     process = self.start_process(name, config)
                     if process:
@@ -158,7 +164,9 @@ class ProcessManager:
                     self.processes[name] = process
 
                     # Create monitoring thread
-                    thread = threading.Thread(target=self.monitor_process, args=(name, config), daemon=True)
+                    thread = threading.Thread(
+                        target=self.monitor_process, args=(name, config), daemon=True
+                    )
                     thread.start()
                     threads.append(thread)
 

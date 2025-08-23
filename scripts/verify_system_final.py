@@ -55,13 +55,20 @@ def verify_system():
 
     try:
         # Total shadow scans
-        result = supabase.client.table("shadow_testing_scans").select("*", count="exact").execute()
+        result = (
+            supabase.client.table("shadow_testing_scans")
+            .select("*", count="exact")
+            .execute()
+        )
 
         total_shadow = result.count if result else 0
 
         # Recent shadow scans
         result = (
-            supabase.client.table("shadow_testing_scans").select("*", count="exact").gte("scan_time", cutoff).execute()
+            supabase.client.table("shadow_testing_scans")
+            .select("*", count="exact")
+            .gte("scan_time", cutoff)
+            .execute()
         )
 
         recent_shadow = result.count if result else 0
@@ -77,10 +84,18 @@ def verify_system():
     print("-" * 40)
 
     try:
-        result = supabase.client.table("ohlc_data").select("timestamp").order("timestamp", desc=True).limit(1).execute()
+        result = (
+            supabase.client.table("ohlc_data")
+            .select("timestamp")
+            .order("timestamp", desc=True)
+            .limit(1)
+            .execute()
+        )
 
         if result.data and len(result.data) > 0:
-            last_data = datetime.fromisoformat(result.data[0]["timestamp"].replace("Z", "+00:00"))
+            last_data = datetime.fromisoformat(
+                result.data[0]["timestamp"].replace("Z", "+00:00")
+            )
             age = (datetime.now(timezone.utc) - last_data).total_seconds() / 60
 
             if age < 5:
@@ -102,11 +117,17 @@ def verify_system():
 
     try:
         result = (
-            supabase.client.table("ml_features").select("timestamp").order("timestamp", desc=True).limit(1).execute()
+            supabase.client.table("ml_features")
+            .select("timestamp")
+            .order("timestamp", desc=True)
+            .limit(1)
+            .execute()
         )
 
         if result.data and len(result.data) > 0:
-            last_feature = datetime.fromisoformat(result.data[0]["timestamp"].replace("Z", "+00:00"))
+            last_feature = datetime.fromisoformat(
+                result.data[0]["timestamp"].replace("Z", "+00:00")
+            )
             age = (datetime.now(timezone.utc) - last_feature).total_seconds() / 60
 
             if age < 30:
@@ -132,7 +153,9 @@ def verify_system():
         print("\nRecommended actions:")
         print("1. Use PM2 for auto-restart: pm2 start ecosystem.config.js")
         print("2. OR setup cron: crontab -e")
-        print("   */5 * * * * /Users/justincoit/crypto-tracker-v3/scripts/run_strategies_cron.sh")
+        print(
+            "   */5 * * * * /Users/justincoit/crypto-tracker-v3/scripts/run_strategies_cron.sh"
+        )
         print("3. Monitor logs: tail -f logs/strategy_cron.log")
 
     print("\n📈 Expected in 24 hours:")

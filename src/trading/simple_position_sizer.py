@@ -17,9 +17,13 @@ class SimplePositionSizer:
         # Fixed position sizes from recovery config
         self.base_position_usd = config.get("base_position_usd", 50)
         self.max_positions = config.get("max_positions", 10)
-        self.max_position_pct = config.get("max_position_pct", 0.1)  # Max 10% per position
+        self.max_position_pct = config.get(
+            "max_position_pct", 0.1
+        )  # Max 10% per position
 
-        logger.info(f"Simple Position Sizer: ${self.base_position_usd} per trade, max {self.max_positions} positions")
+        logger.info(
+            f"Simple Position Sizer: ${self.base_position_usd} per trade, max {self.max_positions} positions"
+        )
 
     def calculate_position_size(
         self,
@@ -46,7 +50,9 @@ class SimplePositionSizer:
 
         # Ensure minimum viable position
         if position_size < 10:
-            logger.warning(f"Position size too small for {symbol}: ${position_size:.2f}")
+            logger.warning(
+                f"Position size too small for {symbol}: ${position_size:.2f}"
+            )
             return 0
 
         return position_size

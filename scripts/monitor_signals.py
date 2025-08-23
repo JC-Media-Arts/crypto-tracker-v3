@@ -23,7 +23,13 @@ async def monitor():
 
     # Check recent scan history
     try:
-        recent_scans = db.client.table("scan_history").select("*").order("timestamp", desc=True).limit(10).execute()
+        recent_scans = (
+            db.client.table("scan_history")
+            .select("*")
+            .order("timestamp", desc=True)
+            .limit(10)
+            .execute()
+        )
 
         if recent_scans.data:
             logger.info(f"\n📊 Recent Scans (last 10):")
@@ -39,7 +45,13 @@ async def monitor():
 
     # Check recent trades
     try:
-        recent_trades = db.client.table("trade_logs").select("*").order("timestamp", desc=True).limit(10).execute()
+        recent_trades = (
+            db.client.table("trade_logs")
+            .select("*")
+            .order("timestamp", desc=True)
+            .limit(10)
+            .execute()
+        )
 
         if recent_trades.data:
             logger.info(f"\n💰 Recent Trades (last 10):")

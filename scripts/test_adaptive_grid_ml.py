@@ -93,7 +93,9 @@ class AdaptiveGridTester:
                 LIMIT 500
             """
 
-            response = self.db.supabase.rpc("exec_sql", {"query": query, "params": [symbol]}).execute()
+            response = self.db.supabase.rpc(
+                "exec_sql", {"query": query, "params": [symbol]}
+            ).execute()
 
             if not response.data or not response.data[0]["result"]:
                 logger.warning(f"No data found for {symbol}")
@@ -275,13 +277,19 @@ class AdaptiveGridTester:
 
         # Generate the grid
         entry_price = setup.get("entry_price", 100)
-        grid = self.grid_calculator.calculate_grid(entry_price=entry_price, config=grid_config)
+        grid = self.grid_calculator.calculate_grid(
+            entry_price=entry_price, config=grid_config
+        )
 
         logger.info(f"\n📈 Adaptive DCA Grid:")
         logger.info(f"  Entry Price: ${entry_price:.2f}")
         logger.info(f"  Total Investment: ${grid['total_investment']:.2f}")
-        logger.info(f"  Take Profit: ${grid['take_profit_price']:.2f} ({predictions['take_profit']*100:.1f}%)")
-        logger.info(f"  Stop Loss: ${grid['stop_loss_price']:.2f} ({predictions['stop_loss']*100:.1f}%)")
+        logger.info(
+            f"  Take Profit: ${grid['take_profit_price']:.2f} ({predictions['take_profit']*100:.1f}%)"
+        )
+        logger.info(
+            f"  Stop Loss: ${grid['stop_loss_price']:.2f} ({predictions['stop_loss']*100:.1f}%)"
+        )
 
         logger.info(f"\n  Grid Levels:")
         for i, level in enumerate(grid["levels"], 1):
@@ -313,7 +321,9 @@ class AdaptiveGridTester:
         logger.info(f"     Loss: ${sl_loss:.2f} ({sl_return:.1f}%)")
 
         # Expected value
-        expected_value = (predictions["win_probability"] * tp_profit) + ((1 - predictions["win_probability"]) * sl_loss)
+        expected_value = (predictions["win_probability"] * tp_profit) + (
+            (1 - predictions["win_probability"]) * sl_loss
+        )
         expected_return = (expected_value / grid["total_investment"]) * 100
 
         logger.info(f"\n  📈 Expected Value:")

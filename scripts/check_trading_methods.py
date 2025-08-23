@@ -6,7 +6,9 @@ from hummingbot_api_client import HummingbotAPIClient
 
 
 async def check():
-    client = HummingbotAPIClient(base_url="http://localhost:8000", username="admin", password="admin")
+    client = HummingbotAPIClient(
+        base_url="http://localhost:8000", username="admin", password="admin"
+    )
 
     await client.init()
 
@@ -30,7 +32,9 @@ async def check():
     print("\n\nDirect API call test:")
     try:
         # Try to get active orders (safe read-only operation)
-        response = await client.session.get(f"{client.base_url}/bots/orders", auth=client.auth)
+        response = await client.session.get(
+            f"{client.base_url}/bots/orders", auth=client.auth
+        )
         print(f"Direct API call status: {response.status}")
 
         # Show the create order endpoint

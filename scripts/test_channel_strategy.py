@@ -115,7 +115,9 @@ class ChannelStrategyTest:
                 logger.info(f"  Strength: {channel.strength:.2f}")
                 logger.info(f"  Upper: ${channel.upper_line:.2f}")
                 logger.info(f"  Lower: ${channel.lower_line:.2f}")
-                logger.info(f"  Touches: {channel.touches_upper} upper, {channel.touches_lower} lower")
+                logger.info(
+                    f"  Touches: {channel.touches_upper} upper, {channel.touches_lower} lower"
+                )
                 logger.info(f"  Current position: {channel.current_position:.2f}")
                 logger.info(f"  Valid: {channel.is_valid}")
 
@@ -126,7 +128,9 @@ class ChannelStrategyTest:
 
                     # Calculate targets
                     current_price = ohlc_data[0]["close"]
-                    targets = self.detector.calculate_targets(channel, current_price, signal)
+                    targets = self.detector.calculate_targets(
+                        channel, current_price, signal
+                    )
                     logger.info(
                         f"  Targets: TP=${targets['take_profit']:.2f} "
                         f"({targets['take_profit_pct']:.1f}%), "
@@ -160,7 +164,9 @@ class ChannelStrategyTest:
 
         logger.info(f"Found {len(signals)} trading signals:")
         for signal in signals:
-            logger.info(f"  {signal['symbol']}: {signal['signal']} in {signal['channel_type']} channel")
+            logger.info(
+                f"  {signal['symbol']}: {signal['signal']} in {signal['channel_type']} channel"
+            )
             logger.info(f"    Channel width: {signal['channel_width']:.2%}")
             logger.info(f"    Channel strength: {signal['channel_strength']:.2f}")
             logger.info(f"    Position in channel: {signal['position_in_channel']:.2f}")
@@ -172,7 +178,9 @@ class ChannelStrategyTest:
         for pos in positions:
             logger.info(f"  {pos['symbol']}: {pos['side']} @ ${pos['entry_price']:.2f}")
             logger.info(f"    Channel type: {pos['channel_type']}")
-            logger.info(f"    TP: ${pos['take_profit']:.2f}, SL: ${pos['stop_loss']:.2f}")
+            logger.info(
+                f"    TP: ${pos['take_profit']:.2f}, SL: ${pos['stop_loss']:.2f}"
+            )
 
         # Simulate price movement and monitor positions
         logger.info("\n⏰ Simulating price movements...")
@@ -226,7 +234,9 @@ class ChannelStrategyTest:
             price = 100 + np.random.randn() * 0.1  # Very small variation
             narrow_data.append(
                 {
-                    "timestamp": (datetime.now() - timedelta(hours=100 - i)).isoformat(),
+                    "timestamp": (
+                        datetime.now() - timedelta(hours=100 - i)
+                    ).isoformat(),
                     "open": price,
                     "high": price + 0.05,
                     "low": price - 0.05,

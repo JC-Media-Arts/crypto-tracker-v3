@@ -69,7 +69,9 @@ def test_polygon_websocket():
                             "params": "XA.BTC-USD,XA.ETH-USD",
                         }
                         ws.send(json.dumps(subscribe_msg))
-                        console.print("[yellow]→ Subscribed to BTC-USD and ETH-USD[/yellow]")
+                        console.print(
+                            "[yellow]→ Subscribed to BTC-USD and ETH-USD[/yellow]"
+                        )
 
                     elif msg.get("ev") == "XA":  # Crypto aggregate
                         symbol = msg["pair"].replace("-USD", "")
@@ -78,7 +80,8 @@ def test_polygon_websocket():
 
                         messages_received.append(msg)
                         console.print(
-                            f"[green]✓ Received {symbol} data: " f"${price:,.2f} (volume: {volume:,.0f})[/green]"
+                            f"[green]✓ Received {symbol} data: "
+                            f"${price:,.2f} (volume: {volume:,.0f})[/green]"
                         )
 
                         # Close after receiving some data
@@ -86,7 +89,9 @@ def test_polygon_websocket():
                             ws.close()
             else:
                 if data.get("status") == "error":
-                    console.print(f"[red]✗ Error: {data.get('message', 'Unknown error')}[/red]")
+                    console.print(
+                        f"[red]✗ Error: {data.get('message', 'Unknown error')}[/red]"
+                    )
 
         except Exception as e:
             console.print(f"[red]Error parsing message: {e}[/red]")
@@ -132,7 +137,9 @@ def test_polygon_websocket():
 
         # Results
         console.print("\n[bold]Test Results:[/bold]")
-        console.print(f"Connection established: {'✓' if connection_established else '✗'}")
+        console.print(
+            f"Connection established: {'✓' if connection_established else '✗'}"
+        )
         console.print(f"Authentication successful: {'✓' if auth_success else '✗'}")
         console.print(f"Messages received: {len(messages_received)}")
 

@@ -283,7 +283,9 @@ class PaperTrader:
 
         # Check position limits
         if len(self.positions) >= self.config["max_positions"]:
-            open_positions = sum(1 for p in self.positions.values() if p.status == "OPEN")
+            open_positions = sum(
+                1 for p in self.positions.values() if p.status == "OPEN"
+            )
             if open_positions >= self.config["max_positions"]:
                 return {
                     "valid": False,
@@ -335,7 +337,9 @@ class PaperTrader:
                     if position.entry_price == 0:
                         position.entry_price = execution_price
                     else:
-                        total_cost = position.entry_price * (position.quantity - order.quantity)
+                        total_cost = position.entry_price * (
+                            position.quantity - order.quantity
+                        )
                         total_cost += execution_price * order.quantity
                         position.entry_price = total_cost / position.quantity
                     position.update_price(current_price)
@@ -349,7 +353,9 @@ class PaperTrader:
                 if order.position_id in self.positions:
                     position = self.positions[order.position_id]
                     position.quantity -= order.quantity
-                    profit = (execution_price - position.entry_price) * order.quantity - fees
+                    profit = (
+                        execution_price - position.entry_price
+                    ) * order.quantity - fees
                     position.realized_pnl += profit
 
                     if position.quantity <= 0:
@@ -496,7 +502,10 @@ class PaperTrader:
                 # Calculate final P&L
                 final_pnl = position.realized_pnl + position.unrealized_pnl
 
-                logger.info(f"Closed position {position_id}: {position.symbol} " f"P&L: ${final_pnl:.2f} ({reason})")
+                logger.info(
+                    f"Closed position {position_id}: {position.symbol} "
+                    f"P&L: ${final_pnl:.2f} ({reason})"
+                )
 
                 return {
                     "success": True,
@@ -597,14 +606,20 @@ class PaperTrader:
                         "current_price": position.current_price,
                         "unrealized_pnl": position.unrealized_pnl,
                         "unrealized_pnl_pct": (
-                            (position.unrealized_pnl / (position.entry_price * position.quantity) * 100)
+                            (
+                                position.unrealized_pnl
+                                / (position.entry_price * position.quantity)
+                                * 100
+                            )
                             if position.entry_price > 0
                             else 0
                         ),
                     }
                 )
 
-        total_return = (portfolio_value - self.initial_balance) / self.initial_balance * 100
+        total_return = (
+            (portfolio_value - self.initial_balance) / self.initial_balance * 100
+        )
 
         return {
             "portfolio_value": portfolio_value,
@@ -670,7 +685,9 @@ class PaperTrader:
             if daily_returns:
                 avg_return = sum(daily_returns) / len(daily_returns)
                 std_return = pd.Series(daily_returns).std()
-                sharpe_ratio = (avg_return / std_return * (252**0.5)) if std_return > 0 else 0
+                sharpe_ratio = (
+                    (avg_return / std_return * (252**0.5)) if std_return > 0 else 0
+                )
             else:
                 sharpe_ratio = 0
         else:

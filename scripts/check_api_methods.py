@@ -7,7 +7,9 @@ import inspect
 
 
 async def check():
-    client = HummingbotAPIClient(base_url="http://localhost:8000", username="admin", password="admin")
+    client = HummingbotAPIClient(
+        base_url="http://localhost:8000", username="admin", password="admin"
+    )
 
     # Initialize
     await client.init()
@@ -21,7 +23,12 @@ async def check():
 
     # Check for order-related methods
     order_methods = [
-        m for m in methods if "order" in m.lower() or "trade" in m.lower() or "buy" in m.lower() or "sell" in m.lower()
+        m
+        for m in methods
+        if "order" in m.lower()
+        or "trade" in m.lower()
+        or "buy" in m.lower()
+        or "sell" in m.lower()
     ]
     print(f"\nOrder-related methods: {order_methods}")
 

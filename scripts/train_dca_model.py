@@ -90,7 +90,11 @@ class DCAModelTrainer:
             "target_win_prob",
         ]
 
-        self.feature_cols = [col for col in df.columns if col not in exclude_cols and col not in self.target_cols]
+        self.feature_cols = [
+            col
+            for col in df.columns
+            if col not in exclude_cols and col not in self.target_cols
+        ]
 
         logger.info(f"Features: {len(self.feature_cols)}")
         logger.info(f"Targets: {self.target_cols}")
@@ -233,7 +237,9 @@ class DCAModelTrainer:
         y = y.fillna(y.median())
 
         # Split data
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=0.2, random_state=42
+        )
 
         logger.info(f"Training samples: {len(X_train)}")
         logger.info(f"Test samples: {len(X_test)}")
@@ -282,8 +288,12 @@ class DCAModelTrainer:
             test_mae = mean_absolute_error(y_test.iloc[:, i], y_pred_test[:, i])
             test_r2 = r2_score(y_test.iloc[:, i], y_pred_test[:, i])
 
-            logger.info(f"  Train - MSE: {train_mse:.4f}, MAE: {train_mae:.4f}, R²: {train_r2:.4f}")
-            logger.info(f"  Test  - MSE: {test_mse:.4f}, MAE: {test_mae:.4f}, R²: {test_r2:.4f}")
+            logger.info(
+                f"  Train - MSE: {train_mse:.4f}, MAE: {train_mae:.4f}, R²: {train_r2:.4f}"
+            )
+            logger.info(
+                f"  Test  - MSE: {test_mse:.4f}, MAE: {test_mae:.4f}, R²: {test_r2:.4f}"
+            )
 
             self.results[target] = {
                 "train_mse": train_mse,
@@ -306,7 +316,9 @@ class DCAModelTrainer:
         importances /= len(self.model.estimators_)
 
         # Sort and display
-        feature_importance = pd.Series(importances, index=self.feature_cols).sort_values(ascending=False)
+        feature_importance = pd.Series(
+            importances, index=self.feature_cols
+        ).sort_values(ascending=False)
         for feat, imp in feature_importance.head(15).items():
             logger.info(f"  {feat:30s}: {imp:.4f}")
 
@@ -355,8 +367,12 @@ class DCAModelTrainer:
             logger.info(f"\nExample {idx}:")
             logger.info("  Features:")
             logger.info(f"    BTC Regime: {X_test.iloc[idx].get('btc_regime', 'N/A')}")
-            logger.info(f"    Volatility: {X_test.iloc[idx].get('btc_volatility_7d', 0):.2%}")
-            logger.info(f"    vs BTC: {X_test.iloc[idx].get('symbol_vs_btc_7d', 0):.1f}%")
+            logger.info(
+                f"    Volatility: {X_test.iloc[idx].get('btc_volatility_7d', 0):.2%}"
+            )
+            logger.info(
+                f"    vs BTC: {X_test.iloc[idx].get('symbol_vs_btc_7d', 0):.1f}%"
+            )
 
             logger.info("  Predictions vs Actual:")
             for i, target in enumerate(self.target_cols):
@@ -364,11 +380,17 @@ class DCAModelTrainer:
                 predicted = y_pred[idx, i]
 
                 if "mult" in target or "prob" in target:
-                    logger.info(f"    {target:25s}: {predicted:.2f}x (actual: {actual:.2f}x)")
+                    logger.info(
+                        f"    {target:25s}: {predicted:.2f}x (actual: {actual:.2f}x)"
+                    )
                 elif "profit" in target or "loss" in target:
-                    logger.info(f"    {target:25s}: {predicted:.1%} (actual: {actual:.1%})")
+                    logger.info(
+                        f"    {target:25s}: {predicted:.1%} (actual: {actual:.1%})"
+                    )
                 else:
-                    logger.info(f"    {target:25s}: {predicted:.1f}h (actual: {actual:.1f}h)")
+                    logger.info(
+                        f"    {target:25s}: {predicted:.1f}h (actual: {actual:.1f}h)"
+                    )
 
 
 def main():
@@ -407,9 +429,15 @@ def main():
     logger.info("KEY INSIGHTS")
     logger.info("=" * 80)
 
-    logger.info("\n1. The model can now predict MULTIPLE trading parameters simultaneously")
-    logger.info("2. Position sizing adapts to market conditions (2x in BEAR, 0.5x in BULL)")
-    logger.info("3. Take profit targets adjust by market cap (5% for BTC, 12% for small caps)")
+    logger.info(
+        "\n1. The model can now predict MULTIPLE trading parameters simultaneously"
+    )
+    logger.info(
+        "2. Position sizing adapts to market conditions (2x in BEAR, 0.5x in BULL)"
+    )
+    logger.info(
+        "3. Take profit targets adjust by market cap (5% for BTC, 12% for small caps)"
+    )
     logger.info("4. Stop losses tighten in BULL markets, widen in BEAR markets")
     logger.info("5. Hold time predictions help with position management")
 

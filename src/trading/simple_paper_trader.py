@@ -122,7 +122,9 @@ class SimplePaperTrader:
         else:
             return self.slippage_rates["mid"]
 
-    def calculate_entry_price(self, symbol: str, market_price: float, is_buy: bool = True) -> tuple[float, float]:
+    def calculate_entry_price(
+        self, symbol: str, market_price: float, is_buy: bool = True
+    ) -> tuple[float, float]:
         """
         Calculate actual entry price with slippage
         Returns: (actual_price, slippage_cost)
@@ -162,11 +164,15 @@ class SimplePaperTrader:
 
         # Check balance
         if usd_amount > self.balance * 0.5:  # Max 50% of balance per trade
-            logger.warning(f"Position size ${usd_amount} too large for balance ${self.balance}")
+            logger.warning(
+                f"Position size ${usd_amount} too large for balance ${self.balance}"
+            )
             return {"success": False, "error": "Insufficient balance"}
 
         # Calculate actual entry price with slippage
-        actual_price, slippage_cost = self.calculate_entry_price(symbol, market_price, is_buy=True)
+        actual_price, slippage_cost = self.calculate_entry_price(
+            symbol, market_price, is_buy=True
+        )
 
         # Calculate fees
         fees = self.calculate_fees(usd_amount)
@@ -176,7 +182,9 @@ class SimplePaperTrader:
 
         # Check if we have enough balance
         if total_cost > self.balance:
-            logger.warning(f"Insufficient balance: need ${total_cost:.2f}, have ${self.balance:.2f}")
+            logger.warning(
+                f"Insufficient balance: need ${total_cost:.2f}, have ${self.balance:.2f}"
+            )
             return {"success": False, "error": "Insufficient balance after fees"}
 
         # Calculate amount of crypto we get
@@ -191,7 +199,9 @@ class SimplePaperTrader:
             entry_time=datetime.now(),
             strategy=strategy,
             stop_loss=actual_price * (1 - stop_loss_pct) if stop_loss_pct else None,
-            take_profit=actual_price * (1 + take_profit_pct) if take_profit_pct else None,
+            take_profit=actual_price * (1 + take_profit_pct)
+            if take_profit_pct
+            else None,
             fees_paid=fees,
         )
 
@@ -206,7 +216,9 @@ class SimplePaperTrader:
 
         logger.info(f"📈 Opened {strategy} position: {symbol}")
         logger.info(f"   Market Price: ${market_price:.4f}")
-        logger.info(f"   Actual Price: ${actual_price:.4f} (slippage: ${slippage_cost:.2f})")
+        logger.info(
+            f"   Actual Price: ${actual_price:.4f} (slippage: ${slippage_cost:.2f})"
+        )
         logger.info(f"   Amount: {crypto_amount:.6f} {symbol}")
         logger.info(f"   Value: ${usd_amount:.2f}")
         logger.info(f"   Fees: ${fees:.2f}")
@@ -220,7 +232,9 @@ class SimplePaperTrader:
             "slippage": slippage_cost,
         }
 
-    async def close_position(self, symbol: str, market_price: float, reason: str = "signal") -> Dict:
+    async def close_position(
+        self, symbol: str, market_price: float, reason: str = "signal"
+    ) -> Dict:
         """
         Close a position with realistic fees and slippage
         """
@@ -231,7 +245,9 @@ class SimplePaperTrader:
         position = self.positions[symbol]
 
         # Calculate actual exit price with slippage
-        actual_price, slippage_cost = self.calculate_entry_price(symbol, market_price, is_buy=False)
+        actual_price, slippage_cost = self.calculate_entry_price(
+            symbol, market_price, is_buy=False
+        )
 
         # Calculate proceeds
         gross_proceeds = position.amount * actual_price
@@ -280,8 +296,12 @@ class SimplePaperTrader:
         # Log results
         emoji = "🟢" if pnl_usd > 0 else "🔴"
         logger.info(f"{emoji} Closed {position.strategy} position: {symbol}")
-        logger.info(f"   Entry: ${position.entry_price:.4f} → Exit: ${actual_price:.4f}")
-        logger.info(f"   Market Exit: ${market_price:.4f} (slippage: ${slippage_cost:.2f})")
+        logger.info(
+            f"   Entry: ${position.entry_price:.4f} → Exit: ${actual_price:.4f}"
+        )
+        logger.info(
+            f"   Market Exit: ${market_price:.4f} (slippage: ${slippage_cost:.2f})"
+        )
         logger.info(f"   P&L: ${pnl_usd:.2f} ({pnl_percent:+.2f}%)")
         logger.info(f"   Total Fees: ${position.fees_paid + fees:.2f}")
         logger.info(f"   Balance: ${self.balance:.2f}")
@@ -307,12 +327,16 @@ class SimplePaperTrader:
 
             # Check stop loss
             if position.stop_loss and current_price <= position.stop_loss:
-                logger.warning(f"⛔ Stop loss triggered for {symbol} at ${current_price:.4f}")
+                logger.warning(
+                    f"⛔ Stop loss triggered for {symbol} at ${current_price:.4f}"
+                )
                 positions_to_close.append((symbol, current_price, "stop_loss"))
 
             # Check take profit
             elif position.take_profit and current_price >= position.take_profit:
-                logger.info(f"🎯 Take profit triggered for {symbol} at ${current_price:.4f}")
+                logger.info(
+                    f"🎯 Take profit triggered for {symbol} at ${current_price:.4f}"
+                )
                 positions_to_close.append((symbol, current_price, "take_profit"))
 
         # Close triggered positions
@@ -324,10 +348,16 @@ class SimplePaperTrader:
         total_position_value = sum(p.usd_value for p in self.positions.values())
         total_value = self.balance + total_position_value
 
-        win_rate = (self.winning_trades / self.total_trades * 100) if self.total_trades > 0 else 0
+        win_rate = (
+            (self.winning_trades / self.total_trades * 100)
+            if self.total_trades > 0
+            else 0
+        )
 
         total_pnl = sum(t.pnl_usd for t in self.trades)
-        avg_win = sum(t.pnl_usd for t in self.trades if t.pnl_usd > 0) / max(1, self.winning_trades)
+        avg_win = sum(t.pnl_usd for t in self.trades if t.pnl_usd > 0) / max(
+            1, self.winning_trades
+        )
         avg_loss = sum(t.pnl_usd for t in self.trades if t.pnl_usd < 0) / max(
             1, (self.total_trades - self.winning_trades)
         )
@@ -339,7 +369,9 @@ class SimplePaperTrader:
             "total_value": total_value,
             "initial_balance": self.initial_balance,
             "total_pnl": total_value - self.initial_balance,
-            "total_pnl_percent": ((total_value - self.initial_balance) / self.initial_balance * 100),
+            "total_pnl_percent": (
+                (total_value - self.initial_balance) / self.initial_balance * 100
+            ),
             "total_trades": self.total_trades,
             "winning_trades": self.winning_trades,
             "win_rate": win_rate,

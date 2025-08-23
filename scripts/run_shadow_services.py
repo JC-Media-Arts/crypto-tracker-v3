@@ -100,7 +100,9 @@ class ShadowServicesRunner:
                     losses = sum(1 for o in outcomes if o.outcome_status == "LOSS")
                     if wins + losses > 0:
                         win_rate = wins / (wins + losses)
-                        logger.info(f"Recent win rate: {win_rate:.1%} ({wins}W/{losses}L)")
+                        logger.info(
+                            f"Recent win rate: {win_rate:.1%} ({wins}W/{losses}L)"
+                        )
 
                 await asyncio.sleep(self.evaluation_interval)
 
@@ -145,7 +147,9 @@ class ShadowServicesRunner:
             try:
                 # Calculate time until next run
                 now = datetime.now()
-                target_time = now.replace(hour=self.adjustment_hour, minute=0, second=0, microsecond=0)
+                target_time = now.replace(
+                    hour=self.adjustment_hour, minute=0, second=0, microsecond=0
+                )
 
                 if now >= target_time:
                     # If past today's time, schedule for tomorrow
@@ -193,7 +197,9 @@ class ShadowServicesRunner:
                 return
 
             # Apply adjustments
-            results = await self.threshold_manager.process_recommendations(recommendations)
+            results = await self.threshold_manager.process_recommendations(
+                recommendations
+            )
 
             # Send notification
             if results:
@@ -206,7 +212,9 @@ class ShadowServicesRunner:
                     # Start monitoring for rollbacks
                     for result in successful:
                         if result.adjustment_id:
-                            asyncio.create_task(self.monitor_adjustment(result.adjustment_id))
+                            asyncio.create_task(
+                                self.monitor_adjustment(result.adjustment_id)
+                            )
 
         except Exception as e:
             logger.error(f"Error applying adjustments: {e}")
@@ -223,7 +231,9 @@ class ShadowServicesRunner:
             for strategy, result in results.items():
                 if result.get("action") == "deployed":
                     models_updated += 1
-                    logger.info(f"✅ {strategy}: Model updated with {result['improvement']:.1%} improvement")
+                    logger.info(
+                        f"✅ {strategy}: Model updated with {result['improvement']:.1%} improvement"
+                    )
                 elif result["status"] == "success":
                     logger.info(f"❌ {strategy}: No update (insufficient improvement)")
                 else:
@@ -261,11 +271,15 @@ class ShadowServicesRunner:
                 (
                     should_rollback,
                     reason,
-                ) = await self.threshold_manager._check_rollback_conditions(adjustment_id)
+                ) = await self.threshold_manager._check_rollback_conditions(
+                    adjustment_id
+                )
 
                 if should_rollback:
                     logger.warning(f"Rolling back adjustment {adjustment_id}: {reason}")
-                    await self.threshold_manager.rollback_adjustment(adjustment_id, reason)
+                    await self.threshold_manager.rollback_adjustment(
+                        adjustment_id, reason
+                    )
                     await self.slack_reporter.send_rollback_alert(adjustment_id, reason)
                     break
 
@@ -283,7 +297,9 @@ class ShadowServicesRunner:
                 # Check if services are running
                 if not all(not task.done() for task in self.tasks[:-1]):  # Exclude self
                     logger.error("Some services have stopped!")
-                    await self.send_error_notification("Shadow services health check failed")
+                    await self.send_error_notification(
+                        "Shadow services health check failed"
+                    )
 
             except Exception as e:
                 logger.error(f"Health monitor error: {e}")

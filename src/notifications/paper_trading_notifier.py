@@ -48,9 +48,13 @@ class PaperTradingNotifier:
 
         if self.enabled:
             configured = [k for k, v in self.webhook_urls.items() if v]
-            logger.info(f"Paper Trading Notifier initialized with channels: {configured}")
+            logger.info(
+                f"Paper Trading Notifier initialized with channels: {configured}"
+            )
         else:
-            logger.warning("Paper Trading Notifier disabled - no webhook URLs configured")
+            logger.warning(
+                "Paper Trading Notifier disabled - no webhook URLs configured"
+            )
 
     async def notify_position_opened(
         self,
@@ -90,7 +94,9 @@ class PaperTradingNotifier:
             "Market Cap": market_cap_tier.replace("_", " ").title(),
         }
 
-        await self.notifier.send_notification(NotificationType.TRADE_OPENED, title, message, details, color="good")
+        await self.notifier.send_notification(
+            NotificationType.TRADE_OPENED, title, message, details, color="good"
+        )
 
     async def notify_position_closed(
         self,
@@ -140,11 +146,17 @@ class PaperTradingNotifier:
         # Add highest price if trailing stop
         if exit_reason == "trailing_stop" and highest_price:
             details["Highest Price"] = f"${highest_price:.4f}"
-            details["Drawdown from High"] = f"{((highest_price - exit_price) / highest_price * 100):.1f}%"
+            details[
+                "Drawdown from High"
+            ] = f"{((highest_price - exit_price) / highest_price * 100):.1f}%"
 
-        await self.notifier.send_notification(NotificationType.TRADE_CLOSED, title, message, details, color=color)
+        await self.notifier.send_notification(
+            NotificationType.TRADE_CLOSED, title, message, details, color=color
+        )
 
-    async def notify_system_error(self, error_type: str, error_message: str, details: Optional[Dict] = None):
+    async def notify_system_error(
+        self, error_type: str, error_message: str, details: Optional[Dict] = None
+    ):
         """Send notification for serious system errors"""
         if not self.enabled:
             return
@@ -160,9 +172,13 @@ class PaperTradingNotifier:
         if details:
             error_details.update(details)
 
-        await self.notifier.send_notification(NotificationType.ERROR, title, message, error_details, color="danger")
+        await self.notifier.send_notification(
+            NotificationType.ERROR, title, message, error_details, color="danger"
+        )
 
-    async def send_daily_report(self, stats: Dict, trades_today: List[Dict], open_positions: List[Dict]):
+    async def send_daily_report(
+        self, stats: Dict, trades_today: List[Dict], open_positions: List[Dict]
+    ):
         """Send comprehensive daily paper trading report"""
         if not self.enabled:
             return
@@ -193,7 +209,9 @@ class PaperTradingNotifier:
         if today_count > 0:
             today_win_rate = (today_wins / today_count * 100) if today_count > 0 else 0
             message_parts.append(f"*Today's Performance:*")
-            message_parts.append(f"• Trades: {today_count} ({today_wins}W / {today_losses}L)")
+            message_parts.append(
+                f"• Trades: {today_count} ({today_wins}W / {today_losses}L)"
+            )
             message_parts.append(f"• P&L: ${today_pnl:+.2f}")
             message_parts.append(f"• Win Rate: {today_win_rate:.1f}%")
         else:
@@ -204,7 +222,9 @@ class PaperTradingNotifier:
         # Overall performance
         message_parts.append(f"*Overall Performance:*")
         message_parts.append(f"• Total Value: ${stats['total_value']:.2f}")
-        message_parts.append(f"• Total P&L: ${stats['total_pnl']:+.2f} ({stats['total_pnl_pct']:+.2f}%)")
+        message_parts.append(
+            f"• Total P&L: ${stats['total_pnl']:+.2f} ({stats['total_pnl_pct']:+.2f}%)"
+        )
         message_parts.append(
             f"• Win Rate: {stats['win_rate']:.1f}% ({stats['winning_trades']}/{stats['total_trades']})"
         )
@@ -227,9 +247,13 @@ class PaperTradingNotifier:
             worst_trade = min(trades_today, key=lambda x: x.get("pnl_usd", 0))
 
             if best_trade["pnl_usd"] > 0:
-                details["Best Trade Today"] = f"{best_trade['symbol']} +${best_trade['pnl_usd']:.2f}"
+                details[
+                    "Best Trade Today"
+                ] = f"{best_trade['symbol']} +${best_trade['pnl_usd']:.2f}"
             if worst_trade["pnl_usd"] < 0:
-                details["Worst Trade Today"] = f"{worst_trade['symbol']} ${worst_trade['pnl_usd']:.2f}"
+                details[
+                    "Worst Trade Today"
+                ] = f"{worst_trade['symbol']} ${worst_trade['pnl_usd']:.2f}"
 
         # Add current positions summary
         if open_positions:
@@ -238,7 +262,9 @@ class PaperTradingNotifier:
                 position_symbols.append(f"... +{len(open_positions)-5} more")
             details["Open Positions"] = ", ".join(position_symbols)
 
-        await self.notifier.send_notification(NotificationType.DAILY_REPORT, title, message, details, color=color)
+        await self.notifier.send_notification(
+            NotificationType.DAILY_REPORT, title, message, details, color=color
+        )
 
     async def notify_position_alert(
         self,

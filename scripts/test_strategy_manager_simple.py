@@ -58,7 +58,9 @@ class SimpleStrategyManager:
         }
 
         logger.info(f"Manager initialized with ${self.total_capital} capital")
-        logger.info(f"Allocation: DCA {self.dca_allocation:.0%}, Swing {self.swing_allocation:.0%}")
+        logger.info(
+            f"Allocation: DCA {self.dca_allocation:.0%}, Swing {self.swing_allocation:.0%}"
+        )
 
     def create_mock_signals(self) -> List[StrategySignal]:
         """Create mock signals for testing"""
@@ -152,7 +154,9 @@ class SimpleStrategyManager:
 
         return resolved
 
-    def apply_capital_constraints(self, signals: List[StrategySignal]) -> List[StrategySignal]:
+    def apply_capital_constraints(
+        self, signals: List[StrategySignal]
+    ) -> List[StrategySignal]:
         """Apply capital allocation constraints"""
         approved = []
         temp_dca = self.dca_used
@@ -210,7 +214,8 @@ class SimpleStrategyManager:
                     self.swing_used += signal.required_capital
                 results["executed"].append(signal)
                 logger.info(
-                    f"Executed {signal.strategy_type.value} for {signal.symbol}: " f"${signal.required_capital:.0f}"
+                    f"Executed {signal.strategy_type.value} for {signal.symbol}: "
+                    f"${signal.required_capital:.0f}"
                 )
 
         return results
@@ -236,7 +241,10 @@ class SimpleStrategyManager:
 
             del self.active_positions[symbol]
 
-            logger.info(f"{strategy.value} trade closed for {symbol}: " f"{'WIN' if is_win else 'LOSS'} ${pnl:+.2f}")
+            logger.info(
+                f"{strategy.value} trade closed for {symbol}: "
+                f"{'WIN' if is_win else 'LOSS'} ${pnl:+.2f}"
+            )
 
     def get_status(self) -> Dict:
         """Get manager status"""
@@ -245,10 +253,12 @@ class SimpleStrategyManager:
                 "total": self.total_capital,
                 "dca_allocated": self.total_capital * self.dca_allocation,
                 "dca_used": self.dca_used,
-                "dca_available": (self.total_capital * self.dca_allocation) - self.dca_used,
+                "dca_available": (self.total_capital * self.dca_allocation)
+                - self.dca_used,
                 "swing_allocated": self.total_capital * self.swing_allocation,
                 "swing_used": self.swing_used,
-                "swing_available": (self.total_capital * self.swing_allocation) - self.swing_used,
+                "swing_available": (self.total_capital * self.swing_allocation)
+                - self.swing_used,
             },
             "positions": len(self.active_positions),
             "performance": self.performance,
@@ -298,7 +308,9 @@ def test_orchestration():
     logger.info("\n🚀 TEST 4: Signal Execution")
     logger.info("-" * 40)
     results = manager.execute_signals(approved)
-    logger.info(f"Executed: {len(results['executed'])}, Skipped: {len(results['skipped'])}")
+    logger.info(
+        f"Executed: {len(results['executed'])}, Skipped: {len(results['skipped'])}"
+    )
 
     # Test 5: Show status
     logger.info("\n📈 TEST 5: Current Status")

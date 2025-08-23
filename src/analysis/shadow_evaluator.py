@@ -59,7 +59,9 @@ class ShadowEvaluator:
             logger.info(f"Found {len(shadows)} shadow trades to evaluate")
 
             if not shadows:
-                logger.debug("No shadows ready for evaluation yet (need 5+ minute delay)")
+                logger.debug(
+                    "No shadows ready for evaluation yet (need 5+ minute delay)"
+                )
 
             for shadow in shadows:
                 outcome = await self._evaluate_shadow(shadow)
@@ -99,13 +101,22 @@ class ShadowEvaluator:
             if shadow_ids:
                 # Check which ones already have outcomes
                 outcomes_result = (
-                    self.supabase.table("shadow_outcomes").select("shadow_id").in_("shadow_id", shadow_ids).execute()
+                    self.supabase.table("shadow_outcomes")
+                    .select("shadow_id")
+                    .in_("shadow_id", shadow_ids)
+                    .execute()
                 )
 
-                evaluated_ids = {o["shadow_id"] for o in outcomes_result.data} if outcomes_result.data else set()
+                evaluated_ids = (
+                    {o["shadow_id"] for o in outcomes_result.data}
+                    if outcomes_result.data
+                    else set()
+                )
 
                 # Filter to only unevaluated shadows
-                result.data = [s for s in result.data if s["shadow_id"] not in evaluated_ids]
+                result.data = [
+                    s for s in result.data if s["shadow_id"] not in evaluated_ids
+                ]
 
             return result.data if result.data else []
 
@@ -130,13 +141,19 @@ class ShadowEvaluator:
 
             symbol = scan_data["symbol"]
             strategy = scan_data["strategy_name"]
-            entry_time = datetime.fromisoformat(shadow["created_at"].replace("Z", "+00:00"))
+            entry_time = datetime.fromisoformat(
+                shadow["created_at"].replace("Z", "+00:00")
+            )
 
             # Get price data since entry
-            price_data = await self._get_price_data(symbol=symbol, start_time=entry_time, end_time=datetime.utcnow())
+            price_data = await self._get_price_data(
+                symbol=symbol, start_time=entry_time, end_time=datetime.utcnow()
+            )
 
             if not price_data:
-                logger.debug(f"No price data yet for {symbol} shadow {shadow['shadow_id']}")
+                logger.debug(
+                    f"No price data yet for {symbol} shadow {shadow['shadow_id']}"
+                )
                 return ShadowOutcome(
                     shadow_id=shadow["shadow_id"],
                     outcome_status="PENDING",
@@ -151,7 +168,9 @@ class ShadowEvaluator:
             if strategy == "DCA":
                 return await self._evaluate_dca_shadow(shadow, price_data, entry_time)
             else:
-                return await self._evaluate_single_entry_shadow(shadow, price_data, entry_time)
+                return await self._evaluate_single_entry_shadow(
+                    shadow, price_data, entry_time
+                )
 
         except Exception as e:
             logger.error(f"Error evaluating shadow {shadow.get('shadow_id')}: {e}")
@@ -175,7 +194,9 @@ class ShadowEvaluator:
 
         # Scan through price data to find exit
         for price_point in price_data:
-            point_time = datetime.fromisoformat(price_point["timestamp"].replace("Z", "+00:00"))
+            point_time = datetime.fromisoformat(
+                price_point["timestamp"].replace("Z", "+00:00")
+            )
             hours_held = (point_time - entry_time).total_seconds() / 3600
 
             # Check timeout first
@@ -234,15 +255,21 @@ class ShadowEvaluator:
             actual_hold_hours=0,
         )
 
-    async def _evaluate_dca_shadow(self, shadow: Dict, price_data: List[Dict], entry_time: datetime) -> ShadowOutcome:
+    async def _evaluate_dca_shadow(
+        self, shadow: Dict, price_data: List[Dict], entry_time: datetime
+    ) -> ShadowOutcome:
         """
         Evaluate DCA shadow with full grid simulation
         This is more complex as we need to simulate grid fills
         """
         initial_price = float(shadow["shadow_entry_price"])
         grid_levels = int(shadow.get("dca_grid_levels", 5))
-        grid_spacing = float(shadow.get("dca_grid_spacing", 1.0)) / 100  # Convert to decimal
-        position_size_per_level = float(shadow.get("shadow_position_size", 100)) / grid_levels
+        grid_spacing = (
+            float(shadow.get("dca_grid_spacing", 1.0)) / 100
+        )  # Convert to decimal
+        position_size_per_level = (
+            float(shadow.get("shadow_position_size", 100)) / grid_levels
+        )
 
         take_profit_pct = float(shadow["shadow_take_profit"]) / 100
         stop_loss_pct = float(shadow["shadow_stop_loss"]) / 100
@@ -262,7 +289,9 @@ class ShadowEvaluator:
 
         # Scan through price data
         for price_point in price_data:
-            point_time = datetime.fromisoformat(price_point["timestamp"].replace("Z", "+00:00"))
+            point_time = datetime.fromisoformat(
+                price_point["timestamp"].replace("Z", "+00:00")
+            )
             hours_held = (point_time - entry_time).total_seconds() / 3600
 
             low_price = float(price_point.get("low", price_point["close"]))
@@ -279,7 +308,9 @@ class ShadowEvaluator:
 
             # If we have any fills, check for exit
             if filled_levels:
-                average_entry = total_cost / total_position if total_position > 0 else initial_price
+                average_entry = (
+                    total_cost / total_position if total_position > 0 else initial_price
+                )
 
                 # Calculate exit targets based on average entry
                 tp_price = average_entry * (1 + take_profit_pct)
@@ -341,7 +372,9 @@ class ShadowEvaluator:
 
         # Still pending or no fills
         if filled_levels:
-            average_entry = total_cost / total_position if total_position > 0 else initial_price
+            average_entry = (
+                total_cost / total_position if total_position > 0 else initial_price
+            )
         else:
             average_entry = initial_price
 
@@ -361,13 +394,21 @@ class ShadowEvaluator:
     async def _get_scan_data(self, scan_id: int) -> Optional[Dict]:
         """Get scan data from scan_history table"""
         try:
-            result = self.supabase.table("scan_history").select("*").eq("scan_id", scan_id).single().execute()
+            result = (
+                self.supabase.table("scan_history")
+                .select("*")
+                .eq("scan_id", scan_id)
+                .single()
+                .execute()
+            )
             return result.data
         except Exception as e:
             logger.error(f"Error getting scan data: {e}")
             return None
 
-    async def _get_price_data(self, symbol: str, start_time: datetime, end_time: datetime) -> List[Dict]:
+    async def _get_price_data(
+        self, symbol: str, start_time: datetime, end_time: datetime
+    ) -> List[Dict]:
         """
         Get price data for evaluation period
         Uses 1-minute OHLC data for precise evaluation
@@ -437,7 +478,9 @@ class ShadowEvaluator:
             result = self.supabase.table("shadow_outcomes").insert(record).execute()
 
             if result.data:
-                logger.debug(f"Saved outcome for shadow {outcome.shadow_id}: {outcome.outcome_status}")
+                logger.debug(
+                    f"Saved outcome for shadow {outcome.shadow_id}: {outcome.outcome_status}"
+                )
                 return True
 
         except Exception as e:

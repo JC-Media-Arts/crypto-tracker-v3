@@ -95,7 +95,9 @@ class ChannelLabelGenerator:
 
                 if signal:
                     current_price = window_data[-1]["close"]
-                    targets = self.detector.calculate_targets(channel, current_price, signal)
+                    targets = self.detector.calculate_targets(
+                        channel, current_price, signal
+                    )
 
                     # Check risk/reward
                     if targets.get("risk_reward", 0) >= self.min_risk_reward:
@@ -119,7 +121,9 @@ class ChannelLabelGenerator:
                         }
 
                         # Calculate outcome
-                        outcome = self._calculate_outcome(setup, ohlc_data[i : i + 100])  # Look forward 100 bars
+                        outcome = self._calculate_outcome(
+                            setup, ohlc_data[i : i + 100]
+                        )  # Look forward 100 bars
                         setup.update(outcome)
 
                         setups.append(setup)
@@ -138,7 +142,11 @@ class ChannelLabelGenerator:
 
         # Volume features
         volume_avg = np.mean(volumes)
-        volume_trend = (np.mean(volumes[-10:]) - np.mean(volumes[:10])) / volume_avg if volume_avg > 0 else 0
+        volume_trend = (
+            (np.mean(volumes[-10:]) - np.mean(volumes[:10])) / volume_avg
+            if volume_avg > 0
+            else 0
+        )
 
         # Channel features
         channel_age = len(window_data) / self.detector.lookback_periods
@@ -200,7 +208,9 @@ class ChannelLabelGenerator:
                     outcome["outcome"] = "WIN"
                     outcome["exit_price"] = take_profit
                     outcome["exit_bars"] = i + 1
-                    outcome["actual_pnl"] = (take_profit - entry_price) / entry_price * 100
+                    outcome["actual_pnl"] = (
+                        (take_profit - entry_price) / entry_price * 100
+                    )
                     break
 
                 # Check stop loss
@@ -208,11 +218,16 @@ class ChannelLabelGenerator:
                     outcome["outcome"] = "LOSS"
                     outcome["exit_price"] = stop_loss
                     outcome["exit_bars"] = i + 1
-                    outcome["actual_pnl"] = (stop_loss - entry_price) / entry_price * 100
+                    outcome["actual_pnl"] = (
+                        (stop_loss - entry_price) / entry_price * 100
+                    )
                     break
 
                 # Check if price breaks channel
-                if close > setup["upper_line"] * 1.02 or close < setup["lower_line"] * 0.98:
+                if (
+                    close > setup["upper_line"] * 1.02
+                    or close < setup["lower_line"] * 0.98
+                ):
                     channel_breaks += 1
                     if channel_breaks >= 3:  # Channel broken
                         outcome["channel_held"] = False
@@ -231,7 +246,9 @@ class ChannelLabelGenerator:
                     outcome["outcome"] = "WIN"
                     outcome["exit_price"] = take_profit
                     outcome["exit_bars"] = i + 1
-                    outcome["actual_pnl"] = (entry_price - take_profit) / entry_price * 100
+                    outcome["actual_pnl"] = (
+                        (entry_price - take_profit) / entry_price * 100
+                    )
                     break
 
                 # Check stop loss (price goes up)
@@ -239,7 +256,9 @@ class ChannelLabelGenerator:
                     outcome["outcome"] = "LOSS"
                     outcome["exit_price"] = stop_loss
                     outcome["exit_bars"] = i + 1
-                    outcome["actual_pnl"] = (entry_price - stop_loss) / entry_price * 100
+                    outcome["actual_pnl"] = (
+                        (entry_price - stop_loss) / entry_price * 100
+                    )
                     break
 
         outcome["max_profit"] = max_profit
@@ -248,7 +267,9 @@ class ChannelLabelGenerator:
 
         # If no exit triggered, calculate time exit
         if outcome["outcome"] == "EXPIRED" and future_data:
-            last_price = future_data[min(self.max_hold_hours - 1, len(future_data) - 1)]["close"]
+            last_price = future_data[
+                min(self.max_hold_hours - 1, len(future_data) - 1)
+            ]["close"]
             if signal == "BUY":
                 outcome["actual_pnl"] = (last_price - entry_price) / entry_price * 100
             else:
@@ -312,16 +333,22 @@ class ChannelLabelGenerator:
                 win_rate = wins / len(setups) * 100 if setups else 0
 
                 logger.info(f"  Found {len(setups)} setups for {symbol}")
-                logger.info(f"  Outcomes: {wins} wins, {losses} losses, {expired} expired")
+                logger.info(
+                    f"  Outcomes: {wins} wins, {losses} losses, {expired} expired"
+                )
                 logger.info(f"  Win rate: {win_rate:.1f}%")
 
                 # Analyze by channel type
                 for channel_type in ["HORIZONTAL", "ASCENDING", "DESCENDING"]:
-                    type_setups = [s for s in setups if s["channel_type"] == channel_type]
+                    type_setups = [
+                        s for s in setups if s["channel_type"] == channel_type
+                    ]
                     if type_setups:
                         type_wins = sum(1 for s in type_setups if s["outcome"] == "WIN")
                         type_wr = type_wins / len(type_setups) * 100
-                        logger.info(f"    {channel_type}: {len(type_setups)} setups, {type_wr:.1f}% win rate")
+                        logger.info(
+                            f"    {channel_type}: {len(type_setups)} setups, {type_wr:.1f}% win rate"
+                        )
 
                 all_labels.extend(setups)
 
@@ -353,7 +380,9 @@ class ChannelLabelGenerator:
                 label_data = {
                     "symbol": setup["symbol"],
                     "timestamp": setup["timestamp"],
-                    "channel_position": setup["position"].upper(),  # TOP, BOTTOM, MIDDLE
+                    "channel_position": setup[
+                        "position"
+                    ].upper(),  # TOP, BOTTOM, MIDDLE
                     "channel_strength": float(setup.get("channel_strength", 50)),
                     "channel_width": float(setup.get("channel_width_pct", 5.0)),
                     "outcome": setup["outcome"],
@@ -386,7 +415,9 @@ class ChannelLabelGenerator:
                     if "duplicate" in str(e).lower():
                         skipped_count += 1
                     else:
-                        logger.error(f"Error saving label for {setup['symbol']} at {setup['timestamp']}: {e}")
+                        logger.error(
+                            f"Error saving label for {setup['symbol']} at {setup['timestamp']}: {e}"
+                        )
 
             logger.info(f"Saved {saved_count} labels to strategy_channel_labels table")
             if skipped_count > 0:
@@ -401,15 +432,21 @@ class ChannelLabelGenerator:
             logger.info(f"\nOverall Statistics:")
             logger.info(f"  Total setups: {len(all_labels)}")
             logger.info(f"  Win rate: {overall_wr:.1f}%")
-            logger.info(f"  Avg risk/reward: {np.mean([s['risk_reward'] for s in all_labels]):.2f}")
+            logger.info(
+                f"  Avg risk/reward: {np.mean([s['risk_reward'] for s in all_labels]):.2f}"
+            )
 
             # By channel type
             for channel_type in ["HORIZONTAL", "ASCENDING", "DESCENDING"]:
-                type_setups = [s for s in all_labels if s["channel_type"] == channel_type]
+                type_setups = [
+                    s for s in all_labels if s["channel_type"] == channel_type
+                ]
                 if type_setups:
                     type_wins = sum(1 for s in type_setups if s["outcome"] == "WIN")
                     type_wr = type_wins / len(type_setups) * 100
-                    logger.info(f"  {channel_type}: {len(type_setups)} setups, {type_wr:.1f}% win rate")
+                    logger.info(
+                        f"  {channel_type}: {len(type_setups)} setups, {type_wr:.1f}% win rate"
+                    )
 
 
 def main():

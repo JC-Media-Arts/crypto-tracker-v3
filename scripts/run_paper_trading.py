@@ -31,7 +31,9 @@ class PaperTradingSystem:
 
         # Initialize components
         self.data_fetcher = HybridDataFetcher()
-        self.paper_trader = SimplePaperTrader(initial_balance=1000.0)  # Start with $1000
+        self.paper_trader = SimplePaperTrader(
+            initial_balance=1000.0
+        )  # Start with $1000
 
         # Strategy config for simplified mode
         strategy_config = {
@@ -207,7 +209,9 @@ class PaperTradingSystem:
 
         for symbol in symbols:
             try:
-                data = await self.data_fetcher.get_recent_data(symbol=symbol, hours=1, timeframe="15m")
+                data = await self.data_fetcher.get_recent_data(
+                    symbol=symbol, hours=1, timeframe="15m"
+                )
                 if data is not None:
                     if hasattr(data, "empty") and not data.empty:
                         prices[symbol] = float(data.iloc[-1]["close"])
@@ -280,7 +284,9 @@ class PaperTradingSystem:
             # Simple time-based exit after 4 hours
             if datetime.now() - position.entry_time > timedelta(hours=4):
                 logger.info(f"⏰ Time-based exit for {symbol}")
-                await self.paper_trader.close_position(symbol, prices[symbol], "time_exit")
+                await self.paper_trader.close_position(
+                    symbol, prices[symbol], "time_exit"
+                )
 
     async def run_trading_loop(self) -> None:
         """Main trading loop"""
@@ -297,13 +303,19 @@ class PaperTradingSystem:
                     continue
 
                 # Scan for opportunities
-                signals = await self.strategy_manager.scan_for_opportunities(market_data)
+                signals = await self.strategy_manager.scan_for_opportunities(
+                    market_data
+                )
 
                 # Get portfolio stats
                 stats = self.paper_trader.get_portfolio_stats()
 
-                logger.info(f"Scan complete: {len(signals)} signals, {stats['positions']} positions")
-                logger.info(f"Portfolio: ${stats['total_value']:.2f} ({stats['total_pnl_percent']:+.2f}%)")
+                logger.info(
+                    f"Scan complete: {len(signals)} signals, {stats['positions']} positions"
+                )
+                logger.info(
+                    f"Portfolio: ${stats['total_value']:.2f} ({stats['total_pnl_percent']:+.2f}%)"
+                )
 
                 # Execute new signals
                 for signal in signals:
@@ -315,18 +327,27 @@ class PaperTradingSystem:
                 # Display current positions
                 if self.paper_trader.positions:
                     logger.info("Current positions:")
-                    prices = await self.get_current_prices(list(self.paper_trader.positions.keys()))
+                    prices = await self.get_current_prices(
+                        list(self.paper_trader.positions.keys())
+                    )
 
                     for symbol, position in self.paper_trader.positions.items():
                         current_price = prices.get(symbol, position.entry_price)
-                        pnl = (current_price - position.entry_price) / position.entry_price * 100
+                        pnl = (
+                            (current_price - position.entry_price)
+                            / position.entry_price
+                            * 100
+                        )
                         emoji = "🟢" if pnl > 0 else "🔴"
                         logger.info(
                             f"  {emoji} {symbol}: Entry ${position.entry_price:.4f} → ${current_price:.4f} ({pnl:+.2f}%)"
                         )
 
                 # Display stats every 5 scans
-                if self.paper_trader.total_trades > 0 and self.paper_trader.total_trades % 5 == 0:
+                if (
+                    self.paper_trader.total_trades > 0
+                    and self.paper_trader.total_trades % 5 == 0
+                ):
                     logger.info("=" * 60)
                     logger.info("📈 TRADING STATISTICS:")
                     logger.info(f"   Total Trades: {stats['total_trades']}")
@@ -357,7 +378,9 @@ class PaperTradingSystem:
         logger.info("📊 FINAL TRADING STATISTICS:")
         logger.info(f"   Initial Balance: ${stats['initial_balance']:.2f}")
         logger.info(f"   Final Balance: ${stats['total_value']:.2f}")
-        logger.info(f"   Total P&L: ${stats['total_pnl']:.2f} ({stats['total_pnl_percent']:+.2f}%)")
+        logger.info(
+            f"   Total P&L: ${stats['total_pnl']:.2f} ({stats['total_pnl_percent']:+.2f}%)"
+        )
         logger.info(f"   Total Trades: {stats['total_trades']}")
         logger.info(f"   Win Rate: {stats['win_rate']:.1f}%")
         logger.info(f"   Total Fees Paid: ${stats['total_fees']:.2f}")

@@ -67,7 +67,9 @@ class TradeLogger:
                         "predicted_take_profit": ml_predictions.get("take_profit"),
                         "predicted_stop_loss": ml_predictions.get("stop_loss"),
                         "predicted_hold_hours": ml_predictions.get("hold_hours"),
-                        "predicted_win_probability": ml_predictions.get("win_probability"),
+                        "predicted_win_probability": ml_predictions.get(
+                            "win_probability"
+                        ),
                     }
                 )
 
@@ -80,7 +82,9 @@ class TradeLogger:
             if result.data:
                 trade_id = result.data[0]["trade_id"]
                 self.active_trades[trade_id] = trade_data
-                logger.info(f"Opened trade {trade_id}: {symbol} {strategy_name} @ ${entry_price:.2f}")
+                logger.info(
+                    f"Opened trade {trade_id}: {symbol} {strategy_name} @ ${entry_price:.2f}"
+                )
                 return trade_id
 
             return None
@@ -112,7 +116,12 @@ class TradeLogger:
         """
         try:
             # Get trade info
-            result = self.supabase.table("trade_logs").select("*").eq("trade_id", trade_id).execute()
+            result = (
+                self.supabase.table("trade_logs")
+                .select("*")
+                .eq("trade_id", trade_id)
+                .execute()
+            )
 
             if not result.data:
                 logger.error(f"Trade {trade_id} not found")
@@ -154,7 +163,9 @@ class TradeLogger:
                 status = "CLOSED_EVEN"
 
             # Calculate prediction accuracy
-            prediction_accuracy = self._calculate_prediction_accuracy(trade, exit_price, hold_time_hours, status)
+            prediction_accuracy = self._calculate_prediction_accuracy(
+                trade, exit_price, hold_time_hours, status
+            )
 
             # Update trade record
             update_data = {
@@ -171,14 +182,21 @@ class TradeLogger:
                 "updated_at": datetime.utcnow().isoformat(),
             }
 
-            result = self.supabase.table("trade_logs").update(update_data).eq("trade_id", trade_id).execute()
+            result = (
+                self.supabase.table("trade_logs")
+                .update(update_data)
+                .eq("trade_id", trade_id)
+                .execute()
+            )
 
             if result.data:
                 # Remove from active trades
                 if trade_id in self.active_trades:
                     del self.active_trades[trade_id]
 
-                logger.info(f"Closed trade {trade_id}: {status} P&L: ${pnl_amount:.2f} ({pnl_percentage:+.2f}%)")
+                logger.info(
+                    f"Closed trade {trade_id}: {status} P&L: ${pnl_amount:.2f} ({pnl_percentage:+.2f}%)"
+                )
 
                 # Log feedback for ML learning
                 self._log_ml_feedback(trade_id, trade, update_data)
@@ -206,7 +224,9 @@ class TradeLogger:
         # Check take profit accuracy
         if trade.get("predicted_take_profit") and status == "CLOSED_WIN":
             entry_price = float(trade["entry_price"])
-            predicted_tp = entry_price * (1 + float(trade["predicted_take_profit"]) / 100)
+            predicted_tp = entry_price * (
+                1 + float(trade["predicted_take_profit"]) / 100
+            )
             tp_error = abs(exit_price - predicted_tp) / predicted_tp * 100
             accuracy["take_profit_error_pct"] = tp_error
 
@@ -253,7 +273,12 @@ class TradeLogger:
     def get_active_trades(self) -> Dict:
         """Get all currently active trades"""
         try:
-            result = self.supabase.table("trade_logs").select("*").eq("status", "OPEN").execute()
+            result = (
+                self.supabase.table("trade_logs")
+                .select("*")
+                .eq("status", "OPEN")
+                .execute()
+            )
 
             if result.data:
                 return {trade["trade_id"]: trade for trade in result.data}
@@ -269,7 +294,12 @@ class TradeLogger:
         try:
             since = (datetime.utcnow() - timedelta(hours=hours)).isoformat()
 
-            result = self.supabase.table("trade_logs").select("*").gte("opened_at", since).execute()
+            result = (
+                self.supabase.table("trade_logs")
+                .select("*")
+                .gte("opened_at", since)
+                .execute()
+            )
 
             if not result.data:
                 return {
@@ -291,7 +321,8 @@ class TradeLogger:
                 "closed_trades": len(closed_trades),
                 "win_rate": len(wins) / len(closed_trades) if closed_trades else 0,
                 "avg_pnl_pct": (
-                    sum(float(t["pnl_percentage"] or 0) for t in closed_trades) / len(closed_trades)
+                    sum(float(t["pnl_percentage"] or 0) for t in closed_trades)
+                    / len(closed_trades)
                     if closed_trades
                     else 0
                 ),

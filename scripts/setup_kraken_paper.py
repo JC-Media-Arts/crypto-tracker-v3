@@ -63,7 +63,9 @@ async def setup_kraken_paper_trading():
             },
         }
 
-        async with session.post(f"{base_url}/accounts", auth=auth, json=account_data) as resp:
+        async with session.post(
+            f"{base_url}/accounts", auth=auth, json=account_data
+        ) as resp:
             if resp.status in [200, 201]:
                 logger.info("✅ Kraken paper trading account created!")
             elif resp.status == 409:
@@ -98,7 +100,9 @@ async def setup_kraken_paper_trading():
         ) as resp:
             if resp.status == 200:
                 ticker = await resp.json()
-                logger.info(f"✅ Market data working! BTC-USD: ${ticker.get('last', 'N/A')}")
+                logger.info(
+                    f"✅ Market data working! BTC-USD: ${ticker.get('last', 'N/A')}"
+                )
             else:
                 logger.info(f"ℹ️ Market data endpoint returned: {resp.status}")
 

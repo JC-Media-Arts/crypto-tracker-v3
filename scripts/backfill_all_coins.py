@@ -45,7 +45,11 @@ def main():
     logger.info("=" * 80)
 
     # Build the command
-    cmd = ["python", "scripts/backfill_historical_data.py", "--symbols"] + all_symbols + ["--months", "12"]
+    cmd = (
+        ["python", "scripts/backfill_historical_data.py", "--symbols"]
+        + all_symbols
+        + ["--months", "12"]
+    )
 
     logger.info("Starting backfill process...")
     logger.info(f"Command: {' '.join(cmd[:5])}... [99 symbols] ... --months 12")

@@ -41,7 +41,9 @@ def load_failed_symbols() -> List[str]:
     return failed
 
 
-def fetch_ohlc_batch(symbol: str, from_date: datetime, to_date: datetime, api_key: str) -> List[Dict[str, Any]]:
+def fetch_ohlc_batch(
+    symbol: str, from_date: datetime, to_date: datetime, api_key: str
+) -> List[Dict[str, Any]]:
     """Fetch OHLC data for a specific date range"""
 
     url = "https://api.polygon.io/v2/aggs/ticker"
@@ -61,7 +63,9 @@ def fetch_ohlc_batch(symbol: str, from_date: datetime, to_date: datetime, api_ke
             logger.info(f"Fetched {len(bars)} bars for {symbol}")
             return bars
         else:
-            logger.info(f"No data available for {symbol} {TIMEFRAME} from {from_date.date()} to {to_date.date()}")
+            logger.info(
+                f"No data available for {symbol} {TIMEFRAME} from {from_date.date()} to {to_date.date()}"
+            )
             return []
 
     except Exception as e:
@@ -84,7 +88,9 @@ def save_batch(client: SupabaseClient, symbol: str, bars: List[Dict]) -> bool:
             unique_bars = []
 
             for bar in chunk:
-                timestamp = datetime.fromtimestamp(bar["t"] / 1000, tz=tz.UTC).isoformat()
+                timestamp = datetime.fromtimestamp(
+                    bar["t"] / 1000, tz=tz.UTC
+                ).isoformat()
                 if timestamp not in seen_timestamps:
                     seen_timestamps.add(timestamp)
                     unique_bars.append(
@@ -135,7 +141,9 @@ def fetch_symbol(symbol: str, client: SupabaseClient, api_key: str) -> Dict[str,
             .execute()
         )
         if result.data:
-            latest = datetime.fromisoformat(result.data[0]["timestamp"].replace("Z", "+00:00"))
+            latest = datetime.fromisoformat(
+                result.data[0]["timestamp"].replace("Z", "+00:00")
+            )
             if latest >= end_date - timedelta(days=1):
                 logger.info(f"✅ {symbol} already has recent data, skipping")
                 return {"status": "skipped", "bars_saved": 0}
@@ -154,7 +162,9 @@ def fetch_symbol(symbol: str, client: SupabaseClient, api_key: str) -> Dict[str,
 
         if bars:
             all_bars.extend(bars)
-            logger.info(f"Progress: {current_date.date()} to {chunk_end.date()} - {len(bars)} bars")
+            logger.info(
+                f"Progress: {current_date.date()} to {chunk_end.date()} - {len(bars)} bars"
+            )
 
         current_date = chunk_end
         time.sleep(DELAY_BETWEEN_REQUESTS)

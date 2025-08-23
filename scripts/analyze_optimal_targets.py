@@ -78,12 +78,20 @@ def analyze_price_movements():
 
                 if drop_pct <= -5.0:
                     # Analyze what happens next
-                    future_prices = df["price"].iloc[i : min(i + 4320, len(df))]  # Next 72 hours
+                    future_prices = df["price"].iloc[
+                        i : min(i + 4320, len(df))
+                    ]  # Next 72 hours
 
                     if len(future_prices) > 100:
-                        max_bounce = ((future_prices.max() - current_price) / current_price) * 100
-                        min_drop = ((future_prices.min() - current_price) / current_price) * 100
-                        final_move = ((future_prices.iloc[-1] - current_price) / current_price) * 100
+                        max_bounce = (
+                            (future_prices.max() - current_price) / current_price
+                        ) * 100
+                        min_drop = (
+                            (future_prices.min() - current_price) / current_price
+                        ) * 100
+                        final_move = (
+                            (future_prices.iloc[-1] - current_price) / current_price
+                        ) * 100
 
                         # Time to reach different targets
                         time_to_5pct = None
@@ -132,9 +140,21 @@ def analyze_price_movements():
                     "pct_hit_5": (drop_df["hit_5pct"].sum() / len(drop_df)) * 100,
                     "pct_hit_7": (drop_df["hit_7pct"].sum() / len(drop_df)) * 100,
                     "pct_hit_10": (drop_df["hit_10pct"].sum() / len(drop_df)) * 100,
-                    "avg_time_to_5": (drop_df["time_to_5pct"].dropna().mean() if any(drop_df["hit_5pct"]) else None),
-                    "avg_time_to_7": (drop_df["time_to_7pct"].dropna().mean() if any(drop_df["hit_7pct"]) else None),
-                    "avg_time_to_10": (drop_df["time_to_10pct"].dropna().mean() if any(drop_df["hit_10pct"]) else None),
+                    "avg_time_to_5": (
+                        drop_df["time_to_5pct"].dropna().mean()
+                        if any(drop_df["hit_5pct"])
+                        else None
+                    ),
+                    "avg_time_to_7": (
+                        drop_df["time_to_7pct"].dropna().mean()
+                        if any(drop_df["hit_7pct"])
+                        else None
+                    ),
+                    "avg_time_to_10": (
+                        drop_df["time_to_10pct"].dropna().mean()
+                        if any(drop_df["hit_10pct"])
+                        else None
+                    ),
                 }
 
                 tier_results.append(stats)

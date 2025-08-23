@@ -31,7 +31,10 @@ def main():
     try:
         # Try to get count using head request
         result = (
-            supabase.client.table("ohlc_data").select("*", count="exact", head=True).eq("timeframe", "1m").execute()
+            supabase.client.table("ohlc_data")
+            .select("*", count="exact", head=True)
+            .eq("timeframe", "1m")
+            .execute()
         )
 
         if hasattr(result, "count") and result.count is not None:
@@ -70,7 +73,9 @@ def main():
 
             days_of_data = (newest_dt - oldest_dt).days
 
-            print(f"Oldest: {oldest_date[:19]} ({(datetime.now(timezone.utc) - oldest_dt).days} days ago)")
+            print(
+                f"Oldest: {oldest_date[:19]} ({(datetime.now(timezone.utc) - oldest_dt).days} days ago)"
+            )
             print(f"Newest: {newest_date[:19]}")
             print(f"Total span: {days_of_data} days")
     except Exception as e:
@@ -100,7 +105,10 @@ def main():
     try:
         # Total 15m data
         result = (
-            supabase.client.table("ohlc_data").select("*", count="exact", head=True).eq("timeframe", "15m").execute()
+            supabase.client.table("ohlc_data")
+            .select("*", count="exact", head=True)
+            .eq("timeframe", "15m")
+            .execute()
         )
 
         if hasattr(result, "count"):
@@ -131,7 +139,10 @@ def main():
     try:
         # Total 1h data
         result = (
-            supabase.client.table("ohlc_data").select("*", count="exact", head=True).eq("timeframe", "1h").execute()
+            supabase.client.table("ohlc_data")
+            .select("*", count="exact", head=True)
+            .eq("timeframe", "1h")
+            .execute()
         )
 
         if hasattr(result, "count"):
@@ -161,7 +172,11 @@ def main():
 
     try:
         # Total scan_history
-        result = supabase.client.table("scan_history").select("*", count="exact", head=True).execute()
+        result = (
+            supabase.client.table("scan_history")
+            .select("*", count="exact", head=True)
+            .execute()
+        )
 
         if hasattr(result, "count"):
             print(f"Total rows: {result.count:,}")

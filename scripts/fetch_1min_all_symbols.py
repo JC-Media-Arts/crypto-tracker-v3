@@ -55,7 +55,9 @@ class OneMinuteFetcher:
         except:
             return 0
 
-    def fetch_batch(self, symbol: str, start_date: datetime, end_date: datetime) -> List[Dict]:
+    def fetch_batch(
+        self, symbol: str, start_date: datetime, end_date: datetime
+    ) -> List[Dict]:
         """Fetch a batch of 1-minute bars from Polygon"""
         try:
             bars = []
@@ -69,7 +71,9 @@ class OneMinuteFetcher:
             ):
                 bars.append(
                     {
-                        "timestamp": pd.Timestamp(bar.timestamp, unit="ms", tz="UTC").isoformat(),
+                        "timestamp": pd.Timestamp(
+                            bar.timestamp, unit="ms", tz="UTC"
+                        ).isoformat(),
                         "symbol": symbol,
                         "timeframe": "1m",
                         "open": float(bar.open),
@@ -77,15 +81,25 @@ class OneMinuteFetcher:
                         "low": float(bar.low),
                         "close": float(bar.close),
                         "volume": float(bar.volume) if bar.volume else 0,
-                        "vwap": (float(bar.vwap) if hasattr(bar, "vwap") and bar.vwap else None),
-                        "trades": (int(bar.transactions) if hasattr(bar, "transactions") else None),
+                        "vwap": (
+                            float(bar.vwap)
+                            if hasattr(bar, "vwap") and bar.vwap
+                            else None
+                        ),
+                        "trades": (
+                            int(bar.transactions)
+                            if hasattr(bar, "transactions")
+                            else None
+                        ),
                     }
                 )
 
             if bars:
                 logger.info(f"Fetched {len(bars)} bars for {symbol}")
             else:
-                logger.warning(f"No data available for {symbol} from {start_date.date()} to {end_date.date()}")
+                logger.warning(
+                    f"No data available for {symbol} from {start_date.date()} to {end_date.date()}"
+                )
 
             return bars
         except Exception as e:
@@ -116,7 +130,9 @@ class OneMinuteFetcher:
 
         # Check existing data
         existing_count = self.check_existing_data(symbol)
-        if existing_count > 350000:  # ~1 year of minute data (365 * 24 * 60 * 0.3 for market hours)
+        if (
+            existing_count > 350000
+        ):  # ~1 year of minute data (365 * 24 * 60 * 0.3 for market hours)
             logger.success(f"✓ {symbol} already has {existing_count:,} bars, skipping")
             return {"status": "skipped", "bars_saved": 0, "existing": existing_count}
 
@@ -135,7 +151,9 @@ class OneMinuteFetcher:
 
             if bars:
                 all_bars.extend(bars)
-                logger.info(f"Progress: {current_date.date()} to {batch_end.date()} - {len(bars)} bars")
+                logger.info(
+                    f"Progress: {current_date.date()} to {batch_end.date()} - {len(bars)} bars"
+                )
 
             current_date = batch_end
             time.sleep(0.2)  # Small delay between requests
@@ -199,7 +217,9 @@ class OneMinuteFetcher:
 
         completed = sum(1 for r in self.results.values() if r["status"] == "completed")
         skipped = sum(1 for r in self.results.values() if r["status"] == "skipped")
-        failed = sum(1 for r in self.results.values() if r["status"] in ["failed", "error"])
+        failed = sum(
+            1 for r in self.results.values() if r["status"] in ["failed", "error"]
+        )
         no_data = sum(1 for r in self.results.values() if r["status"] == "no_data")
 
         logger.info(f"Successful: {completed}")

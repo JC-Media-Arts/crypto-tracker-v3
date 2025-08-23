@@ -174,7 +174,10 @@ def check_data_gaps():
             )
 
             if result.data:
-                timestamps = [datetime.fromisoformat(row["timestamp"].replace("+00:00", "")) for row in result.data]
+                timestamps = [
+                    datetime.fromisoformat(row["timestamp"].replace("+00:00", ""))
+                    for row in result.data
+                ]
 
                 # Expected interval based on timeframe
                 expected_delta = {
@@ -200,7 +203,9 @@ def check_data_gaps():
                 if gaps:
                     print(f"  {timeframe}: ⚠️  {len(gaps)} gaps found")
                     for gap in gaps[:3]:  # Show first 3 gaps
-                        print(f"       Gap: {gap['duration']} between {gap['start']} and {gap['end']}")
+                        print(
+                            f"       Gap: {gap['duration']} between {gap['start']} and {gap['end']}"
+                        )
                 else:
                     print(f"  {timeframe}: ✅ No gaps (continuous data)")
 

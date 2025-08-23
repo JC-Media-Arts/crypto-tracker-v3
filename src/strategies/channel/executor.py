@@ -42,9 +42,15 @@ class ChannelExecutor:
 
         # Trading parameters
         self.position_size = self.config.get("position_size", 100)  # Base position size
-        self.max_positions = self.config.get("max_positions", 3)  # Max concurrent channel trades
-        self.min_risk_reward = self.config.get("min_risk_reward", 1.5)  # Minimum R:R ratio
-        self.channel_break_exit = self.config.get("channel_break_exit", True)  # Exit on channel break
+        self.max_positions = self.config.get(
+            "max_positions", 3
+        )  # Max concurrent channel trades
+        self.min_risk_reward = self.config.get(
+            "min_risk_reward", 1.5
+        )  # Minimum R:R ratio
+        self.channel_break_exit = self.config.get(
+            "channel_break_exit", True
+        )  # Exit on channel break
         self.time_exit_hours = self.config.get("time_exit_hours", 48)  # Max hold time
 
         # Active positions
@@ -85,17 +91,22 @@ class ChannelExecutor:
             if signal:
                 # Calculate targets
                 current_price = ohlc_data[0]["close"]  # Most recent price
-                targets = self.detector.calculate_targets(channel, current_price, signal)
+                targets = self.detector.calculate_targets(
+                    channel, current_price, signal
+                )
 
                 # Check risk/reward
                 if targets.get("risk_reward", 0) < self.min_risk_reward:
                     logger.debug(
-                        f"Skipping {symbol}: R:R {targets['risk_reward']:.2f} " f"< minimum {self.min_risk_reward}"
+                        f"Skipping {symbol}: R:R {targets['risk_reward']:.2f} "
+                        f"< minimum {self.min_risk_reward}"
                     )
                     continue
 
                 # Create position
-                position = await self._create_position(symbol, channel, signal, current_price, targets)
+                position = await self._create_position(
+                    symbol, channel, signal, current_price, targets
+                )
 
                 if position:
                     self.positions[symbol] = position
@@ -175,7 +186,9 @@ class ChannelExecutor:
             current_price = ohlc_data[0]["close"]
 
             # Check exit conditions
-            exit_reason = self._check_exit_conditions(position, current_price, ohlc_data)
+            exit_reason = self._check_exit_conditions(
+                position, current_price, ohlc_data
+            )
 
             if exit_reason:
                 # Close position
@@ -187,7 +200,10 @@ class ChannelExecutor:
                         "exit_price": current_price,
                         "pnl": position.pnl,
                         "exit_reason": exit_reason,
-                        "hold_time": (datetime.now() - position.entry_time).total_seconds() / 3600,
+                        "hold_time": (
+                            datetime.now() - position.entry_time
+                        ).total_seconds()
+                        / 3600,
                     }
                 )
 
@@ -234,12 +250,18 @@ class ChannelExecutor:
                 return "CHANNEL_BREAK"
 
             # Exit if channel has changed significantly
-            if abs(new_channel.upper_line - position.channel.upper_line) / position.channel.upper_line > 0.02:
+            if (
+                abs(new_channel.upper_line - position.channel.upper_line)
+                / position.channel.upper_line
+                > 0.02
+            ):
                 return "CHANNEL_CHANGE"
 
         return None
 
-    async def _close_position(self, position: ChannelPosition, exit_price: float, exit_reason: str):
+    async def _close_position(
+        self, position: ChannelPosition, exit_price: float, exit_reason: str
+    ):
         """
         Close a position and calculate P&L
         """
@@ -250,9 +272,17 @@ class ChannelExecutor:
 
         # Calculate P&L
         if position.side == "LONG":
-            position.pnl = (exit_price - position.entry_price) * position.position_size / position.entry_price
+            position.pnl = (
+                (exit_price - position.entry_price)
+                * position.position_size
+                / position.entry_price
+            )
         else:  # SHORT
-            position.pnl = (position.entry_price - exit_price) * position.position_size / position.entry_price
+            position.pnl = (
+                (position.entry_price - exit_price)
+                * position.position_size
+                / position.entry_price
+            )
 
     def get_active_positions(self) -> List[Dict]:
         """
@@ -273,7 +303,10 @@ class ChannelExecutor:
                         "channel_type": position.channel.channel_type,
                         "take_profit": position.take_profit,
                         "stop_loss": position.stop_loss,
-                        "hold_time": (datetime.now() - position.entry_time).total_seconds() / 3600,
+                        "hold_time": (
+                            datetime.now() - position.entry_time
+                        ).total_seconds()
+                        / 3600,
                         "current_pnl": current_pnl,
                     }
                 )

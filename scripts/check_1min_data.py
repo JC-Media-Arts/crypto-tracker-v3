@@ -103,9 +103,13 @@ def main():
                         print(f"   Newest: {newest[:19]}")
 
                         # Calculate retention period
-                        newest_dt = datetime.fromisoformat(newest.replace("Z", "+00:00"))
+                        newest_dt = datetime.fromisoformat(
+                            newest.replace("Z", "+00:00")
+                        )
                         if oldest_result.data:
-                            oldest_dt = datetime.fromisoformat(oldest.replace("Z", "+00:00"))
+                            oldest_dt = datetime.fromisoformat(
+                                oldest.replace("Z", "+00:00")
+                            )
                             retention_days = (newest_dt - oldest_dt).days
                             print(f"   Retention: {retention_days} days of data")
                 except Exception as e:
@@ -123,7 +127,9 @@ def main():
 
                 # Get count for last 7 days
                 try:
-                    week_ago = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
+                    week_ago = (
+                        datetime.now(timezone.utc) - timedelta(days=7)
+                    ).isoformat()
                     recent_result = (
                         supabase.client.table("ohlc_data")
                         .select("timestamp", count="exact")
@@ -133,19 +139,25 @@ def main():
                         .execute()
                     )
 
-                    recent_count = recent_result.count if hasattr(recent_result, "count") else 0
+                    recent_count = (
+                        recent_result.count if hasattr(recent_result, "count") else 0
+                    )
                     print(f"   Last 7 days: {recent_count:,} rows")
 
                     if recent_count > 0:
                         daily_rate = recent_count / 7
                         print(f"   Daily growth: ~{daily_rate:.0f} rows/day")
-                        print(f"   Monthly projection: ~{daily_rate * 30:,.0f} new rows")
+                        print(
+                            f"   Monthly projection: ~{daily_rate * 30:,.0f} new rows"
+                        )
                 except Exception as e:
                     print(f"   Could not check recent data: {str(e)[:50]}")
 
                 # Get count for last 30 days
                 try:
-                    month_ago = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
+                    month_ago = (
+                        datetime.now(timezone.utc) - timedelta(days=30)
+                    ).isoformat()
                     month_result = (
                         supabase.client.table("ohlc_data")
                         .select("timestamp", count="exact")
@@ -155,7 +167,9 @@ def main():
                         .execute()
                     )
 
-                    month_count = month_result.count if hasattr(month_result, "count") else 0
+                    month_count = (
+                        month_result.count if hasattr(month_result, "count") else 0
+                    )
                     print(f"   Last 30 days: {month_count:,} rows")
                 except Exception as e:
                     print(f"   Could not check monthly data: {str(e)[:50]}")

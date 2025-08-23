@@ -74,7 +74,9 @@ class SimplePaperTraderV2:
         self.positions: Dict[str, Position] = {}
         self.trades: List[Trade] = []
         self.pending_orders: Dict[str, dict] = {}
-        self.max_positions = max_positions  # Increased to 50 for more trading opportunities
+        self.max_positions = (
+            max_positions  # Increased to 50 for more trading opportunities
+        )
 
         # Kraken taker fee
         self.base_fee_rate = 0.0026  # 0.26%
@@ -226,7 +228,9 @@ class SimplePaperTraderV2:
         else:
             return self.slippage_rates["small"]
 
-    def calculate_entry_price(self, symbol: str, market_price: float, is_buy: bool = True) -> tuple[float, float]:
+    def calculate_entry_price(
+        self, symbol: str, market_price: float, is_buy: bool = True
+    ) -> tuple[float, float]:
         """
         Calculate actual entry price with slippage
         Returns: (actual_price, slippage_cost)
@@ -284,7 +288,9 @@ class SimplePaperTraderV2:
 
         # Check balance
         if usd_amount > self.balance * 0.5:  # Max 50% of balance per trade
-            logger.warning(f"Position size ${usd_amount} too large for balance ${self.balance}")
+            logger.warning(
+                f"Position size ${usd_amount} too large for balance ${self.balance}"
+            )
             return {"success": False, "error": "Insufficient balance"}
 
         # Get adaptive exit parameters if not overridden
@@ -304,7 +310,9 @@ class SimplePaperTraderV2:
             trailing_stop_pct = 0.05  # 5% default trailing
 
         # Calculate actual entry price with slippage
-        actual_price, slippage_cost = self.calculate_entry_price(symbol, market_price, is_buy=True)
+        actual_price, slippage_cost = self.calculate_entry_price(
+            symbol, market_price, is_buy=True
+        )
 
         # Calculate fees
         fees = self.calculate_fees(usd_amount)
@@ -313,7 +321,9 @@ class SimplePaperTraderV2:
         total_cost = usd_amount + fees
 
         if total_cost > self.balance:
-            logger.warning(f"Insufficient balance for {symbol}. Need ${total_cost:.2f}, have ${self.balance:.2f}")
+            logger.warning(
+                f"Insufficient balance for {symbol}. Need ${total_cost:.2f}, have ${self.balance:.2f}"
+            )
             return {"success": False, "error": "Insufficient balance"}
 
         # Calculate position amount in crypto units
@@ -350,8 +360,12 @@ class SimplePaperTraderV2:
         logger.info(f"   Entry: ${actual_price:.4f} (market: ${market_price:.4f})")
         logger.info(f"   Amount: {crypto_amount:.6f} {symbol}")
         logger.info(f"   Value: ${usd_amount:.2f}")
-        logger.info(f"   Stop Loss: ${position.stop_loss:.4f} (-{stop_loss_pct*100:.1f}%)")
-        logger.info(f"   Take Profit: ${position.take_profit:.4f} (+{take_profit_pct*100:.1f}%)")
+        logger.info(
+            f"   Stop Loss: ${position.stop_loss:.4f} (-{stop_loss_pct*100:.1f}%)"
+        )
+        logger.info(
+            f"   Take Profit: ${position.take_profit:.4f} (+{take_profit_pct*100:.1f}%)"
+        )
         logger.info(f"   Trailing Stop: {trailing_stop_pct*100:.1f}%")
         logger.info(f"   Fees: ${fees:.2f}, Slippage: ${slippage_cost:.2f}")
 
@@ -399,7 +413,9 @@ class SimplePaperTraderV2:
                 continue
 
             current_price = current_prices[symbol]
-            hold_duration = (datetime.now() - position.entry_time).total_seconds() / 3600
+            hold_duration = (
+                datetime.now() - position.entry_time
+            ).total_seconds() / 3600
 
             # Update highest price for trailing stop
             if current_price > position.highest_price:
@@ -407,14 +423,19 @@ class SimplePaperTraderV2:
                 logger.debug(f"{symbol} new high: ${current_price:.4f}")
 
             # Calculate trailing stop price
-            trailing_stop_price = position.highest_price * (1 - position.trailing_stop_pct)
+            trailing_stop_price = position.highest_price * (
+                1 - position.trailing_stop_pct
+            )
 
             # Check exit conditions
             exit_reason = None
 
             if current_price <= position.stop_loss:
                 exit_reason = "stop_loss"
-            elif current_price <= trailing_stop_price and current_price < position.highest_price:
+            elif (
+                current_price <= trailing_stop_price
+                and current_price < position.highest_price
+            ):
                 exit_reason = "trailing_stop"
             elif current_price >= position.take_profit:
                 exit_reason = "take_profit"
@@ -428,7 +449,9 @@ class SimplePaperTraderV2:
 
         return closed_trades
 
-    async def close_position(self, symbol: str, current_price: float, exit_reason: str = "manual") -> Optional[Trade]:
+    async def close_position(
+        self, symbol: str, current_price: float, exit_reason: str = "manual"
+    ) -> Optional[Trade]:
         """Close a position and record the trade"""
         if symbol not in self.positions:
             logger.warning(f"No position found for {symbol}")
@@ -437,7 +460,9 @@ class SimplePaperTraderV2:
         position = self.positions[symbol]
 
         # Calculate exit with slippage
-        exit_price, slippage_cost = self.calculate_entry_price(symbol, current_price, is_buy=False)
+        exit_price, slippage_cost = self.calculate_entry_price(
+            symbol, current_price, is_buy=False
+        )
 
         # Calculate exit value and fees
         exit_value = position.amount * exit_price
@@ -491,7 +516,9 @@ class SimplePaperTraderV2:
         logger.info(f"   Exit: ${exit_price:.4f} (market: ${current_price:.4f})")
         logger.info(f"   P&L: ${pnl_net:.2f} ({pnl_percent:+.2f}%)")
         logger.info(f"   Reason: {exit_reason}")
-        logger.info(f"   Duration: {(trade.exit_time - trade.entry_time).total_seconds()/3600:.1f} hours")
+        logger.info(
+            f"   Duration: {(trade.exit_time - trade.entry_time).total_seconds()/3600:.1f} hours"
+        )
 
         # Send Slack notification
         if self.notifier:
@@ -504,15 +531,20 @@ class SimplePaperTraderV2:
                     pnl_usd=pnl_net,
                     pnl_percent=pnl_percent,
                     exit_reason=exit_reason,
-                    duration_hours=(trade.exit_time - trade.entry_time).total_seconds() / 3600,
-                    highest_price=position.highest_price if hasattr(position, "highest_price") else None,
+                    duration_hours=(trade.exit_time - trade.entry_time).total_seconds()
+                    / 3600,
+                    highest_price=position.highest_price
+                    if hasattr(position, "highest_price")
+                    else None,
                 )
             except Exception as e:
                 logger.error(f"Failed to send Slack notification: {e}")
 
         return trade
 
-    async def save_position_to_db(self, position: Position, actual_price: float, market_price: float):
+    async def save_position_to_db(
+        self, position: Position, actual_price: float, market_price: float
+    ):
         """Save position opening to database"""
         if not self.db_client:
             return
@@ -599,13 +631,16 @@ class SimplePaperTraderV2:
                 updated = {
                     "trades_count": record["trades_count"] + 1,
                     "wins": record["wins"] + (1 if trade.trade_type == "win" else 0),
-                    "losses": record["losses"] + (1 if trade.trade_type == "loss" else 0),
+                    "losses": record["losses"]
+                    + (1 if trade.trade_type == "loss" else 0),
                     "net_pnl": record["net_pnl"] + trade.pnl_usd,
                 }
 
-                self.db_client.client.table("paper_performance").update(updated).eq("date", date).eq(
-                    "strategy_name", trade.strategy
-                ).eq("trading_engine", "simple_paper_trader").execute()
+                self.db_client.client.table("paper_performance").update(updated).eq(
+                    "date", date
+                ).eq("strategy_name", trade.strategy).eq(
+                    "trading_engine", "simple_paper_trader"
+                ).execute()
             else:
                 # Create new record
                 data = {
@@ -673,7 +708,11 @@ class SimplePaperTraderV2:
         total_pnl_pct = (total_pnl / self.initial_balance) * 100
 
         # Win rate
-        win_rate = (self.winning_trades / self.total_trades * 100) if self.total_trades > 0 else 0
+        win_rate = (
+            (self.winning_trades / self.total_trades * 100)
+            if self.total_trades > 0
+            else 0
+        )
 
         return {
             "balance": self.balance,
@@ -746,7 +785,9 @@ class SimplePaperTraderV2:
                     stop_loss=pos_data.get("stop_loss"),
                     take_profit=pos_data.get("take_profit"),
                     trailing_stop_pct=pos_data.get("trailing_stop_pct", 0.05),
-                    highest_price=pos_data.get("highest_price", pos_data["entry_price"]),
+                    highest_price=pos_data.get(
+                        "highest_price", pos_data["entry_price"]
+                    ),
                     fees_paid=pos_data.get("fees_paid", 0),
                 )
 
@@ -757,7 +798,9 @@ class SimplePaperTraderV2:
             self.total_fees = stats.get("total_fees", 0)
             self.total_slippage = stats.get("total_slippage", 0)
 
-            logger.info(f"Loaded state: ${self.balance:.2f} balance, {len(self.positions)} positions")
+            logger.info(
+                f"Loaded state: ${self.balance:.2f} balance, {len(self.positions)} positions"
+            )
 
         except Exception as e:
             logger.error(f"Failed to load state: {e}")

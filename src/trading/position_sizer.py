@@ -104,17 +104,23 @@ class AdaptivePositionSizer:
         multipliers = {}
 
         # 1. Apply market regime multiplier
-        regime_mult = self._get_regime_multiplier(market_data.get("btc_regime", "NEUTRAL"))
+        regime_mult = self._get_regime_multiplier(
+            market_data.get("btc_regime", "NEUTRAL")
+        )
         position_size *= regime_mult
         multipliers["regime"] = regime_mult
 
         # 2. Apply volatility multiplier
-        vol_mult = self._get_volatility_multiplier(market_data.get("btc_volatility_7d", 0.4))
+        vol_mult = self._get_volatility_multiplier(
+            market_data.get("btc_volatility_7d", 0.4)
+        )
         position_size *= vol_mult
         multipliers["volatility"] = vol_mult
 
         # 3. Apply relative performance multiplier
-        perf_mult = self._get_performance_multiplier(market_data.get("symbol_vs_btc_7d", 0))
+        perf_mult = self._get_performance_multiplier(
+            market_data.get("symbol_vs_btc_7d", 0)
+        )
         position_size *= perf_mult
         multipliers["performance"] = perf_mult
 
@@ -130,10 +136,15 @@ class AdaptivePositionSizer:
             multipliers["ml_confidence"] = conf_mult
 
         # 6. Apply risk management constraints
-        position_size = self._apply_risk_constraints(position_size, portfolio_value, current_positions)
+        position_size = self._apply_risk_constraints(
+            position_size, portfolio_value, current_positions
+        )
 
         # Log the calculation
-        logger.debug(f"Position size for {symbol}: ${position_size:.2f} " f"(multipliers: {multipliers})")
+        logger.debug(
+            f"Position size for {symbol}: ${position_size:.2f} "
+            f"(multipliers: {multipliers})"
+        )
 
         return position_size, multipliers
 
@@ -179,14 +190,19 @@ class AdaptivePositionSizer:
         confidence = max(0, min(1, confidence))  # Clamp to [0, 1]
         return (
             self.config.ml_confidence_min_mult
-            + (self.config.ml_confidence_max_mult - self.config.ml_confidence_min_mult) * confidence
+            + (self.config.ml_confidence_max_mult - self.config.ml_confidence_min_mult)
+            * confidence
         )
 
-    def _apply_risk_constraints(self, position_size: float, portfolio_value: float, current_positions: int) -> float:
+    def _apply_risk_constraints(
+        self, position_size: float, portfolio_value: float, current_positions: int
+    ) -> float:
         """Apply risk management constraints to position size."""
         # Constraint 1: Check if we have room for more positions
         if current_positions >= self.config.max_concurrent_positions:
-            logger.warning(f"Max concurrent positions ({self.config.max_concurrent_positions}) reached")
+            logger.warning(
+                f"Max concurrent positions ({self.config.max_concurrent_positions}) reached"
+            )
             return 0
 
         # Constraint 2: Max position as percentage of portfolio
@@ -195,7 +211,11 @@ class AdaptivePositionSizer:
 
         # Constraint 3: Check total portfolio exposure
         # This is simplified - in production, you'd calculate actual exposure
-        avg_position = portfolio_value * self.config.max_portfolio_exposure / self.config.max_concurrent_positions
+        avg_position = (
+            portfolio_value
+            * self.config.max_portfolio_exposure
+            / self.config.max_concurrent_positions
+        )
         position_size = min(position_size, avg_position)
 
         # Constraint 4: Minimum position size (but only if position is non-zero)
@@ -273,7 +293,9 @@ class AdaptivePositionSizer:
         else:
             return "NEUTRAL"
 
-    def calculate_volatility(self, price_data: pd.DataFrame, window_days: int = 7) -> float:
+    def calculate_volatility(
+        self, price_data: pd.DataFrame, window_days: int = 7
+    ) -> float:
         """
         Calculate annualized volatility.
 
@@ -300,7 +322,9 @@ class AdaptivePositionSizer:
 
         return annual_vol
 
-    def get_position_sizing_summary(self, portfolio_value: float, current_positions: int = 0) -> Dict:
+    def get_position_sizing_summary(
+        self, portfolio_value: float, current_positions: int = 0
+    ) -> Dict:
         """
         Get a summary of current position sizing parameters.
 
@@ -315,9 +339,13 @@ class AdaptivePositionSizer:
             "base_position_usd": self.config.base_position_usd,
             "max_position_usd": portfolio_value * self.config.max_position_pct,
             "min_position_usd": self.config.min_position_usd,
-            "positions_available": self.config.max_concurrent_positions - current_positions,
-            "max_portfolio_exposure_usd": portfolio_value * self.config.max_portfolio_exposure,
-            "current_regime_multiplier": self._get_regime_multiplier(self._current_regime),
+            "positions_available": self.config.max_concurrent_positions
+            - current_positions,
+            "max_portfolio_exposure_usd": portfolio_value
+            * self.config.max_portfolio_exposure,
+            "current_regime_multiplier": self._get_regime_multiplier(
+                self._current_regime
+            ),
             "config": {
                 "bear_mult": self.config.bear_market_mult,
                 "bull_mult": self.config.bull_market_mult,
@@ -355,17 +383,23 @@ class PortfolioRiskManager:
             return False
 
         # Check concurrent positions limit
-        if len(self.open_positions) >= self.position_sizer.config.max_concurrent_positions:
+        if (
+            len(self.open_positions)
+            >= self.position_sizer.config.max_concurrent_positions
+        ):
             logger.warning("Maximum concurrent positions reached")
             return False
 
         # Check total exposure
         current_exposure = sum(pos["size"] for pos in self.open_positions.values())
-        max_exposure = self.portfolio_value * self.position_sizer.config.max_portfolio_exposure
+        max_exposure = (
+            self.portfolio_value * self.position_sizer.config.max_portfolio_exposure
+        )
 
         if current_exposure + proposed_size > max_exposure:
             logger.warning(
-                f"Position would exceed max exposure " f"(current: ${current_exposure:.2f}, max: ${max_exposure:.2f})"
+                f"Position would exceed max exposure "
+                f"(current: ${current_exposure:.2f}, max: ${max_exposure:.2f})"
             )
             return False
 
@@ -426,7 +460,9 @@ class PortfolioRiskManager:
             return None
 
         position = self.open_positions[symbol]
-        pnl = position["size"] * ((exit_price - position["entry_price"]) / position["entry_price"])
+        pnl = position["size"] * (
+            (exit_price - position["entry_price"]) / position["entry_price"]
+        )
 
         del self.open_positions[symbol]
 

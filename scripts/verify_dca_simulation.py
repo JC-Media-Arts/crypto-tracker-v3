@@ -43,7 +43,9 @@ def verify_simulation():
     breakeven_setups = labels_df[labels_df["label"] == "BREAKEVEN"]
 
     print(f"\nTotal setups to verify: {len(labels_df)}")
-    print(f"Wins: {len(win_setups)}, Losses: {len(loss_setups)}, Breakeven: {len(breakeven_setups)}")
+    print(
+        f"Wins: {len(win_setups)}, Losses: {len(loss_setups)}, Breakeven: {len(breakeven_setups)}"
+    )
 
     # Verify a winning setup
     if len(win_setups) > 0:
@@ -161,8 +163,14 @@ def verify_single_setup(setup, supabase):
         if min_price_after <= level_price:
             filled_levels.append(level_price)
             # Find when it was hit
-            hit_time = df[df["price"] <= level_price].index[0] if any(df["price"] <= level_price) else None
-            time_to_fill = (hit_time - setup_time).total_seconds() / 3600 if hit_time else None
+            hit_time = (
+                df[df["price"] <= level_price].index[0]
+                if any(df["price"] <= level_price)
+                else None
+            )
+            time_to_fill = (
+                (hit_time - setup_time).total_seconds() / 3600 if hit_time else None
+            )
             print(
                 f"  Level {i+1}: ${level_price:.2f} - FILLED (after {time_to_fill:.1f}h)"
                 if time_to_fill
@@ -203,7 +211,9 @@ def verify_single_setup(setup, supabase):
         if price >= take_profit:
             actual_outcome = "WIN"
             actual_pnl = 10.0
-            print(f"\n✅ Take profit hit at ${price:.2f} after {hours_elapsed:.1f} hours")
+            print(
+                f"\n✅ Take profit hit at ${price:.2f} after {hours_elapsed:.1f} hours"
+            )
             break
         elif price <= stop_loss:
             actual_outcome = "LOSS"

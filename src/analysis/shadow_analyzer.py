@@ -99,7 +99,9 @@ class ShadowAnalyzer:
 
         return performance_by_timeframe
 
-    async def _calculate_timeframe_performance(self, timeframe: str) -> List[PerformanceMetrics]:
+    async def _calculate_timeframe_performance(
+        self, timeframe: str
+    ) -> List[PerformanceMetrics]:
         """
         Calculate performance metrics for a specific timeframe
         """
@@ -182,7 +184,11 @@ class ShadowAnalyzer:
             timeouts = [o for o in completed if o["outcome_status"] == "TIMEOUT"]
 
             pnl_values = [float(o["pnl_percentage"]) for o in completed]
-            hold_times = [float(o["actual_hold_hours"]) for o in completed if o["actual_hold_hours"]]
+            hold_times = [
+                float(o["actual_hold_hours"])
+                for o in completed
+                if o["actual_hold_hours"]
+            ]
 
             # Calculate statistics
             win_rate = len(wins) / len(completed) if completed else 0
@@ -203,11 +209,15 @@ class ShadowAnalyzer:
             # Calculate max drawdown
             cumulative_returns = np.cumsum(pnl_values) if pnl_values else [0]
             running_max = np.maximum.accumulate(cumulative_returns)
-            drawdown = (cumulative_returns - running_max) / (running_max + 100)  # Add 100 to avoid division by zero
+            drawdown = (cumulative_returns - running_max) / (
+                running_max + 100
+            )  # Add 100 to avoid division by zero
             max_drawdown = np.min(drawdown) if len(drawdown) > 0 else 0
 
             # Get champion performance for comparison
-            champion_performance = await self._get_champion_performance(strategy_name, timeframe)
+            champion_performance = await self._get_champion_performance(
+                strategy_name, timeframe
+            )
             outperformance = 0
             p_value = 1.0
 
@@ -237,7 +247,13 @@ class ShadowAnalyzer:
                 timeframe=timeframe,
                 strategy_name=strategy_name,
                 total_opportunities=len(outcomes),
-                trades_taken=len([o for o in outcomes if o.get("shadow_variations", {}).get("would_take_trade")]),
+                trades_taken=len(
+                    [
+                        o
+                        for o in outcomes
+                        if o.get("shadow_variations", {}).get("would_take_trade")
+                    ]
+                ),
                 trades_completed=len(completed),
                 wins=len(wins),
                 losses=len(losses),
@@ -290,7 +306,9 @@ class ShadowAnalyzer:
                     best = metrics[0]
 
                     # Generate recommendations based on variation type
-                    recs = await self._generate_variation_recommendations(best_performer=best, strategy=strategy)
+                    recs = await self._generate_variation_recommendations(
+                        best_performer=best, strategy=strategy
+                    )
                     recommendations.extend(recs)
 
             # Sort recommendations by confidence and outperformance
@@ -325,7 +343,9 @@ class ShadowAnalyzer:
             current_params = await self._get_current_parameters(strategy)
 
             # Get variation configuration
-            variation_config = ShadowConfig.VARIATIONS.get(best_performer.variation_name)
+            variation_config = ShadowConfig.VARIATIONS.get(
+                best_performer.variation_name
+            )
             if not variation_config:
                 return recommendations
 
@@ -372,7 +392,9 @@ class ShadowAnalyzer:
                         AdjustmentRecommendation(
                             strategy_name=strategy,
                             parameter_name="dca_drop_threshold",
-                            current_value=current_params.get("dca_drop_threshold", 0.05),
+                            current_value=current_params.get(
+                                "dca_drop_threshold", 0.05
+                            ),
                             recommended_value=test_value,
                             variation_source=best_performer.variation_name,
                             confidence_level=best_performer.confidence_level,
@@ -389,7 +411,9 @@ class ShadowAnalyzer:
                         AdjustmentRecommendation(
                             strategy_name=strategy,
                             parameter_name="take_profit_multiplier",
-                            current_value=current_params.get("take_profit_multiplier", 1.0),
+                            current_value=current_params.get(
+                                "take_profit_multiplier", 1.0
+                            ),
                             recommended_value=0.8,
                             variation_source=best_performer.variation_name,
                             confidence_level=best_performer.confidence_level,
@@ -409,7 +433,10 @@ class ShadowAnalyzer:
         """Get list of active variation names"""
         try:
             result = (
-                self.supabase.table("shadow_configuration").select("variation_name").eq("is_active", True).execute()
+                self.supabase.table("shadow_configuration")
+                .select("variation_name")
+                .eq("is_active", True)
+                .execute()
             )
 
             if result.data:
@@ -422,7 +449,9 @@ class ShadowAnalyzer:
             logger.error(f"Error getting active variations: {e}")
             return []
 
-    async def _get_champion_performance(self, strategy_name: str, timeframe: str) -> Optional[Dict]:
+    async def _get_champion_performance(
+        self, strategy_name: str, timeframe: str
+    ) -> Optional[Dict]:
         """Get champion performance for comparison"""
         try:
             result = (
@@ -506,7 +535,9 @@ class ShadowAnalyzer:
         """Convert timeframe string to days"""
         return self._timeframe_to_hours(timeframe) // 24
 
-    def _calculate_significance(self, wins_a: int, total_a: int, wins_b: int, total_b: int) -> float:
+    def _calculate_significance(
+        self, wins_a: int, total_a: int, wins_b: int, total_b: int
+    ) -> float:
         """
         Calculate statistical significance of performance difference
         Uses two-proportion z-test
@@ -534,7 +565,9 @@ class ShadowAnalyzer:
 
         return p_value
 
-    def _determine_confidence_level(self, trade_count: int, outperformance: float, p_value: float, days: int) -> str:
+    def _determine_confidence_level(
+        self, trade_count: int, outperformance: float, p_value: float, days: int
+    ) -> str:
         """Determine confidence level based on evidence"""
 
         for tier_name, tier_config in ShadowConfig.CONFIDENCE_TIERS.items():
@@ -553,7 +586,9 @@ class ShadowAnalyzer:
         scores = {"HIGH": 3, "MEDIUM": 2, "LOW": 1}
         return scores.get(confidence_level, 0)
 
-    async def get_top_performers(self, timeframe: str = "7d", top_n: int = 3) -> List[PerformanceMetrics]:
+    async def get_top_performers(
+        self, timeframe: str = "7d", top_n: int = 3
+    ) -> List[PerformanceMetrics]:
         """
         Get top performing variations
 

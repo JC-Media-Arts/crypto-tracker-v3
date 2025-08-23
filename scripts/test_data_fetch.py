@@ -26,7 +26,9 @@ async def test_fetch():
 
         if data:
             logger.info(f"✅ Got {len(data)} records for {symbol}")
-            logger.info(f"   Latest: {data[-1]['timestamp']} - Close: ${data[-1]['close']:,.2f}")
+            logger.info(
+                f"   Latest: {data[-1]['timestamp']} - Close: ${data[-1]['close']:,.2f}"
+            )
         else:
             logger.warning(f"❌ No data for {symbol}")
 

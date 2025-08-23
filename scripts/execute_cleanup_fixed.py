@@ -21,7 +21,9 @@ from src.data.supabase_client import SupabaseClient
 from loguru import logger
 
 
-def cleanup_by_date_ranges(supabase, table, timeframe_list, cutoff_date, days_per_batch=30):
+def cleanup_by_date_ranges(
+    supabase, table, timeframe_list, cutoff_date, days_per_batch=30
+):
     """
     Clean up data by deleting in date range chunks to avoid timeouts.
     """
@@ -29,7 +31,9 @@ def cleanup_by_date_ranges(supabase, table, timeframe_list, cutoff_date, days_pe
     current_date = datetime.now(timezone.utc)
 
     for tf in timeframe_list:
-        logger.info(f"Cleaning {table} where timeframe='{tf}' before {cutoff_date[:10]}")
+        logger.info(
+            f"Cleaning {table} where timeframe='{tf}' before {cutoff_date[:10]}"
+        )
         batch_deleted = 0
 
         # Parse cutoff date
@@ -38,12 +42,16 @@ def cleanup_by_date_ranges(supabase, table, timeframe_list, cutoff_date, days_pe
         # Start from cutoff and work backwards in chunks
         end_date = cutoff_dt
 
-        while end_date > cutoff_dt - timedelta(days=365 * 10):  # Don't go back more than 10 years
+        while end_date > cutoff_dt - timedelta(
+            days=365 * 10
+        ):  # Don't go back more than 10 years
             start_date = end_date - timedelta(days=days_per_batch)
 
             try:
                 # Delete data in this date range
-                logger.info(f"  Deleting {tf} from {start_date.date()} to {end_date.date()}")
+                logger.info(
+                    f"  Deleting {tf} from {start_date.date()} to {end_date.date()}"
+                )
 
                 result = (
                     supabase.client.table(table)
@@ -102,7 +110,12 @@ def cleanup_simple_tables(supabase):
     # Clean scan_history (>7 days)
     try:
         seven_days_ago = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
-        result = supabase.client.table("scan_history").delete().lt("timestamp", seven_days_ago).execute()
+        result = (
+            supabase.client.table("scan_history")
+            .delete()
+            .lt("timestamp", seven_days_ago)
+            .execute()
+        )
 
         deleted = len(result.data) if result.data else 0
         cleanup_summary.append(("scan_history (>7 days)", deleted))
@@ -115,7 +128,12 @@ def cleanup_simple_tables(supabase):
     # Clean ML features (>30 days)
     try:
         thirty_days_ago = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
-        result = supabase.client.table("ml_features").delete().lt("timestamp", thirty_days_ago).execute()
+        result = (
+            supabase.client.table("ml_features")
+            .delete()
+            .lt("timestamp", thirty_days_ago)
+            .execute()
+        )
 
         deleted = len(result.data) if result.data else 0
         cleanup_summary.append(("ml_features (>30 days)", deleted))
@@ -128,7 +146,12 @@ def cleanup_simple_tables(supabase):
     # Clean shadow testing tables
     try:
         thirty_days_ago = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
-        result = supabase.client.table("shadow_testing_scans").delete().lt("scan_time", thirty_days_ago).execute()
+        result = (
+            supabase.client.table("shadow_testing_scans")
+            .delete()
+            .lt("scan_time", thirty_days_ago)
+            .execute()
+        )
 
         deleted = len(result.data) if result.data else 0
         cleanup_summary.append(("shadow_testing_scans (>30 days)", deleted))

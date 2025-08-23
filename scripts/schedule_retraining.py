@@ -51,8 +51,12 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="Schedule Model Retraining")
-    parser.add_argument("--once", action="store_true", help="Run once and exit (for cron jobs)")
-    parser.add_argument("--continuous", action="store_true", help="Run continuously as a scheduler")
+    parser.add_argument(
+        "--once", action="store_true", help="Run once and exit (for cron jobs)"
+    )
+    parser.add_argument(
+        "--continuous", action="store_true", help="Run continuously as a scheduler"
+    )
 
     args = parser.parse_args()
 

@@ -111,8 +111,12 @@ def calculate_storage():
     print(f"  • Feature calculations per day: {feature_points_per_day:,}")
     print(f"  • Feature calculations per year: {feature_points_per_year:,}")
 
-    ml_storage_1y = num_symbols * feature_points_per_year * ml_bytes_per_row / (1024**3)
-    ml_storage_2y = num_symbols * feature_points_per_year * 2 * ml_bytes_per_row / (1024**3)
+    ml_storage_1y = (
+        num_symbols * feature_points_per_year * ml_bytes_per_row / (1024**3)
+    )
+    ml_storage_2y = (
+        num_symbols * feature_points_per_year * 2 * ml_bytes_per_row / (1024**3)
+    )
 
     print(f"\n  1 YEAR of ML features ({num_symbols} symbols): {ml_storage_1y:.2f} GB")
     print(f"  2 YEARS of ML features ({num_symbols} symbols): {ml_storage_2y:.2f} GB")

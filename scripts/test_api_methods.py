@@ -10,14 +10,18 @@ async def test_methods():
     """Test and list available methods"""
 
     # Initialize client
-    client = HummingbotAPIClient(host="localhost", port=8000, username="admin", password="admin")
+    client = HummingbotAPIClient(
+        host="localhost", port=8000, username="admin", password="admin"
+    )
 
     # Initialize the client
     await client.init()
     logger.info("Client initialized")
 
     # Get available methods
-    methods = [m for m in dir(client) if not m.startswith("_") and callable(getattr(client, m))]
+    methods = [
+        m for m in dir(client) if not m.startswith("_") and callable(getattr(client, m))
+    ]
     logger.info(f"Available methods ({len(methods)}):")
     for method in sorted(methods):
         logger.info(f"  - {method}")

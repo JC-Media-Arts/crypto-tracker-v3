@@ -106,14 +106,24 @@ class StrategyManager:
         self.ml_enabled = config.get("ml_enabled", self.ml_enabled)
 
         # Check if shadow testing is enabled
-        self.shadow_enabled = os.getenv("SHADOW_TESTING_ENABLED", "true").lower() == "true"
+        self.shadow_enabled = (
+            os.getenv("SHADOW_TESTING_ENABLED", "true").lower() == "true"
+        )
         self.shadow_enabled = config.get("shadow_testing_enabled", self.shadow_enabled)
 
         # Initialize scan logger for ML learning (only if ML enabled)
-        self.scan_logger = ScanLogger(supabase_client) if (supabase_client and self.ml_enabled) else None
+        self.scan_logger = (
+            ScanLogger(supabase_client)
+            if (supabase_client and self.ml_enabled)
+            else None
+        )
 
         # Initialize shadow logger for parallel testing (only if shadow enabled)
-        self.shadow_logger = ShadowLogger(supabase_client) if (supabase_client and self.shadow_enabled) else None
+        self.shadow_logger = (
+            ShadowLogger(supabase_client)
+            if (supabase_client and self.shadow_enabled)
+            else None
+        )
 
         # Initialize strategy components
         self.dca_detector = DCADetector(config.get("dca_config", {}))
@@ -121,7 +131,9 @@ class StrategyManager:
         self.swing_analyzer = SwingAnalyzer()  # No config needed
         self.channel_detector = ChannelDetector(config.get("channel_config", {}))
         self.channel_executor = ChannelExecutor(config.get("channel_config", {}))
-        self.regime_detector = RegimeDetector(enabled=config.get("regime_detection_enabled", True))
+        self.regime_detector = RegimeDetector(
+            enabled=config.get("regime_detection_enabled", True)
+        )
 
         # Initialize either ML predictor or simple rules
         if self.ml_enabled:
@@ -168,11 +180,15 @@ class StrategyManager:
             StrategyType.CHANNEL: {"wins": 0, "losses": 0, "total_pnl": 0.0},
         }
 
-        logger.info(f"Strategy Manager initialized with ${self.allocation.total_capital} capital")
+        logger.info(
+            f"Strategy Manager initialized with ${self.allocation.total_capital} capital"
+        )
         logger.info(
             f"Allocation: DCA {self.allocation.dca_allocation:.0%}, Swing {self.allocation.swing_allocation:.0%}, Channel {getattr(self.allocation, 'channel_allocation', 0.3):.0%}"
         )
-        logger.info(f"Regime Detection: {'Enabled' if self.regime_detector.enabled else 'Disabled'}")
+        logger.info(
+            f"Regime Detection: {'Enabled' if self.regime_detector.enabled else 'Disabled'}"
+        )
 
     def update_btc_price(self, price: float, timestamp: Optional[datetime] = None):
         """
@@ -232,7 +248,9 @@ class StrategyManager:
                 if "position_size" in signal.setup_data:
                     signal.setup_data["position_size"] *= 0.5
         elif regime == MarketRegime.EUPHORIA:
-            logger.warning("🚀 Market EUPHORIA - Reducing positions by 30% (FOMO protection)")
+            logger.warning(
+                "🚀 Market EUPHORIA - Reducing positions by 30% (FOMO protection)"
+            )
             for signal in signals:
                 signal.required_capital *= 0.7
                 if "position_size" in signal.setup_data:
@@ -261,7 +279,11 @@ class StrategyManager:
         """Scan for DCA setups"""
         signals = []
         regime = self.regime_detector.get_market_regime()
-        btc_price = self.regime_detector.btc_prices[-1] if self.regime_detector.btc_prices else 0
+        btc_price = (
+            self.regime_detector.btc_prices[-1]
+            if self.regime_detector.btc_prices
+            else 0
+        )
 
         for symbol, data in market_data.items():
             if symbol in self.blocked_symbols:
@@ -293,7 +315,9 @@ class StrategyManager:
                         market_regime=regime.value,
                         btc_price=btc_price,
                         thresholds_used={
-                            "drop_threshold": self.config.get("dca_config", {}).get("drop_threshold", -5.0)
+                            "drop_threshold": self.config.get("dca_config", {}).get(
+                                "drop_threshold", -5.0
+                            )
                         },
                     )
                 continue
@@ -311,11 +335,17 @@ class StrategyManager:
                 ml_result = self.simple_rules.predict_dca({})  # Fake ML format
 
             # Check confidence threshold (skip if using simple rules)
-            min_confidence = self.config.get("min_confidence", 0.60) if self.ml_enabled else 0.0
+            min_confidence = (
+                self.config.get("min_confidence", 0.60) if self.ml_enabled else 0.0
+            )
             if ml_result["confidence"] < min_confidence:
                 # Log low confidence near-miss (only if ML enabled and scan logger exists)
                 if self.scan_logger and self.ml_enabled:
-                    decision = "NEAR_MISS" if ml_result["confidence"] > (min_confidence * 0.8) else "SKIP"
+                    decision = (
+                        "NEAR_MISS"
+                        if ml_result["confidence"] > (min_confidence * 0.8)
+                        else "SKIP"
+                    )
                     self.scan_logger.log_scan_decision(
                         symbol=symbol,
                         strategy_name="DCA",
@@ -361,7 +391,9 @@ class StrategyManager:
                     ml_predictions=ml_result,
                     market_regime=regime.value,
                     btc_price=btc_price,
-                    thresholds_used={"min_confidence": self.config.get("min_confidence", 0.60)},
+                    thresholds_used={
+                        "min_confidence": self.config.get("min_confidence", 0.60)
+                    },
                     proposed_position_size=position_size,
                     proposed_capital=position_size,
                 )
@@ -389,7 +421,9 @@ class StrategyManager:
 
         return signals
 
-    async def _scan_swing_opportunities(self, market_data: Dict) -> List[StrategySignal]:
+    async def _scan_swing_opportunities(
+        self, market_data: Dict
+    ) -> List[StrategySignal]:
         """Scan for Swing setups"""
         signals = []
 
@@ -441,7 +475,9 @@ class StrategyManager:
                     "expected_hold_days": 3,
                     "expected_profit_pct": 5.0,
                 }
-                min_confidence = self.config.get("min_confidence_no_ml", 0.45)  # Lower threshold without ML
+                min_confidence = self.config.get(
+                    "min_confidence_no_ml", 0.45
+                )  # Lower threshold without ML
 
             if ml_result["confidence"] < min_confidence:
                 continue
@@ -477,7 +513,8 @@ class StrategyManager:
                     "position_size": position_size,
                 },
                 timestamp=datetime.now(),
-                expires_at=datetime.now() + timedelta(minutes=5),  # Shorter expiry for momentum
+                expires_at=datetime.now()
+                + timedelta(minutes=5),  # Shorter expiry for momentum
                 priority_score=self._calculate_priority_score(
                     StrategyType.SWING, expected_value, ml_result["confidence"]
                 ),
@@ -487,7 +524,9 @@ class StrategyManager:
 
         return signals
 
-    async def _scan_channel_opportunities(self, market_data: Dict) -> List[StrategySignal]:
+    async def _scan_channel_opportunities(
+        self, market_data: Dict
+    ) -> List[StrategySignal]:
         """Scan for Channel trading setups"""
         signals = []
 
@@ -506,7 +545,9 @@ class StrategyManager:
                 signal_type = self.channel_detector.get_trading_signal(channel)
                 if signal_type:
                     # Calculate targets
-                    targets = self.channel_detector.calculate_targets(channel, current_price, signal_type)
+                    targets = self.channel_detector.calculate_targets(
+                        channel, current_price, signal_type
+                    )
 
             # If complex detector didn't find anything, try SimpleRules as fallback
             if (not channel or not signal_type) and not self.ml_enabled:
@@ -517,10 +558,17 @@ class StrategyManager:
 
                     channel = Channel(
                         symbol=symbol,
-                        upper_line=simple_setup.get("channel_high", current_price * 1.05),
-                        lower_line=simple_setup.get("channel_low", current_price * 0.95),
+                        upper_line=simple_setup.get(
+                            "channel_high", current_price * 1.05
+                        ),
+                        lower_line=simple_setup.get(
+                            "channel_low", current_price * 0.95
+                        ),
                         slope=0,  # Assume horizontal
-                        width=(simple_setup.get("channel_high", 0) - simple_setup.get("channel_low", 0))
+                        width=(
+                            simple_setup.get("channel_high", 0)
+                            - simple_setup.get("channel_low", 0)
+                        )
                         / simple_setup.get("channel_low", 1)
                         if simple_setup.get("channel_low", 0) > 0
                         else 0.05,
@@ -534,8 +582,13 @@ class StrategyManager:
                     signal_type = "BUY"
                     # Simple targets
                     targets = {
-                        "take_profit": simple_setup.get("channel_high", current_price * 1.05),
-                        "stop_loss": simple_setup.get("channel_low", current_price * 0.95) * 0.99,
+                        "take_profit": simple_setup.get(
+                            "channel_high", current_price * 1.05
+                        ),
+                        "stop_loss": simple_setup.get(
+                            "channel_low", current_price * 0.95
+                        )
+                        * 0.99,
                         "take_profit_pct": 5.0,
                         "stop_loss_pct": 2.0,
                         "risk_reward": 2.5,
@@ -545,7 +598,9 @@ class StrategyManager:
                 continue
 
             # Check risk/reward
-            if targets and targets.get("risk_reward", 0) < self.config.get("min_risk_reward", 1.5):
+            if targets and targets.get("risk_reward", 0) < self.config.get(
+                "min_risk_reward", 1.5
+            ):
                 continue
 
             # Calculate confidence
@@ -555,8 +610,12 @@ class StrategyManager:
                 min_confidence = self.config.get("min_confidence", 0.60)
             else:
                 # Use confidence scoring from detector
-                confidence = self.channel_detector.calculate_confidence_without_ml(channel, signal_type)
-                min_confidence = self.config.get("min_confidence_no_ml", 0.45)  # Lower threshold without ML
+                confidence = self.channel_detector.calculate_confidence_without_ml(
+                    channel, signal_type
+                )
+                min_confidence = self.config.get(
+                    "min_confidence_no_ml", 0.45
+                )  # Lower threshold without ML
 
             if confidence < min_confidence:
                 continue
@@ -591,8 +650,11 @@ class StrategyManager:
                     "position_size": position_size,
                 },
                 timestamp=datetime.now(),
-                expires_at=datetime.now() + timedelta(minutes=30),  # Channels are more stable
-                priority_score=self._calculate_priority_score(StrategyType.CHANNEL, expected_value, confidence),
+                expires_at=datetime.now()
+                + timedelta(minutes=30),  # Channels are more stable
+                priority_score=self._calculate_priority_score(
+                    StrategyType.CHANNEL, expected_value, confidence
+                ),
             )
 
             signals.append(signal)
@@ -627,14 +689,18 @@ class StrategyManager:
 
         return resolved_signals
 
-    def _resolve_symbol_conflict(self, signals: List[StrategySignal]) -> Optional[StrategySignal]:
+    def _resolve_symbol_conflict(
+        self, signals: List[StrategySignal]
+    ) -> Optional[StrategySignal]:
         """Resolve conflict between multiple signals for same symbol"""
 
         # Check if signals are opposing (one buy, one sell - not applicable here)
         # In our case, both DCA and Swing are buy strategies
 
         # Apply resolution strategy
-        resolution_type = self.conflict_resolution.get("same_coin", ConflictResolution.HIGHER_CONFIDENCE)
+        resolution_type = self.conflict_resolution.get(
+            "same_coin", ConflictResolution.HIGHER_CONFIDENCE
+        )
 
         if resolution_type == ConflictResolution.HIGHER_CONFIDENCE:
             # Return signal with highest confidence
@@ -649,7 +715,9 @@ class StrategyManager:
             # Default to higher confidence
             return max(signals, key=lambda x: x.confidence)
 
-    def _apply_capital_constraints(self, signals: List[StrategySignal]) -> List[StrategySignal]:
+    def _apply_capital_constraints(
+        self, signals: List[StrategySignal]
+    ) -> List[StrategySignal]:
         """Apply capital allocation constraints"""
         approved_signals = []
         temp_dca_used = self.allocation.dca_used
@@ -658,7 +726,9 @@ class StrategyManager:
 
         for signal in signals:
             if signal.strategy_type == StrategyType.DCA:
-                available = (self.allocation.total_capital * self.allocation.dca_allocation) - temp_dca_used
+                available = (
+                    self.allocation.total_capital * self.allocation.dca_allocation
+                ) - temp_dca_used
                 if signal.required_capital <= available:
                     approved_signals.append(signal)
                     temp_dca_used += signal.required_capital
@@ -669,7 +739,9 @@ class StrategyManager:
                     )
 
             elif signal.strategy_type == StrategyType.SWING:
-                available = (self.allocation.total_capital * self.allocation.swing_allocation) - temp_swing_used
+                available = (
+                    self.allocation.total_capital * self.allocation.swing_allocation
+                ) - temp_swing_used
                 if signal.required_capital <= available:
                     approved_signals.append(signal)
                     temp_swing_used += signal.required_capital
@@ -680,7 +752,9 @@ class StrategyManager:
                     )
 
             elif signal.strategy_type == StrategyType.CHANNEL:
-                available = (self.allocation.total_capital * self.allocation.channel_allocation) - temp_channel_used
+                available = (
+                    self.allocation.total_capital * self.allocation.channel_allocation
+                ) - temp_channel_used
                 if signal.required_capital <= available:
                     approved_signals.append(signal)
                     temp_channel_used += signal.required_capital
@@ -707,7 +781,9 @@ class StrategyManager:
 
         return raw_ev * confidence_adjustment
 
-    def _calculate_priority_score(self, strategy: StrategyType, expected_value: float, confidence: float) -> float:
+    def _calculate_priority_score(
+        self, strategy: StrategyType, expected_value: float, confidence: float
+    ) -> float:
         """
         Calculate priority score based on MASTER_PLAN.md priority rules:
         1. ML confidence
@@ -738,7 +814,9 @@ class StrategyManager:
         btc_trend = 0
         if btc_data and len(btc_data) > 1:
             # Calculate BTC trend from last 24 hours
-            btc_close_24h_ago = btc_data[-24]["close"] if len(btc_data) >= 24 else btc_data[0]["close"]
+            btc_close_24h_ago = (
+                btc_data[-24]["close"] if len(btc_data) >= 24 else btc_data[0]["close"]
+            )
             btc_close_now = btc_data[-1]["close"]
             btc_trend = (btc_close_now - btc_close_24h_ago) / btc_close_24h_ago
 
@@ -785,7 +863,9 @@ class StrategyManager:
         else:
             recent_high = current_price
 
-        price_drop = (current_price - recent_high) / recent_high * 100 if recent_high > 0 else 0
+        price_drop = (
+            (current_price - recent_high) / recent_high * 100 if recent_high > 0 else 0
+        )
 
         return {
             "price_drop": price_drop,
@@ -815,11 +895,15 @@ class StrategyManager:
         for signal in signals:
             try:
                 if signal.is_expired():
-                    results["skipped"].append({"symbol": signal.symbol, "reason": "expired"})
+                    results["skipped"].append(
+                        {"symbol": signal.symbol, "reason": "expired"}
+                    )
                     continue
 
                 if signal.symbol in self.active_positions:
-                    results["skipped"].append({"symbol": signal.symbol, "reason": "position_exists"})
+                    results["skipped"].append(
+                        {"symbol": signal.symbol, "reason": "position_exists"}
+                    )
                     continue
 
                 # Execute based on strategy type
@@ -884,7 +968,10 @@ class StrategyManager:
             position_size = signal.setup_data["position_size"]
             entry_price = signal.setup_data["setup"]["entry_price"]
 
-            logger.info(f"Executing Swing trade for {signal.symbol}: " f"${position_size:.2f} at ${entry_price:.2f}")
+            logger.info(
+                f"Executing Swing trade for {signal.symbol}: "
+                f"${position_size:.2f} at ${entry_price:.2f}"
+            )
 
             # Here you would call the actual trading executor
             # For now, return True to indicate success
@@ -946,15 +1033,21 @@ class StrategyManager:
             "performance": {
                 "dca": {
                     "win_rate": self._get_win_rate(StrategyType.DCA),
-                    "total_pnl": self.strategy_performance[StrategyType.DCA]["total_pnl"],
+                    "total_pnl": self.strategy_performance[StrategyType.DCA][
+                        "total_pnl"
+                    ],
                 },
                 "swing": {
                     "win_rate": self._get_win_rate(StrategyType.SWING),
-                    "total_pnl": self.strategy_performance[StrategyType.SWING]["total_pnl"],
+                    "total_pnl": self.strategy_performance[StrategyType.SWING][
+                        "total_pnl"
+                    ],
                 },
                 "channel": {
                     "win_rate": self._get_win_rate(StrategyType.CHANNEL),
-                    "total_pnl": self.strategy_performance[StrategyType.CHANNEL]["total_pnl"],
+                    "total_pnl": self.strategy_performance[StrategyType.CHANNEL][
+                        "total_pnl"
+                    ],
                 },
             },
             "blocked_symbols": list(self.blocked_symbols),

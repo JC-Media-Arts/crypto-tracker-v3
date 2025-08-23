@@ -40,7 +40,9 @@ async def generate_daily_report():
 
         # Log summary
         logger.info(f"Portfolio Value: ${stats['total_value']:.2f}")
-        logger.info(f"Total P&L: ${stats['total_pnl']:+.2f} ({stats['total_pnl_pct']:+.2f}%)")
+        logger.info(
+            f"Total P&L: ${stats['total_pnl']:+.2f} ({stats['total_pnl_pct']:+.2f}%)"
+        )
         logger.info(f"Open Positions: {stats['positions']}/{stats['max_positions']}")
         logger.info(f"Total Trades: {stats['total_trades']}")
         logger.info(f"Win Rate: {stats['win_rate']:.1f}%")
@@ -50,7 +52,9 @@ async def generate_daily_report():
         notifier = PaperTradingNotifier()
 
         if notifier.enabled:
-            await notifier.send_daily_report(stats=stats, trades_today=trades_today, open_positions=open_positions)
+            await notifier.send_daily_report(
+                stats=stats, trades_today=trades_today, open_positions=open_positions
+            )
             logger.info("✅ Daily report sent to Slack #reports channel")
         else:
             logger.warning("Slack notifications disabled - no webhook configured")
@@ -64,17 +68,30 @@ async def generate_daily_report():
             yesterday = (datetime.now() - timedelta(days=1)).date().isoformat()
 
             # Fetch recent trades from database
-            recent_trades = db_client.client.table("paper_trades").select("*").gte("created_at", yesterday).execute()
+            recent_trades = (
+                db_client.client.table("paper_trades")
+                .select("*")
+                .gte("created_at", yesterday)
+                .execute()
+            )
 
             if recent_trades.data:
-                logger.info(f"Database records: {len(recent_trades.data)} trades in last 24 hours")
+                logger.info(
+                    f"Database records: {len(recent_trades.data)} trades in last 24 hours"
+                )
 
                 # Calculate database stats
                 db_wins = sum(1 for t in recent_trades.data if t.get("pnl", 0) > 0)
                 db_losses = sum(1 for t in recent_trades.data if t.get("pnl", 0) < 0)
-                db_total_pnl = sum(t.get("pnl", 0) for t in recent_trades.data if t.get("pnl") is not None)
+                db_total_pnl = sum(
+                    t.get("pnl", 0)
+                    for t in recent_trades.data
+                    if t.get("pnl") is not None
+                )
 
-                logger.info(f"Database Stats - Wins: {db_wins}, Losses: {db_losses}, P&L: ${db_total_pnl:.2f}")
+                logger.info(
+                    f"Database Stats - Wins: {db_wins}, Losses: {db_losses}, P&L: ${db_total_pnl:.2f}"
+                )
 
         except Exception as e:
             logger.warning(f"Could not fetch database statistics: {e}")

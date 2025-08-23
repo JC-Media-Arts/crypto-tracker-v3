@@ -85,7 +85,9 @@ class ShadowSlackReporter:
                 color = "#3AA3E3"  # Slack blue
 
             # Send notification
-            await self.slack.send_notification(NotificationType.SHADOW_PERFORMANCE, title, message, details, color)
+            await self.slack.send_notification(
+                NotificationType.SHADOW_PERFORMANCE, title, message, details, color
+            )
 
             logger.info("Shadow testing summary sent to Slack")
 
@@ -175,7 +177,9 @@ class ShadowSlackReporter:
                     "Rollback Reason": reason,
                 }
 
-                await self.slack.send_notification(NotificationType.ROLLBACK_ALERT, title, message, details, "danger")
+                await self.slack.send_notification(
+                    NotificationType.ROLLBACK_ALERT, title, message, details, "danger"
+                )
 
         except Exception as e:
             logger.error(f"Error sending rollback alert: {e}")
@@ -265,7 +269,9 @@ class ShadowSlackReporter:
                 "best_challenger": "None",
                 "best_win_rate": 0,
                 "best_outperformance": 0,
-                "total_shadows": (shadow_count.count if hasattr(shadow_count, "count") else 0),
+                "total_shadows": (
+                    shadow_count.count if hasattr(shadow_count, "count") else 0
+                ),
                 "active_variations": len(ShadowConfig.get_active_variations()),
             }
 
@@ -346,7 +352,9 @@ class ShadowSlackReporter:
 
         lines = []
         for rec in recommendations[:3]:
-            conf_emoji = {"HIGH": "🟢", "MEDIUM": "🟡", "LOW": "⚪"}.get(rec.confidence_level, "⚪")
+            conf_emoji = {"HIGH": "🟢", "MEDIUM": "🟡", "LOW": "⚪"}.get(
+                rec.confidence_level, "⚪"
+            )
 
             lines.append(
                 f"{conf_emoji} {rec.strategy_name}.{rec.parameter_name}: "

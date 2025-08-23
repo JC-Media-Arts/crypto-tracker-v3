@@ -52,10 +52,16 @@ class ShadowScanMonitor:
                 .execute()
             )
 
-            processed_ids = {s["scan_id"] for s in shadows_result.data} if shadows_result.data else set()
+            processed_ids = (
+                {s["scan_id"] for s in shadows_result.data}
+                if shadows_result.data
+                else set()
+            )
 
             # Return unprocessed scans
-            unprocessed = [s for s in scans_result.data if s["scan_id"] not in processed_ids]
+            unprocessed = [
+                s for s in scans_result.data if s["scan_id"] not in processed_ids
+            ]
 
             if unprocessed:
                 logger.info(f"Found {len(unprocessed)} unprocessed scans")
@@ -72,8 +78,14 @@ class ShadowScanMonitor:
             # Parse features and predictions
             import json
 
-            features = json.loads(scan.get("features", "{}")) if scan.get("features") else {}
-            ml_predictions = json.loads(scan.get("ml_predictions", "{}")) if scan.get("ml_predictions") else {}
+            features = (
+                json.loads(scan.get("features", "{}")) if scan.get("features") else {}
+            )
+            ml_predictions = (
+                json.loads(scan.get("ml_predictions", "{}"))
+                if scan.get("ml_predictions")
+                else {}
+            )
 
             # Get current price from features
             current_price = features.get("close", 0)
@@ -103,7 +115,9 @@ class ShadowScanMonitor:
                 base_parameters=base_parameters,
             )
 
-            logger.debug(f"Created shadows for scan {scan['scan_id']} - {scan['symbol']} {scan['strategy_name']}")
+            logger.debug(
+                f"Created shadows for scan {scan['scan_id']} - {scan['symbol']} {scan['strategy_name']}"
+            )
 
         except Exception as e:
             logger.error(f"Error creating shadows for scan {scan['scan_id']}: {e}")

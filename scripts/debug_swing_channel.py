@@ -59,7 +59,9 @@ async def debug_strategies():
         if setups:
             print(f"   ✅ SWING found {len(setups)} setups!")
             for setup in setups:
-                print(f"      Symbol: {setup.get('symbol')}, Score: {setup.get('score')}")
+                print(
+                    f"      Symbol: {setup.get('symbol')}, Score: {setup.get('score')}"
+                )
         else:
             print("   ⚠️  No SWING setups detected")
 
@@ -74,7 +76,9 @@ async def debug_strategies():
                 # Convert to DataFrame to check data quality
                 df = pd.DataFrame(ohlc_data)
                 if not df.empty:
-                    print(f"   Data range: {df['timestamp'].min()} to {df['timestamp'].max()}")
+                    print(
+                        f"   Data range: {df['timestamp'].min()} to {df['timestamp'].max()}"
+                    )
                     print(f"   Columns: {df.columns.tolist()}")
 
                     # Check if data meets SWING requirements
@@ -113,11 +117,16 @@ async def debug_strategies():
         print("✅ ChannelDetector initialized successfully")
 
         # Check configuration
-        print(f"   Config: min_points={channel_detector.min_points}, " f"lookback={channel_detector.lookback_periods}")
+        print(
+            f"   Config: min_points={channel_detector.min_points}, "
+            f"lookback={channel_detector.lookback_periods}"
+        )
 
         # Get data for CHANNEL
         print("\n   Fetching data for CHANNEL...")
-        ohlc_data = await data_fetcher.get_recent_data(symbol=test_symbol, hours=24, timeframe="15m")
+        ohlc_data = await data_fetcher.get_recent_data(
+            symbol=test_symbol, hours=24, timeframe="15m"
+        )
 
         if ohlc_data:
             print(f"   ✅ Found {len(ohlc_data)} records for CHANNEL")
@@ -150,14 +159,20 @@ async def debug_strategies():
                     # Debug why no channel
                     df = pd.DataFrame(ohlc_data)
                     if len(df) < channel_detector.min_points:
-                        print(f"   Issue: Insufficient data points ({len(df)} < {channel_detector.min_points})")
+                        print(
+                            f"   Issue: Insufficient data points ({len(df)} < {channel_detector.min_points})"
+                        )
 
                     # Check price variance
                     if "close" in df:
-                        price_range = (df["close"].max() - df["close"].min()) / df["close"].mean()
+                        price_range = (df["close"].max() - df["close"].min()) / df[
+                            "close"
+                        ].mean()
                         print(f"   Price range: {price_range:.2%}")
                         if price_range < 0.02:
-                            print("   Issue: Price range too narrow for channel detection")
+                            print(
+                                "   Issue: Price range too narrow for channel detection"
+                            )
         else:
             print("   ❌ No data returned for CHANNEL")
 
@@ -175,7 +190,10 @@ async def debug_strategies():
         # Check if SWING/CHANNEL ever worked
         for strategy in ["SWING", "CHANNEL"]:
             result = (
-                supabase.client.table("scan_history").select("*", count="exact").eq("strategy_name", strategy).execute()
+                supabase.client.table("scan_history")
+                .select("*", count="exact")
+                .eq("strategy_name", strategy)
+                .execute()
             )
 
             count = result.count if result else 0
@@ -212,12 +230,16 @@ async def debug_strategies():
 
         # Quick data check
         try:
-            ohlc_data = await data_fetcher.get_recent_data(symbol=symbol, hours=24, timeframe="15m")
+            ohlc_data = await data_fetcher.get_recent_data(
+                symbol=symbol, hours=24, timeframe="15m"
+            )
 
             if ohlc_data:
                 df = pd.DataFrame(ohlc_data)
                 volume = df["volume"].sum() if "volume" in df else 0
-                print(f"      Data points: {len(ohlc_data)}, Total volume: {volume:,.0f}")
+                print(
+                    f"      Data points: {len(ohlc_data)}, Total volume: {volume:,.0f}"
+                )
 
                 # Quick SWING test
                 swing = SwingDetector(supabase)

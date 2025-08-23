@@ -74,7 +74,9 @@ async def test_notifications():
     await asyncio.sleep(1)
 
     # Test 3: Position Closed - Loss with trailing stop (goes to #trades)
-    logger.info("\nTest 3: Sending losing position closed (trailing stop) notification to #trades...")
+    logger.info(
+        "\nTest 3: Sending losing position closed (trailing stop) notification to #trades..."
+    )
     await notifier.notify_position_closed(
         symbol="SOL",
         strategy="channel",
