@@ -243,6 +243,16 @@ class SimplifiedPaperTradingSystem:
             logger.warning("🚨 Market PANIC detected - skipping all new trades")
             return
 
+        # Fetch BTC price for correlations
+        if "BTC" in market_data:
+            btc_data = market_data["BTC"]
+            if btc_data and len(btc_data) > 0:
+                self._btc_price = btc_data[-1]["close"]
+            else:
+                self._btc_price = 0.0
+        else:
+            self._btc_price = 0.0
+
         # Scan each strategy with SIMPLE RULES ONLY
         signals = []
 
@@ -272,10 +282,11 @@ class SimplifiedPaperTradingSystem:
                         "Signal detected",
                         confidence=dca_signal["confidence"],
                         metadata={"drop_pct": dca_signal.get("drop_pct", 0)},
+                        market_data=data,
                     )
                 else:
                     # Log negative scan
-                    await self.log_scan(symbol, "DCA", "SKIP", "No signal", confidence=0.0)
+                    await self.log_scan(symbol, "DCA", "SKIP", "No signal", confidence=0.0, market_data=data)
 
                 # Swing
                 swing_signal = self.simple_rules.check_swing_setup(symbol, data)
@@ -298,10 +309,11 @@ class SimplifiedPaperTradingSystem:
                         "Signal detected",
                         confidence=swing_signal["confidence"],
                         metadata={"breakout_pct": swing_signal.get("breakout_pct", 0)},
+                        market_data=data,
                     )
                 else:
                     # Log negative scan
-                    await self.log_scan(symbol, "SWING", "SKIP", "No signal", confidence=0.0)
+                    await self.log_scan(symbol, "SWING", "SKIP", "No signal", confidence=0.0, market_data=data)
 
                 # Channel
                 channel_signal = self.simple_rules.check_channel_setup(symbol, data)
@@ -324,10 +336,11 @@ class SimplifiedPaperTradingSystem:
                         "Signal detected",
                         confidence=channel_signal["confidence"],
                         metadata={"position": channel_signal.get("position", 0)},
+                        market_data=data,
                     )
                 else:
                     # Log negative scan
-                    await self.log_scan(symbol, "CHANNEL", "SKIP", "No signal", confidence=0.0)
+                    await self.log_scan(symbol, "CHANNEL", "SKIP", "No signal", confidence=0.0, market_data=data)
 
             except Exception as e:
                 logger.error(f"Error evaluating {symbol}: {e}")
@@ -344,12 +357,131 @@ class SimplifiedPaperTradingSystem:
             if trading_signal["confidence"] >= self.config["min_confidence"]:
                 await self.execute_trade(trading_signal)
 
+    def _calculate_features(self, symbol: str, market_data: list) -> dict:
+        """Calculate technical features from market data"""
+        try:
+            if not market_data or len(market_data) < 20:
+                return {
+                    "price_drop": 0,
+                    "rsi": 50,
+                    "volume_ratio": 1,
+                    "distance_from_support": 0,
+                    "btc_correlation": 0,
+                    "market_regime": 1 if self.current_regime == MarketRegime.NORMAL else 0,
+                }
+
+            # Calculate price drop from 20-bar high
+            closes = [d["close"] for d in market_data[-20:]]
+            highs = [d["high"] for d in market_data[-20:]]
+            current_price = closes[-1]
+            high_20 = max(highs)
+            price_drop = ((current_price - high_20) / high_20) * 100 if high_20 > 0 else 0
+
+            # Calculate RSI (14 period)
+            rsi = self._calculate_rsi(closes[-15:])
+
+            # Calculate volume ratio
+            volumes = [d["volume"] for d in market_data[-20:]]
+            avg_volume = sum(volumes[:-1]) / len(volumes[:-1]) if len(volumes) > 1 else 1
+            current_volume = volumes[-1]
+            volume_ratio = current_volume / avg_volume if avg_volume > 0 else 1
+
+            # Calculate distance from support (use 20-bar low as support)
+            lows = [d["low"] for d in market_data[-20:]]
+            support = min(lows)
+            distance_from_support = ((current_price - support) / support) * 100 if support > 0 else 0
+
+            # BTC correlation would need BTC data - for now use 0
+            btc_correlation = 0
+
+            # Market regime as numeric
+            regime_value = 0
+            if self.current_regime == MarketRegime.NORMAL:
+                regime_value = 1
+            elif self.current_regime == MarketRegime.GREED:
+                regime_value = 2
+            elif self.current_regime == MarketRegime.PANIC:
+                regime_value = -1
+
+            return {
+                "price_drop": round(price_drop, 2),
+                "rsi": round(rsi, 2),
+                "volume_ratio": round(volume_ratio, 2),
+                "distance_from_support": round(distance_from_support, 2),
+                "btc_correlation": btc_correlation,
+                "market_regime": regime_value,
+            }
+        except Exception as e:
+            logger.debug(f"Error calculating features: {e}")
+            return {
+                "price_drop": 0,
+                "rsi": 50,
+                "volume_ratio": 1,
+                "distance_from_support": 0,
+                "btc_correlation": 0,
+                "market_regime": 0,
+            }
+
+    def _calculate_rsi(self, prices: list, period: int = 14) -> float:
+        """Calculate RSI from price list"""
+        if len(prices) < 2:
+            return 50.0
+
+        gains = []
+        losses = []
+
+        for i in range(1, len(prices)):
+            change = prices[i] - prices[i - 1]
+            if change > 0:
+                gains.append(change)
+                losses.append(0)
+            else:
+                gains.append(0)
+                losses.append(abs(change))
+
+        avg_gain = sum(gains) / len(gains) if gains else 0
+        avg_loss = sum(losses) / len(losses) if losses else 0
+
+        if avg_loss == 0:
+            return 100.0
+
+        rs = avg_gain / avg_loss
+        rsi = 100 - (100 / (1 + rs))
+
+        return rsi
+
     async def log_scan(
-        self, symbol: str, strategy: str, decision: str, reason: str, confidence: float = 0.0, metadata: dict = None
+        self,
+        symbol: str,
+        strategy: str,
+        decision: str,
+        reason: str,
+        confidence: float = 0.0,
+        metadata: dict = None,
+        market_data: list = None,
     ):
         """Log scan attempt to scan_history table for ML/Shadow analysis"""
         try:
             from datetime import datetime, timezone
+
+            # Calculate features from market data if provided
+            features = (
+                self._calculate_features(symbol, market_data)
+                if market_data
+                else {
+                    "price_drop": metadata.get("drop_pct", 0) if metadata else 0,
+                    "rsi": 50,
+                    "volume_ratio": 1,
+                    "distance_from_support": 0,
+                    "btc_correlation": 0,
+                    "market_regime": 1 if self.current_regime == MarketRegime.NORMAL else 0,
+                }
+            )
+
+            # Get BTC price if available
+            btc_price = 0.0
+            if hasattr(self, "_btc_price"):
+                btc_price = self._btc_price
 
             scan_data = {
                 "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -360,6 +492,8 @@ class SimplifiedPaperTradingSystem:
                 "market_regime": self.current_regime.name if self.current_regime else "UNKNOWN",
                 "confidence_score": confidence,
                 "metadata": metadata or {},
+                "features": features,
+                "btc_price": btc_price,
             }
 
             # Insert to scan_history
