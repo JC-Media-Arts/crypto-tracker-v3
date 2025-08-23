@@ -40,6 +40,13 @@
       "healthcheckTimeout": 30,
       "restartPolicyType": "ON_FAILURE",
       "restartPolicyMaxRetries": 3
+    },
+    "Data Scheduler": {
+      "startCommand": "python src/services/data_scheduler.py",
+      "healthcheckPath": "/health",
+      "healthcheckTimeout": 30,
+      "restartPolicyType": "ON_FAILURE",
+      "restartPolicyMaxRetries": 3
     }
   }
 }
