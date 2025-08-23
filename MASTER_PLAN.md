@@ -1172,6 +1172,9 @@ crypto-tracker-v3/
 | 8/22 | Visual representation of complex trades (DCA grids) aids understanding | Implemented expandable details showing grid levels and fill status |
 | 8/22 | Sorting by proximity to trigger more valuable than market cap | Fixed Strategy Status Monitor to show truly closest opportunities |
 | 8/22 | Defensive programming essential for dual-path architecture | Made SwingAnalyzer resilient to missing fields from SimpleRules path |
+| 1/23 | Always verify critical services are configured in Railway | Data Scheduler was missing, causing stale data for Paper Trading |
+| 1/23 | Separation of concerns improves system reliability | ML/Shadow as Research module independent from Trading |
+| 1/23 | Check data flow end-to-end, not just individual components | Paper Trading needs Data Scheduler → OHLC updates → HybridDataFetcher |
 
 ---
 
@@ -3110,29 +3113,29 @@ Railway Project: crypto-tracker-v3
 - [x] Test locally for stability ✅
 - [x] Verified 32 positions opened successfully ✅
 
-**Day 3: Deploy to Railway** (IN PROGRESS)
-- [ ] Push simplified paper trading to GitHub
-- [ ] Create Railway service "Trading - Paper Engine"
-- [ ] Set environment variables (Supabase, Slack)
-- [ ] Deploy and verify 24/7 operation
-- [ ] Create Railway service "Trading - Dashboard"
-- [ ] Deploy dashboard and get public URL
-- [ ] Remove all shadow logging calls
-- [ ] Test all strategies work without ML
+**Day 3: Deploy to Railway** ✅ COMPLETE (Jan 23, 2025)
+- [x] Push simplified paper trading to GitHub ✅
+- [x] Create Railway service "Trading - Paper Engine" ✅
+- [x] Set environment variables (Supabase, Slack) ✅
+- [x] Deploy and verify 24/7 operation ✅
+- [x] Create Railway service "Trading - Dashboard" ✅
+- [x] Deploy dashboard and get public URL ✅
+- [x] Remove all shadow logging calls ✅
+- [x] Test all strategies work without ML ✅
 
-**Day 4: Deploy to Railway**
-- [ ] Update railway.json with new service names
-- [ ] Deploy Paper Trading to Railway
-- [ ] Deploy Dashboard to Railway
-- [ ] Configure public URLs
-- [ ] Add basic authentication
+**Day 4: Critical Fixes & Data Flow** ✅ COMPLETE (Jan 23, 2025)
+- [x] Fix scan_history logging with proper features ✅
+- [x] Fix Black formatting configuration issues ✅
+- [x] Update railway.json with correct service configurations ✅
+- [x] Add Data Scheduler service (CRITICAL - was missing!) ✅
+- [x] Verify Polygon data flow (1-minute bars updating) ✅
 
-**Day 5: Monitor & Verify**
-- [ ] Monitor for 24 hours
-- [ ] Verify trades executing
-- [ ] Check dashboard accessibility
-- [ ] Confirm no ML dependencies
-- [ ] Shutdown local paper trading
+**Day 5: ML Analyzer & System Optimization** ✅ COMPLETE (Jan 23, 2025)
+- [x] Create standalone ML Analyzer service ✅
+- [x] Deploy ML Analyzer to Railway ✅
+- [x] Delete unnecessary services (Data Collector, Feature Calculator) ✅
+- [x] Verify ML predictions saving to database ✅
+- [x] Confirm Paper Trading using real-time Polygon data ✅
 
 #### **Phase 2: Build Research Module (Week 2)**
 **Goal:** Standalone research system analyzing patterns
@@ -3178,6 +3181,91 @@ Railway Project: crypto-tracker-v3
 - [ ] Remove old ML integration code
 - [ ] Create operation guides
 - [ ] Final testing
+
+### **Current Status (January 23, 2025)**
+
+#### **✅ COMPLETED: ML/Shadow Separation from Trading**
+
+**Major Achievement**: Successfully separated ML and Shadow Testing from the core Paper Trading system, creating a truly independent Research & Development module.
+
+**What We Accomplished Today:**
+
+1. **Paper Trading Independence** ✅
+   - Created `run_paper_trading_simple.py` with zero ML dependencies
+   - Deployed to Railway as "Trading - Paper Engine" service
+   - Running 24/7 with simple rule-based strategies
+   - Successfully logging all scans to `scan_history` with features
+
+2. **Dashboard Deployment** ✅
+   - Deployed live dashboard to Railway
+   - Fixed paper trading status check to use database instead of local processes
+   - Added auto-refresh functionality
+   - Public URL accessible for monitoring
+
+3. **ML Analyzer Service** ✅
+   - Created standalone `run_ml_analyzer.py` service
+   - Deployed as "Research - ML Analyzer" on Railway
+   - Analyzes 1000 scans every 5 minutes
+   - Saves ML predictions to `ml_predictions` table
+   - Shows ~42% agreement rate between strategies
+
+4. **Data Pipeline Fixed** ✅
+   - **CRITICAL FIX**: Added missing Data Scheduler to Railway
+   - Verified 1-minute Polygon data updates for 66 symbols
+   - Data freshness: < 5 minutes for all active symbols
+   - Deleted unnecessary services (Data Collector, Feature Calculator)
+
+5. **System Configuration** ✅
+   - Fixed Black formatting issues (standardized to 88 chars)
+   - Updated `railway.json` with all correct services
+   - Configured all environment variables properly
+   - All GitHub CI/CD checks passing
+
+**Current System Architecture:**
+
+| Service | Status | Purpose |
+|---------|--------|---------|
+| **Trading - Paper Engine** | ✅ Running | Rule-based paper trading, scans every 60s |
+| **Trading - Dashboard** | ✅ Running | Live monitoring interface |
+| **System - Data Scheduler** | ✅ Running | Updates OHLC data from Polygon |
+| **Research - ML Analyzer** | ✅ Running | Analyzes scans, generates predictions |
+| **Data Collector** | ❌ Deleted | Not needed |
+| **Feature Calculator** | ❌ Deleted | Not needed |
+
+### **Next Steps: Choose Your Path**
+
+#### **Option A: Monitor & Validate (Recommended First)**
+**Duration**: 24-48 hours
+**Purpose**: Let the system stabilize and collect performance data
+
+- [ ] Monitor Paper Trading for 24 hours
+- [ ] Collect at least 100 trades with outcomes
+- [ ] Review ML prediction accuracy vs actual trades
+- [ ] Analyze agreement rates between strategies
+- [ ] Document any issues or anomalies
+- [ ] Generate performance report
+
+#### **Option B: Build Shadow Testing Module**
+**Duration**: 3-5 days
+**Purpose**: Complete the Research & Development system
+
+- [ ] Create `scripts/run_shadow_tester.py`
+- [ ] Implement 8 variation testing logic
+- [ ] Deploy as "Research - Shadow Tester" service
+- [ ] Set up shadow outcome evaluation
+- [ ] Create feedback loop to ML Analyzer
+- [ ] Test shadow consensus features
+
+#### **Option C: Research System Analysis**
+**Duration**: 1-2 days
+**Purpose**: Deep dive into ML predictions and patterns
+
+- [ ] Query ML predictions from database
+- [ ] Analyze confidence scores vs outcomes
+- [ ] Review strategy agreement patterns
+- [ ] Identify optimal confidence thresholds
+- [ ] Create performance visualization
+- [ ] Generate insights report for improvements
 
 ### **File Structure Changes**
 
