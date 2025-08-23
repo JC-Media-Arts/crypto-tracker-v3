@@ -555,7 +555,6 @@ class SimplifiedPaperTradingSystem:
         try:
             symbol = trading_signal["symbol"]
             strategy = trading_signal.get("strategy", "unknown")
-            confidence = trading_signal.get("confidence", 0.5)
 
             # Calculate position size
             position_size = self.config["position_size"]
@@ -587,7 +586,6 @@ class SimplifiedPaperTradingSystem:
                             strategy=strategy,
                             entry_price=trading_signal["current_price"],
                             position_size=position_size,
-                            confidence=confidence,
                         )
                     except Exception as e:
                         logger.debug(f"Could not send notification: {e}")
