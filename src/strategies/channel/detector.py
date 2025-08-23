@@ -389,3 +389,61 @@ class ChannelDetector:
             "stop_loss_pct": sl_pct,
             "risk_reward": tp_pct / sl_pct if sl_pct > 0 else 0,
         }
+    
+    def calculate_confidence_without_ml(self, channel: Channel, signal: str) -> float:
+        """
+        Calculate confidence score for channel trade without ML.
+        This replaces ML predictions when ML is disabled.
+        
+        Args:
+            channel: The detected channel
+            signal: Trading signal (BUY/SELL)
+            
+        Returns:
+            Confidence score between 0.0 and 1.0
+        """
+        confidence = 0.3  # Base confidence for any valid channel
+        
+        # Channel strength (0-0.25 points)
+        # Strength is already calculated in channel (0-1 scale)
+        confidence += channel.strength * 0.25
+        
+        # Number of touches (0-0.15 points)
+        total_touches = channel.touches_upper + channel.touches_lower
+        if total_touches >= 8:
+            confidence += 0.15  # Many confirmations
+        elif total_touches >= 6:
+            confidence += 0.1
+        elif total_touches >= 4:
+            confidence += 0.05
+            
+        # Channel width appropriateness (0-0.1 points)
+        if 0.02 <= channel.width <= 0.05:
+            confidence += 0.1  # Ideal width (2-5%)
+        elif 0.015 <= channel.width <= 0.07:
+            confidence += 0.05  # Acceptable width
+            
+        # Position in channel (0-0.2 points)
+        if signal == "BUY":
+            # Better confidence when closer to bottom
+            if channel.current_position <= 0.1:
+                confidence += 0.2  # Very close to support
+            elif channel.current_position <= 0.2:
+                confidence += 0.15
+            elif channel.current_position <= 0.25:
+                confidence += 0.1
+        elif signal == "SELL":
+            # Better confidence when closer to top
+            if channel.current_position >= 0.9:
+                confidence += 0.2  # Very close to resistance
+            elif channel.current_position >= 0.8:
+                confidence += 0.15
+            elif channel.current_position >= 0.75:
+                confidence += 0.1
+                
+        # Channel type bonus (0-0.05 points)
+        if channel.channel_type == "HORIZONTAL":
+            confidence += 0.05  # Horizontal channels are most reliable
+            
+        # Cap confidence at 0.95
+        return min(confidence, 0.95)

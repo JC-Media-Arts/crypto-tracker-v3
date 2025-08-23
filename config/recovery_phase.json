@@ -1,0 +1,30 @@
+{
+  "ml_enabled": false,
+  "shadow_testing_enabled": false,
+  "use_simple_rules": true,
+  "phase": "recovery_phase_1",
+  "updated_at": "2025-08-21T10:36:04.837118",
+  "notes": "ML and Shadow Testing disabled for Phase 1 recovery - focusing on pure rule-based trading",
+  "dca_config": {
+    "drop_threshold": -3.5,
+    "min_confidence": 0.0,
+    "use_ml": false
+  },
+  "swing_config": {
+    "breakout_threshold": 2.1,
+    "min_confidence": 0.0,
+    "use_ml": false
+  },
+  "channel_config": {
+    "min_channel_strength": 0.42,
+    "min_confidence": 0.0,
+    "use_ml": false
+  },
+  "trading_rules": {
+    "max_open_positions": 10,
+    "position_size": 50,
+    "stop_loss": -3.0,
+    "take_profit": 5.0,
+    "time_exit_hours": 12
+  }
+}

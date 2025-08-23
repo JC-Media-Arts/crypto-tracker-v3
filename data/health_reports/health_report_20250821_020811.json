@@ -1,0 +1,258 @@
+{
+  "timestamp": "2025-08-21T09:07:49.507011+00:00",
+  "overall_status": "unhealthy",
+  "checks": {
+    "data_freshness": {
+      "status": "unhealthy",
+      "issues": [
+        {
+          "timeframe": "1m",
+          "stale_symbols": [
+            {
+              "symbol": "BNB",
+              "latest": null,
+              "age_minutes": null
+            },
+            {
+              "symbol": "MEW",
+              "latest": "2025-08-21T08:23:00+00:00",
+              "age_minutes": 44.82511695
+            },
+            {
+              "symbol": "GOAT",
+              "latest": "2025-08-21T08:32:00+00:00",
+              "age_minutes": 35.82511695
+            },
+            {
+              "symbol": "ACT",
+              "latest": null,
+              "age_minutes": null
+            },
+            {
+              "symbol": "FARTCOIN",
+              "latest": null,
+              "age_minutes": null
+            },
+            {
+              "symbol": "BRETT",
+              "latest": null,
+              "age_minutes": null
+            },
+            {
+              "symbol": "HIPPO",
+              "latest": null,
+              "age_minutes": null
+            },
+            {
+              "symbol": "ALGO",
+              "latest": "2025-08-17T21:41:00+00:00",
+              "age_minutes": 5006.82511695
+            },
+            {
+              "symbol": "THETA",
+              "latest": null,
+              "age_minutes": null
+            },
+            {
+              "symbol": "ALT",
+              "latest": "2025-08-17T23:46:00+00:00",
+              "age_minutes": 4881.82511695
+            },
+            {
+              "symbol": "PORTAL",
+              "latest": "2025-08-21T05:33:00+00:00",
+              "age_minutes": 214.82511695
+            },
+            {
+              "symbol": "MASK",
+              "latest": "2025-08-21T08:49:00+00:00",
+              "age_minutes": 18.825116949999998
+            },
+            {
+              "symbol": "API3",
+              "latest": "2025-08-17T23:59:00+00:00",
+              "age_minutes": 4868.82511695
+            },
+            {
+              "symbol": "ANKR",
+              "latest": "2025-08-17T23:59:00+00:00",
+              "age_minutes": 4868.82511695
+            },
+            {
+              "symbol": "ENJ",
+              "latest": "2025-08-21T08:36:00+00:00",
+              "age_minutes": 31.825116949999998
+            }
+          ]
+        },
+        {
+          "timeframe": "15m",
+          "stale_symbols": [
+            {
+              "symbol": "BNB",
+              "latest": null,
+              "age_minutes": null
+            },
+            {
+              "symbol": "MEW",
+              "latest": "2025-08-21T08:15:00+00:00",
+              "age_minutes": 52.82511695
+            },
+            {
+              "symbol": "ACT",
+              "latest": null,
+              "age_minutes": null
+            },
+            {
+              "symbol": "FARTCOIN",
+              "latest": null,
+              "age_minutes": null
+            },
+            {
+              "symbol": "BRETT",
+              "latest": null,
+              "age_minutes": null
+            },
+            {
+              "symbol": "HIPPO",
+              "latest": null,
+              "age_minutes": null
+            },
+            {
+              "symbol": "THETA",
+              "latest": "2024-11-04T23:45:00+00:00",
+              "age_minutes": 416722.82511695
+            },
+            {
+              "symbol": "PORTAL",
+              "latest": "2025-08-21T05:30:00+00:00",
+              "age_minutes": 217.82511695
+            }
+          ]
+        },
+        {
+          "timeframe": "1h",
+          "stale_symbols": [
+            {
+              "symbol": "BNB",
+              "latest": null,
+              "age_minutes": null
+            },
+            {
+              "symbol": "ACT",
+              "latest": null,
+              "age_minutes": null
+            },
+            {
+              "symbol": "FARTCOIN",
+              "latest": null,
+              "age_minutes": null
+            },
+            {
+              "symbol": "BRETT",
+              "latest": null,
+              "age_minutes": null
+            },
+            {
+              "symbol": "HIPPO",
+              "latest": null,
+              "age_minutes": null
+            },
+            {
+              "symbol": "THETA",
+              "latest": "2024-11-04T23:00:00+00:00",
+              "age_minutes": 416767.82511695
+            },
+            {
+              "symbol": "PORTAL",
+              "latest": "2025-08-21T05:00:00+00:00",
+              "age_minutes": 247.82511695
+            }
+          ]
+        },
+        {
+          "timeframe": "1d",
+          "stale_symbols": [
+            {
+              "symbol": "BNB",
+              "latest": "2021-06-02T00:00:00+00:00",
+              "age_minutes": 2219587.82511695
+            },
+            {
+              "symbol": "ACT",
+              "latest": "2021-06-02T00:00:00+00:00",
+              "age_minutes": 2219587.82511695
+            },
+            {
+              "symbol": "FARTCOIN",
+              "latest": null,
+              "age_minutes": null
+            },
+            {
+              "symbol": "BRETT",
+              "latest": null,
+              "age_minutes": null
+            },
+            {
+              "symbol": "HIPPO",
+              "latest": null,
+              "age_minutes": null
+            },
+            {
+              "symbol": "THETA",
+              "latest": "2024-11-04T00:00:00+00:00",
+              "age_minutes": 418147.82511695
+            }
+          ]
+        }
+      ],
+      "details": {
+        "1m": {
+          "checked": 99,
+          "stale": 15
+        },
+        "15m": {
+          "checked": 99,
+          "stale": 8
+        },
+        "1h": {
+          "checked": 99,
+          "stale": 7
+        },
+        "1d": {
+          "checked": 99,
+          "stale": 6
+        }
+      }
+    },
+    "data_quality": {
+      "status": "healthy",
+      "issues": [],
+      "details": {
+        "records_checked": 1000,
+        "invalid_ohlc": 0,
+        "negative_values": 0
+      }
+    },
+    "pipeline_status": {
+      "status": "error",
+      "issues": [
+        {
+          "type": "check_failed",
+          "error": "{'message': \"Could not find the table 'public.pipeline_runs' in the schema cache\", 'code': 'PGRST205', 'hint': None, 'details': None}"
+        }
+      ],
+      "details": {}
+    },
+    "gap_status": {
+      "status": "error",
+      "issues": [
+        {
+          "type": "check_failed",
+          "error": "{'message': \"Could not find the table 'public.data_gaps' in the schema cache\", 'code': 'PGRST205', 'hint': \"Perhaps you meant the table 'public.strategy_setups'\", 'details': None}"
+        }
+      ],
+      "details": {}
+    }
+  }
+}

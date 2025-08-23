@@ -28,6 +28,11 @@
       "startCommand": "python scripts/run_daily_retraining.py",
       "cronSchedule": "0 9 * * *",
       "restartPolicyType": "NEVER"
+    },
+    "Data Cleanup Cron": {
+      "startCommand": "python scripts/daily_data_cleanup.py",
+      "cronSchedule": "0 10 * * *",
+      "restartPolicyType": "NEVER"
     }
   }
 }

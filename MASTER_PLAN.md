@@ -1166,6 +1166,12 @@ crypto-tracker-v3/
 | 8/16 | Fixed 10% take profit doesn't work for all coins (0% hit rate for BTC) | Implemented adaptive targets by market cap |
 | 8/16 | RSI < 30 shows 70% win rate vs 0% for RSI > 50 | Added RSI as key feature for ML model |
 | 8/16 | One binary prediction insufficient | Designed multi-output model for 5 parameters |
+| 8/22 | SimpleRules fallback path must match complex detector interface | Added default fields to ensure compatibility |
+| 8/22 | Always fix root cause, not symptoms | Fixed missing field issue properly instead of try/catch band-aid |
+| 8/22 | Dashboard UX improvements significantly impact usability | Added DCA visualization, fixed duration display, improved table layout |
+| 8/22 | Visual representation of complex trades (DCA grids) aids understanding | Implemented expandable details showing grid levels and fill status |
+| 8/22 | Sorting by proximity to trigger more valuable than market cap | Fixed Strategy Status Monitor to show truly closest opportunities |
+| 8/22 | Defensive programming essential for dual-path architecture | Made SwingAnalyzer resilient to missing fields from SimpleRules path |
 
 ---
 
@@ -1501,6 +1507,141 @@ else:
 - Deploy and monitor paper trading performance
 - Train Swing ML model for momentum trades
 - Create Strategy Manager for orchestration
+
+### Session Update (August 22, 2025)
+
+#### 📊 Major Dashboard & Trading System Enhancements (Aug 22)
+
+##### Live Trading Dashboard Improvements
+1. **Strategy Status Monitor** ✅
+   - Real-time display of thresholds for each strategy
+   - Shows top 5 symbols closest to triggering (sorted by proximity to trigger)
+   - Color-coded status indicators (green=ready, orange=waiting)
+   - Displays what market conditions needed for triggers
+   - Updates every 30 seconds via API
+   - **Fix Applied (12:10 PM)**: Corrected sorting to show "top 5 closest to trigger" regardless of market cap
+
+2. **Enhanced P&L Display** ✅
+   - Combined percentage and dollar amounts in stat boxes
+   - Unrealized P&L: Shows both % and $ for open positions
+   - Total P&L: Shows both % and $ for overall performance
+   - Removed redundant "Open Trades" box
+
+3. **Improved Trade Table** ✅
+   - Added "Amount" column showing position size ($50 default)
+   - Added "P&L $" column showing dollar profit/loss
+   - Better visual organization of trade data
+   - **Trade Duration Fix**: Closed trades now show actual duration (not "0 hours")
+   - **Table Width Enhancement**: Increased to 1800px max width to prevent column wrapping
+   - **DCA Visualization** ✅ (Added 12:00 PM)
+     - Shows "X/5 levels +" for DCA trades with expandable details
+     - Entry price shows "(avg)" for multi-fill DCA positions
+     - Expandable grid shows: levels, fill status, total invested, average entry, next trigger
+     - Accounts for Kraken fees (0.26%) and slippage in calculations
+     - Expand button integrated into DCA Status column for cleaner UI
+
+4. **Market Analysis Section** ✅
+   - Moved above Strategy Status Monitor
+   - Shows current market regime and conditions
+   - Provides context for strategy behavior
+
+5. **UI/UX Improvements** ✅
+   - "Trades Open" counter shows current/max (e.g., "18/50")
+   - Better responsive layout for strategy cards
+   - Improved color coding and visual hierarchy
+   - Wider table layout prevents text wrapping in columns
+   - Exit Reason column allows wrapping for longer text
+
+##### Paper Trading System Updates
+1. **Expanded Capacity** ✅
+   - Max positions increased from 30 to 50
+   - Allows more concurrent trading opportunities
+   - Better capital utilization
+
+2. **Strategy Confidence Fixes** ✅
+   - Implemented non-ML confidence scoring for Swing and Channel
+   - Fixed StrategyManager fallback to SimpleRules
+   - Lower thresholds when ML disabled (0.45 vs 0.60)
+   - Both complex detectors and SimpleRules now working
+
+3. **System Recovery** ✅
+   - Successfully restarted after power failure [[memory:6461378]]
+   - Paper trading running with 18 positions
+   - Dashboard accessible at http://localhost:8080
+   - All services operational
+
+##### Technical Implementation Details
+- **Backend**: Flask API with new `/api/strategy-status` endpoint
+- **Frontend**: JavaScript updates every 10s (trades) and 30s (strategies)
+- **Database**: Real-time queries for strategy candidates
+- **Performance**: Optimized queries using recent data views
+
+##### Critical Bug Fixes Applied (11:35 AM PST - 2:35 PM PST)
+
+1. **Fixed position_size_multiplier KeyError** ✅ (11:35 AM)
+   - **Problem**: SimpleRules setups missing position_size_multiplier field causing Slack errors
+   - **Root Cause**: SwingAnalyzer expected field from all setups, but SimpleRules didn't provide it
+   - **Solution**:
+     - Added default position_size_multiplier (1.0) to SimpleRules setups
+     - Updated SwingAnalyzer to use safe .get() methods with defaults
+     - Maintains full functionality while being defensive
+   - **Design Integrity**: Respects MASTER_PLAN's dual-path architecture (SimpleRules for Phase 1, ML for Phase 3)
+   - **Test Result**: Verified working with comprehensive test suite
+
+2. **Fixed score KeyError in SwingAnalyzer** ✅ (2:35 PM)
+   - **Problem**: SwingAnalyzer accessing setup["score"] directly causing KeyError in Paper Trading
+   - **Root Cause**: Analyzer assumed all setups have score field, but SimpleRules path may omit it
+   - **Solution**:
+     - Made all score accesses defensive using .get("score", 50) with neutral default
+     - Handles missing fields AND explicit None values
+     - Applied to 4 locations: expected value calc, confidence calc, priority calc, composite score
+   - **Design Philosophy**: Full fix respecting dual-path architecture where SimpleRules is legitimate fallback
+   - **Test Result**: Verified all scenarios (with score, without score, None score) work correctly
+
+3. **Fixed entry_price KeyError in SwingAnalyzer** ✅ (2:59 PM)
+   - **Problem**: SwingAnalyzer accessing setup["entry_price"] directly causing KeyError
+   - **Root Cause**: Inconsistent field naming - setups use "price" but one method expected "entry_price"
+   - **Solution**:
+     - Standardized on "price" as the primary field name throughout
+     - Made all price accesses defensive using .get("price", 0)
+     - Added division by zero protection when price is missing
+     - Returns safe defaults when price is invalid
+   - **Affected Methods**: _generate_trade_plan, _calculate_risk_reward, _adjust_for_market, _generate_trade_notes
+   - **Test Result**: All edge cases handled (with price, without price, zero price)
+
+2. **Position Size Multiplier Logic Clarified**:
+   - **SimpleRules Path**: Fixed 1.0x multiplier (conservative, no adjustment)
+   - **Complex ML Path**: Dynamic 0.7x-1.3x based on confidence score
+   - **Market Regime Adjustments**: Both paths get regime multipliers
+     - BEAR: × 1.3 (increase size for opportunities)
+     - NORMAL: × 1.0 (no change)
+     - BULL: × 0.7 (reduce size during euphoria)
+
+3. **Fixed `_detect_breakout()` return type**
+   - Changed from boolean to dict with detailed breakout information
+   - Returns: detected, strength, volume_ratio, pattern fields
+
+4. **Added `_generate_market_conditions()` method**
+   - Generates proper market conditions data for swing analyzer
+   - Calculates BTC trend, market breadth, and sentiment
+
+5. **Fixed field name mismatches**
+   - SwingAnalyzer now uses "price" instead of "entry_price"
+   - Proper handling of market regime keys (UPPERCASE)
+
+##### Slack Notification System
+- ✅ Trade notifications to #trades (with exit reasons)
+- ✅ Daily performance reports to #reports [[memory:6765734]]
+- ✅ System error alerts to #system-alerts (position_size_multiplier errors now resolved)
+- ✅ All webhooks configured and tested
+
+##### Paper Trading Status (as of 11:35 AM PST)
+- System running with 18 open positions
+- Portfolio: $996.05 (-0.40%)
+- Balance: $96.05 (insufficient for new positions)
+- Win Rate: 60% (3 wins, 2 losses from 5 closed trades)
+- Monitoring for new opportunities every 5 minutes
+- **No more position_size_multiplier errors in Slack**
 
 ### Session Update (August 18-19, 2025)
 
@@ -2481,6 +2622,34 @@ The Orchestrator turns every trade into a learning opportunity, creating a syste
 
 ---
 
+## Development & Maintenance Guidelines
+
+### Critical Rule: Error Fixing Approach
+
+**NEVER make band-aid fixes that mask problems. Always fix the actual design issues.**
+
+When encountering errors, follow this structured approach:
+
+1. **Research the Error**
+   - Identify exact source (file, line, function)
+   - Understand root cause
+   - Assess impact on system functionality
+
+2. **Present Two Options**
+   - **Quick Fix**: Gets system running immediately (may bypass functionality)
+   - **Full Fix**: Respects original design per this MASTER_PLAN
+   - Always explain trade-offs clearly
+
+3. **Maintain Design Integrity**
+   - Reference this MASTER_PLAN for design decisions
+   - Ensure fixes align with strategy-first architecture
+   - Preserve all intended functionality
+
+4. **Get Approval**
+   - Ask which approach to proceed with
+   - Provide recommendations with reasoning
+   - Document the chosen approach
+
 ## Troubleshooting
 
 ### Common Issues
@@ -2647,7 +2816,101 @@ Intelligent query routing:
 
 ---
 
-## 🔬 **Shadow Testing System Implementation** (January 20, 2025)
+## 🚨 **System Recovery Plan** (August 21, 2025)
+
+### **Critical Issue Identified**
+The system was built with ML and Shadow Testing before confirming the core trading pipeline worked. This created complexity that masks fundamental issues.
+
+### **Recovery Phases**
+
+#### **Phase 0: Data Storage Optimization** ✅ COMPLETED
+- Implemented data retention policy (1m:30d, 15m:1y, 1h:2y, 1d:forever)
+- Automated cleanup via Railway cron service
+- Initial cleanup running to remove old data
+
+#### **Phase 1: Stabilize Foundation** ✅ COMPLETED (Aug 21, 2025)
+- **1.1**: Disable ML and Shadow Testing ✅ COMPLETED
+- **1.2**: Simplify strategies to pure rule-based (30% lower thresholds) ✅ COMPLETED
+- **1.3**: Create direct signal → Paper Trading pipeline ✅ COMPLETED (Pivoted from Hummingbot)
+- **1.4**: Verify trades are executing ✅ COMPLETED (2+ trades executed)
+
+#### **Phase 2: Validate Trading System**
+- Aggressive test config (0.4 confidence, small positions)
+- Monitor and debug trade execution
+- Achieve 50+ trades with <5% failure rate
+
+#### **Phase 3: Reintroduce ML**
+- Re-enable ML predictions only (not training)
+- Validate ML predictions influence trades correctly
+- Measure ML impact (target: >5% win rate improvement)
+
+#### **Phase 4: Add Shadow Testing**
+- Enable Shadow Testing with 3 variations
+- Validate shadow evaluations against real trades
+
+### **Simplified Trading Logic (Phase 1)**
+```python
+# TEMPORARY SIMPLIFIED RULES (No ML)
+SIMPLIFIED_STRATEGIES = {
+    'dca': {
+        'drop_threshold': -3.5,  # Was -5.0, lowered 30%
+        'logic': 'If price drops 3.5% from recent high → SIGNAL'
+    },
+    'swing': {
+        'breakout_threshold': 2.1,  # Was 3.0, lowered 30%
+        'logic': 'If price breaks 2.1% above resistance + volume surge → SIGNAL'
+    },
+    'channel': {
+        'position_threshold': 0.2,  # Signal at top/bottom 20% of range
+        'logic': 'If price near channel boundary → SIGNAL'
+    }
+}
+```
+
+### **ML Logic Preserved for Phase 3**
+The original ML-integrated logic is preserved below for reintegration after foundation is proven:
+
+```python
+# ORIGINAL ML-INTEGRATED LOGIC (To be restored in Phase 3)
+ML_INTEGRATION = {
+    'flow': 'Market Data → Strategy Detection → ML Prediction → Confidence Scoring → Signal Filter → Trade',
+    'ml_models': {
+        'dca': 'XGBoost multi-output (79% accuracy)',
+        'swing': 'XGBoost classifier (92% accuracy)',
+        'channel': '4-model ensemble'
+    },
+    'confidence_thresholds': {
+        'dca': 0.60,
+        'swing': 0.65,
+        'channel': 0.60
+    }
+}
+```
+
+## 📈 **Custom Paper Trading System** (August 21, 2025)
+
+### **Overview**
+After encountering issues with Hummingbot integration, we built a custom paper trading engine with realistic Kraken fees and slippage simulation.
+
+### **Key Features**
+- **Adaptive Exit Rules by Market Cap**:
+  - Large Cap (BTC/ETH): TP 3-5%, SL 5-7%, Trail 2%
+  - Mid Cap: TP 5-10%, SL 7-10%, Trail 3.5%
+  - Small Cap: TP 7-15%, SL 10-12%, Trail 6%
+- **Realistic Fee Simulation**: Kraken taker fees (0.26%)
+- **Slippage Modeling**: 0.08% (major), 0.15% (mid), 0.35% (small)
+- **Position Management**: Up to 30 concurrent positions
+- **Exit Mechanisms**: Stop loss, take profit, trailing stop, 72-hour timeout
+- **Database Persistence**: Saves to `paper_trades` and `paper_performance` tables
+- **Data Source**: 1-minute candles for faster signal detection
+
+### **Implementation Files**
+- `src/trading/simple_paper_trader_v2.py` - Enhanced paper trading engine
+- `scripts/run_paper_trading_v2.py` - Main trading orchestrator
+- `migrations/021_add_trading_engine_column.sql` - DB schema updates
+- `migrations/022_add_exit_reason.sql` - Track exit reasons
+
+## 🔬 **Shadow Testing System Implementation** (To be restored in Phase 4)
 
 ### **Overview**
 Shadow Testing is a parallel evaluation system that tests alternative trading parameters without risk, multiplying our learning rate by 10x. While production trades with 60% confidence (5-20 trades/day), shadow system tests 8 variations simultaneously, generating 200+ virtual trades daily.
@@ -2734,6 +2997,257 @@ Shadow Testing is a parallel evaluation system that tests alternative trading pa
 - ⏳ Threshold Manager (next)
 - ⏳ ML Integration (pending)
 - ⏳ Monitoring Dashboard (pending)
+
+## 🏗️ **Architecture Separation: ML/Shadow as Research Module** (January 2025)
+
+### **Overview**
+Complete architectural separation of ML and Shadow Testing from Trading Systems. ML/Shadow become a Research & Development module that analyzes patterns and makes suggestions, while Trading Systems operate independently with simple rules.
+
+### **Core Principle**
+**"ML and Shadow Testing are Research Tools, not Trading Systems"**
+- Research analyzes what happened
+- Research suggests improvements
+- Humans review and approve changes
+- Trading executes with simple, reliable rules
+
+### **System Architecture**
+
+#### **1. Production Trading Systems**
+Independent, rule-based trading engines that run 24/7 without ML dependencies.
+
+**Components:**
+- Paper Trading Engine (Railway hosted)
+- Live Trading Engine (Railway hosted, future)
+- Data Collector (real-time prices)
+- Feature Calculator (technical indicators)
+- Trading Dashboard (Railway hosted)
+
+**Characteristics:**
+- NO ML predictions in real-time path
+- NO shadow testing hooks
+- Simple rule-based decisions only
+- Completely autonomous operation
+- Saves all decisions to scan_history
+
+#### **2. Research & Development System**
+Analytical system that studies trading patterns and optimizes strategies offline.
+
+**Components:**
+- ML Analyzer (pattern recognition)
+- Shadow Tester (8 variation testing)
+- Performance Tracker (outcome analysis)
+- Suggestion Generator (recommendations)
+
+**Characteristics:**
+- Read-only access to trading data
+- Runs analysis cycles independently
+- Generates suggestions, not commands
+- No ability to execute trades
+- Saves findings to research tables
+
+#### **3. Communication Layer**
+Database-driven communication between systems.
+
+**Flow:**
+```
+Trading → scan_history/trade_logs → Research (read-only)
+Research → learning_history/adaptive_thresholds → Dashboard
+Human → strategy_configs → Trading Systems
+```
+
+**Key Tables:**
+- `scan_history`: All trading decisions
+- `trade_logs`: Trade outcomes
+- `learning_history`: Research suggestions
+- `adaptive_thresholds`: Recommended parameters
+- `strategy_configs`: Active parameters (human-updated)
+
+### **Railway Service Architecture**
+
+```yaml
+Railway Project: crypto-tracker-v3
+│
+├── TRADING SERVICES (Production)
+│   ├── Trading - Paper Engine        [24/7]
+│   ├── Trading - Dashboard           [24/7]
+│   ├── Trading - Data Collector      [24/7]
+│   ├── Trading - Feature Calculator  [24/7]
+│   └── Trading - Live Engine         [Future]
+│
+├── RESEARCH SERVICES (R&D)
+│   ├── Research - ML Analyzer        [24/7]
+│   ├── Research - Shadow Tester      [24/7]
+│   ├── Research - Performance Tracker [24/7]
+│   ├── Research - Suggestion Generator [Daily Cron]
+│   └── Research - Weekly Report      [Weekly Cron]
+│
+└── SYSTEM SERVICES (Maintenance)
+    ├── System - Data Cleanup         [Daily Cron]
+    └── System - OHLC Updater        [Every 5/15/60 min]
+```
+
+### **Implementation Plan**
+
+#### **Phase 1: Decouple Paper Trading (Week 1)**
+**Goal:** Paper Trading runs without ML/Shadow dependencies
+
+**Day 1-2: Create Simplified Paper Trading** ✅ COMPLETE (Jan 22, 2025)
+- [x] Create `scripts/run_paper_trading_simple.py` ✅
+- [x] Remove all ML predictor imports ✅
+- [x] Remove shadow logger imports ✅
+- [x] Use only SimpleRules for decisions ✅
+- [x] Fix HybridDataFetcher method calls ✅
+- [x] Fix SimplePaperTraderV2 method calls ✅
+- [x] Handle dashboard port conflicts ✅
+- [x] Fix RegimeDetector method calls ✅
+- [x] Fix signal current_price field ✅
+- [x] Fix exit checking method ✅
+- [x] Fix portfolio stats field names ✅
+- [x] Fix open_position parameters (usd_amount, market_price) ✅
+- [x] Remove manual paper_performance inserts ✅
+- [x] Fix PaperTradingNotifier method (notify_position_opened) ✅
+- [x] Remove scan_history logging (temp - schema mismatch) ✅
+- [x] Test locally for stability ✅
+- [x] Verified 32 positions opened successfully ✅
+
+**Day 3: Deploy to Railway** (IN PROGRESS)
+- [ ] Push simplified paper trading to GitHub
+- [ ] Create Railway service "Trading - Paper Engine"
+- [ ] Set environment variables (Supabase, Slack)
+- [ ] Deploy and verify 24/7 operation
+- [ ] Create Railway service "Trading - Dashboard"
+- [ ] Deploy dashboard and get public URL
+- [ ] Remove all shadow logging calls
+- [ ] Test all strategies work without ML
+
+**Day 4: Deploy to Railway**
+- [ ] Update railway.json with new service names
+- [ ] Deploy Paper Trading to Railway
+- [ ] Deploy Dashboard to Railway
+- [ ] Configure public URLs
+- [ ] Add basic authentication
+
+**Day 5: Monitor & Verify**
+- [ ] Monitor for 24 hours
+- [ ] Verify trades executing
+- [ ] Check dashboard accessibility
+- [ ] Confirm no ML dependencies
+- [ ] Shutdown local paper trading
+
+#### **Phase 2: Build Research Module (Week 2)**
+**Goal:** Standalone research system analyzing patterns
+
+**Day 1-2: Research Engine**
+- [ ] Create `src/research/` directory structure
+- [ ] Build `scripts/run_research_engine.py`
+- [ ] Implement read-only database access
+- [ ] Create pattern analysis from scan_history
+- [ ] Test pattern detection
+
+**Day 3-4: Shadow Testing Standalone**
+- [ ] Extract shadow testing to separate service
+- [ ] Create `scripts/run_shadow_tester.py`
+- [ ] Test 8 variations independently
+- [ ] Save results to shadow_variations
+- [ ] Verify evaluation accuracy
+
+**Day 5: Suggestion Generator**
+- [ ] Build suggestion aggregation logic
+- [ ] Save to learning_history table
+- [ ] Create daily/weekly reports
+- [ ] Send summaries to Slack
+- [ ] Test end-to-end flow
+
+#### **Phase 3: Integration & Testing (Week 3)**
+**Goal:** Complete workflow with human review
+
+**Day 1-2: Dashboard Integration**
+- [ ] Add research findings view
+- [ ] Display suggestions clearly
+- [ ] Add approval interface
+- [ ] Connect to strategy_configs
+
+**Day 3-4: Workflow Testing**
+- [ ] Run complete cycle
+- [ ] Review suggestions
+- [ ] Apply configuration changes
+- [ ] Monitor impact
+
+**Day 5: Documentation & Cleanup**
+- [ ] Update all documentation
+- [ ] Remove old ML integration code
+- [ ] Create operation guides
+- [ ] Final testing
+
+### **File Structure Changes**
+
+```
+crypto-tracker-v3/
+├── scripts/
+│   ├── run_paper_trading_simple.py    # NEW: Simplified paper trading
+│   ├── run_research_engine.py         # NEW: Research orchestrator
+│   ├── run_shadow_tester.py          # NEW: Standalone shadow testing
+│   ├── run_suggestion_generator.py    # NEW: Generate recommendations
+│   └── generate_weekly_report.py      # NEW: Weekly analysis
+│
+├── src/
+│   ├── research/                      # NEW: Research module
+│   │   ├── __init__.py
+│   │   ├── ml_analyzer.py            # Moved from src/ml/
+│   │   ├── shadow_engine.py          # Moved from src/analysis/
+│   │   ├── pattern_detector.py       # NEW: Find trading patterns
+│   │   ├── suggestion_generator.py   # NEW: Create recommendations
+│   │   └── performance_tracker.py    # NEW: Track outcomes
+│   │
+│   └── strategies/
+│       └── manager.py                 # MODIFIED: Remove ML/Shadow hooks
+```
+
+### **Environment Variables**
+
+```bash
+# Trading Services
+ML_ENABLED=false
+SHADOW_ENABLED=false
+TRADING_MODE=simple_rules
+DASHBOARD_URL=https://trading-dashboard.railway.app
+DASHBOARD_TOKEN=<secure-token>
+
+# Research Services
+DB_ACCESS_MODE=read_only
+RESEARCH_MODE=true
+SUGGESTION_FREQUENCY=daily
+SLACK_WEBHOOK_SUGGESTIONS=<webhook-url>
+
+# System Identification
+SYSTEM_TYPE=TRADING|RESEARCH|MAINTENANCE
+```
+
+### **Benefits of This Architecture**
+
+1. **Complete Independence**: Trading continues even if Research crashes
+2. **Clear Responsibilities**: Trading trades, Research researches
+3. **Human Control**: All changes require explicit approval
+4. **Safer Development**: Can experiment in Research without risk
+5. **Better Debugging**: Issues isolated to specific systems
+6. **Scalable**: Can run multiple research experiments in parallel
+7. **Cost Effective**: Only run research when needed
+
+### **Success Metrics**
+
+- Paper Trading uptime: >99% (independent of Research)
+- Research suggestions: 5-10 actionable items per week
+- Implementation time: 3 weeks total
+- Zero trading disruptions during migration
+- Clear separation verified by dependency analysis
+
+### **Risk Mitigation**
+
+- Backup: Current integrated system remains in Git history
+- Rollback: Can revert to integrated version if needed
+- Testing: Each phase fully tested before proceeding
+- Monitoring: Extensive logging at each step
+- Documentation: Every change documented in MASTER_PLAN
 
 ---
 

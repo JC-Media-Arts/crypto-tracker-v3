@@ -1,0 +1,49 @@
+"""Paper trading configuration with loosened thresholds"""
+
+PAPER_TRADING_CONFIG = {
+    "ml_confidence_threshold": 0.55,
+    "min_signal_strength": 0.6,
+    "required_confirmations": 2,
+    "position_size_multiplier": 1.5,
+    "max_positions": 5,
+    "risk_per_trade": 0.02,
+    "stop_loss_percentage": 0.02,
+    "take_profit_percentage": 0.05,
+    "trailing_stop": True,
+    "trailing_stop_percentage": 0.015,
+    "strategies": {
+        "DCA": {
+            "enabled": True,
+            "min_confidence": 0.5,
+            "grid_levels": 5,
+            "grid_spacing": 0.02,
+            "max_grids_per_symbol": 3,
+            "volume_threshold": 100000,
+        },
+        "SWING": {
+            "enabled": True,
+            "min_confidence": 0.55,
+            "take_profit": 0.05,
+            "stop_loss": 0.02,
+            "breakout_confirmation": 0.015,
+            "volume_surge": 1.5,
+        },
+        "CHANNEL": {
+            "enabled": True,
+            "min_confidence": 0.55,
+            "entry_threshold": 0.9,
+            "exit_threshold": 0.1,
+            "channel_width_min": 0.02,
+            "channel_touches": 2,
+        },
+    },
+    "timeframes": {"primary": "15m", "confirmation": "1h", "trend": "4h"},
+    "filters": {
+        "min_volume_24h": 100000,
+        "min_price": 0.01,
+        "max_spread": 0.005,
+        "avoid_news_hours": False,
+        "trade_weekends": True,
+    },
+    "updated_at": "2025-08-20T23:40:17.168302",
+}

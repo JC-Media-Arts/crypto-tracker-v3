@@ -65,8 +65,8 @@ class SwingAnalyzer:
             "risk_amount": risk_reward["risk"],
             "reward_amount": risk_reward["reward"],
             "expected_value": expected_value,
-            "adjusted_score": adjusted_setup["score"],
-            "adjusted_size_multiplier": adjusted_setup["position_size_multiplier"],
+            "adjusted_score": adjusted_setup.get("score") or 50,  # Handle None and missing
+            "adjusted_size_multiplier": adjusted_setup.get("position_size_multiplier", 1.0),
             "trade_plan": trade_plan,
             "confidence": self._calculate_confidence(adjusted_setup, market_regime),
             "priority": self._calculate_priority(adjusted_setup, expected_value),
@@ -161,9 +161,20 @@ class SwingAnalyzer:
     def _calculate_risk_reward(self, setup: Dict) -> Dict:
         """Calculate risk/reward metrics"""
 
-        entry = setup["entry_price"]
-        stop = setup["stop_loss"]
-        target = setup["take_profit"]
+        entry = setup.get("price", 0)  # Setup uses "price" not "entry_price"
+        
+        # Handle missing price gracefully
+        if entry <= 0:
+            return {
+                "ratio": 0,
+                "risk": 0,
+                "reward": 0,
+                "risk_pct": 0,
+                "reward_pct": 0,
+            }
+        
+        stop = setup.get("stop_loss", entry * 0.97)  # Default 3% stop (tighter for swing)
+        target = setup.get("take_profit", entry * 1.05)  # Default 5% target (realistic for swing)
 
         risk = abs(entry - stop)
         reward = abs(target - entry)
@@ -187,17 +198,20 @@ class SwingAnalyzer:
         regime_config = self.market_regimes[market_regime]
 
         # Adjust score threshold
-        if setup["score"] < regime_config["min_score"]:
-            adjusted["score"] *= 0.8  # Penalize if below threshold
+        score = setup.get("score") or 50  # Handle None and missing, default to neutral
+        if score < regime_config["min_score"]:
+            adjusted["score"] = score * 0.8  # Penalize if below threshold
 
-        # Adjust position size
-        adjusted["position_size_multiplier"] *= regime_config["multiplier"]
+        # Adjust position size (ensure field exists)
+        current_multiplier = adjusted.get("position_size_multiplier", 1.0)
+        adjusted["position_size_multiplier"] = current_multiplier * regime_config["multiplier"]
 
         # Adjust targets in bear market
         if "BEAR" in market_regime:
             # Tighter stops and smaller targets
-            adjusted["stop_loss"] = setup["entry_price"] * 0.97  # Max 3% loss
-            adjusted["take_profit"] = setup["entry_price"] * 1.05  # 5% target
+            price = setup.get("price", 0)  # Use standard field name
+            adjusted["stop_loss"] = price * 0.97  # Max 3% loss
+            adjusted["take_profit"] = price * 1.05  # 5% target
 
         return adjusted
 
@@ -205,7 +219,8 @@ class SwingAnalyzer:
         """Calculate expected value of the trade"""
 
         # Estimate win probability based on setup score
-        win_prob = min(0.35 + (setup["score"] / 200), 0.75)  # 35-75% win rate
+        score = setup.get("score", 50)  # Default to neutral score if missing
+        win_prob = min(0.35 + (score / 200), 0.75)  # 35-75% win rate
 
         # Adjust for market conditions
         if setup.get("trend_strength", 0) > 0.05:
@@ -226,7 +241,21 @@ class SwingAnalyzer:
     def _generate_trade_plan(self, setup: Dict) -> Dict:
         """Generate detailed trade plan"""
 
-        entry = setup["entry_price"]
+        entry = setup.get("price", 0)  # Use standard field name with defensive access
+        
+        # Handle missing price gracefully
+        if entry <= 0:
+            return {
+                "entry_strategy": "none",
+                "scale_in_levels": [],
+                "exit_strategy": "none",
+                "scale_out_levels": [],
+                "stop_loss": 0,
+                "trailing_stop_activation": 0,
+                "trailing_stop_distance": 0,
+                "max_hold_days": 0,
+                "notes": ["Invalid setup - no price available"],
+            }
 
         # Scaling in strategy
         scale_in_levels = [
@@ -236,21 +265,23 @@ class SwingAnalyzer:
         ]
 
         # Scaling out strategy
+        take_profit = setup.get("take_profit", entry * 1.10)  # Default 10% if missing
         scale_out_levels = [
             {"price": entry * 1.03, "size_pct": 30},  # 3% profit
             {"price": entry * 1.05, "size_pct": 40},  # 5% profit
-            {"price": setup["take_profit"], "size_pct": 30},  # Full target
+            {"price": take_profit, "size_pct": 30},  # Full target
         ]
 
         # Time limits
-        max_hold_days = 5 if setup["pattern"] == "Momentum Surge" else 10
+        pattern = setup.get("pattern", "Breakout")  # Default pattern if missing
+        max_hold_days = 5 if pattern == "Momentum Surge" else 10
 
         return {
             "entry_strategy": "scale_in",
             "scale_in_levels": scale_in_levels,
             "exit_strategy": "scale_out",
             "scale_out_levels": scale_out_levels,
-            "stop_loss": setup["stop_loss"],
+            "stop_loss": setup.get("stop_loss", entry * 0.95),  # Default 5% stop if missing
             "trailing_stop_activation": entry * 1.05,  # Activate at 5% profit
             "trailing_stop_distance": 0.02,  # 2% trailing
             "max_hold_days": max_hold_days,
@@ -261,13 +292,14 @@ class SwingAnalyzer:
         """Generate helpful notes for the trade"""
 
         notes = []
+        pattern = setup.get("pattern", "Unknown")  # Defensive access
 
         # Pattern-specific notes
-        if setup["pattern"] == "Breakout":
+        if pattern == "Breakout":
             notes.append("Watch for false breakout - confirm with volume")
-        elif setup["pattern"] == "Bull Flag":
+        elif pattern == "Bull Flag":
             notes.append("Classic continuation pattern - expect strong move")
-        elif setup["pattern"] == "Momentum Surge":
+        elif pattern == "Momentum Surge":
             notes.append("Fast mover - use tight stops and take profits quickly")
 
         # Volume notes
@@ -292,7 +324,8 @@ class SwingAnalyzer:
         confidence = 0.5  # Base confidence
 
         # Setup score contribution
-        confidence += (setup["score"] - 50) / 200  # 0-25% from score
+        score = setup.get("score", 50)  # Default to neutral score if missing
+        confidence += (score - 50) / 200  # 0-25% from score
 
         # Market regime contribution
         if "BULL" in market_regime:
@@ -325,11 +358,12 @@ class SwingAnalyzer:
             priority -= 2
 
         # Score contribution
-        if setup["score"] > 80:
+        score = setup.get("score", 50)  # Default to neutral score if missing
+        if score > 80:
             priority += 2
-        elif setup["score"] > 70:
+        elif score > 70:
             priority += 1
-        elif setup["score"] < 60:
+        elif score < 60:
             priority -= 1
 
         # Risk/reward contribution
@@ -388,7 +422,7 @@ class SwingAnalyzer:
 
         # Normalize scores to 0-100 scale
         scores = {
-            "setup_score": setup["score"],
+            "setup_score": setup.get("score", 50),  # Default to neutral if missing
             "expected_value": min(max(setup["expected_value"] * 10, 0), 100),
             "risk_reward": min(setup["risk_reward_ratio"] * 20, 100),
             "confidence": setup["confidence"] * 100,

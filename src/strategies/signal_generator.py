@@ -560,8 +560,8 @@ class SignalGenerator:
                 market_data=market_data,
                 ml_confidence=ml_confidence,
                 ml_multiplier=(
-                    signal["ml_predictions"].get("position_size_multiplier", 1.0)
-                    if signal["ml_predictions"]
+                    signal.get("ml_predictions", {}).get("position_size_multiplier", 1.0)
+                    if signal.get("ml_predictions") and isinstance(signal.get("ml_predictions"), dict)
                     else 1.0
                 ),
             )

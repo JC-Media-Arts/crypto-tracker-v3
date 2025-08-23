@@ -1,0 +1,313 @@
+{
+  "timestamp": "2025-08-21T06:07:45.932694+00:00",
+  "overall_status": "unhealthy",
+  "checks": {
+    "data_freshness": {
+      "status": "unhealthy",
+      "issues": [
+        {
+          "timeframe": "1m",
+          "stale_symbols": [
+            {
+              "symbol": "BNB",
+              "latest": null,
+              "age_minutes": null
+            },
+            {
+              "symbol": "SNX",
+              "latest": "2025-08-21T05:38:00+00:00",
+              "age_minutes": 29.76554505
+            },
+            {
+              "symbol": "FLOKI",
+              "latest": "2025-08-21T05:41:00+00:00",
+              "age_minutes": 26.76554505
+            },
+            {
+              "symbol": "MEW",
+              "latest": "2025-08-21T05:12:00+00:00",
+              "age_minutes": 55.76554505
+            },
+            {
+              "symbol": "NEIRO",
+              "latest": "2025-08-21T04:23:00+00:00",
+              "age_minutes": 104.76554505
+            },
+            {
+              "symbol": "GOAT",
+              "latest": "2025-08-21T04:42:00+00:00",
+              "age_minutes": 85.76554505
+            },
+            {
+              "symbol": "ACT",
+              "latest": null,
+              "age_minutes": null
+            },
+            {
+              "symbol": "FARTCOIN",
+              "latest": null,
+              "age_minutes": null
+            },
+            {
+              "symbol": "PONKE",
+              "latest": "2025-08-21T05:48:00+00:00",
+              "age_minutes": 19.76554505
+            },
+            {
+              "symbol": "TREMP",
+              "latest": "2025-08-21T05:20:00+00:00",
+              "age_minutes": 47.76554505
+            },
+            {
+              "symbol": "BRETT",
+              "latest": null,
+              "age_minutes": null
+            },
+            {
+              "symbol": "HIPPO",
+              "latest": null,
+              "age_minutes": null
+            },
+            {
+              "symbol": "CHZ",
+              "latest": "2025-08-21T05:44:00+00:00",
+              "age_minutes": 23.76554505
+            },
+            {
+              "symbol": "ALGO",
+              "latest": "2025-08-17T21:41:00+00:00",
+              "age_minutes": 4826.765545050001
+            },
+            {
+              "symbol": "THETA",
+              "latest": null,
+              "age_minutes": null
+            },
+            {
+              "symbol": "KSM",
+              "latest": "2025-08-21T05:42:00+00:00",
+              "age_minutes": 25.76554505
+            },
+            {
+              "symbol": "ALT",
+              "latest": "2025-08-17T23:46:00+00:00",
+              "age_minutes": 4701.765545050001
+            },
+            {
+              "symbol": "PORTAL",
+              "latest": "2025-08-21T05:33:00+00:00",
+              "age_minutes": 34.76554505
+            },
+            {
+              "symbol": "MASK",
+              "latest": "2025-08-21T05:50:00+00:00",
+              "age_minutes": 17.76554505
+            },
+            {
+              "symbol": "API3",
+              "latest": "2025-08-17T23:59:00+00:00",
+              "age_minutes": 4688.765545050001
+            },
+            {
+              "symbol": "ANKR",
+              "latest": "2025-08-17T23:59:00+00:00",
+              "age_minutes": 4688.765545050001
+            },
+            {
+              "symbol": "YFI",
+              "latest": "2025-08-21T05:47:00+00:00",
+              "age_minutes": 20.76554505
+            },
+            {
+              "symbol": "ENJ",
+              "latest": "2025-08-21T05:51:00+00:00",
+              "age_minutes": 16.76554505
+            }
+          ]
+        },
+        {
+          "timeframe": "15m",
+          "stale_symbols": [
+            {
+              "symbol": "BNB",
+              "latest": null,
+              "age_minutes": null
+            },
+            {
+              "symbol": "MEW",
+              "latest": "2025-08-21T05:00:00+00:00",
+              "age_minutes": 67.76554505
+            },
+            {
+              "symbol": "NEIRO",
+              "latest": "2025-08-21T04:15:00+00:00",
+              "age_minutes": 112.76554505
+            },
+            {
+              "symbol": "GOAT",
+              "latest": "2025-08-21T04:30:00+00:00",
+              "age_minutes": 97.76554505
+            },
+            {
+              "symbol": "ACT",
+              "latest": null,
+              "age_minutes": null
+            },
+            {
+              "symbol": "FARTCOIN",
+              "latest": null,
+              "age_minutes": null
+            },
+            {
+              "symbol": "TREMP",
+              "latest": "2025-08-21T05:15:00+00:00",
+              "age_minutes": 52.76554505
+            },
+            {
+              "symbol": "BRETT",
+              "latest": null,
+              "age_minutes": null
+            },
+            {
+              "symbol": "HIPPO",
+              "latest": null,
+              "age_minutes": null
+            },
+            {
+              "symbol": "THETA",
+              "latest": "2024-11-04T23:45:00+00:00",
+              "age_minutes": 416542.76554505
+            }
+          ]
+        },
+        {
+          "timeframe": "1h",
+          "stale_symbols": [
+            {
+              "symbol": "BNB",
+              "latest": null,
+              "age_minutes": null
+            },
+            {
+              "symbol": "NEIRO",
+              "latest": "2025-08-21T04:00:00+00:00",
+              "age_minutes": 127.76554505
+            },
+            {
+              "symbol": "GOAT",
+              "latest": "2025-08-21T04:00:00+00:00",
+              "age_minutes": 127.76554505
+            },
+            {
+              "symbol": "ACT",
+              "latest": null,
+              "age_minutes": null
+            },
+            {
+              "symbol": "FARTCOIN",
+              "latest": null,
+              "age_minutes": null
+            },
+            {
+              "symbol": "BRETT",
+              "latest": null,
+              "age_minutes": null
+            },
+            {
+              "symbol": "HIPPO",
+              "latest": null,
+              "age_minutes": null
+            },
+            {
+              "symbol": "THETA",
+              "latest": "2024-11-04T23:00:00+00:00",
+              "age_minutes": 416587.76554505
+            }
+          ]
+        },
+        {
+          "timeframe": "1d",
+          "stale_symbols": [
+            {
+              "symbol": "BNB",
+              "latest": "2021-06-02T00:00:00+00:00",
+              "age_minutes": 2219407.76554505
+            },
+            {
+              "symbol": "ACT",
+              "latest": "2021-06-02T00:00:00+00:00",
+              "age_minutes": 2219407.76554505
+            },
+            {
+              "symbol": "FARTCOIN",
+              "latest": null,
+              "age_minutes": null
+            },
+            {
+              "symbol": "BRETT",
+              "latest": null,
+              "age_minutes": null
+            },
+            {
+              "symbol": "HIPPO",
+              "latest": null,
+              "age_minutes": null
+            },
+            {
+              "symbol": "THETA",
+              "latest": "2024-11-04T00:00:00+00:00",
+              "age_minutes": 417967.76554505
+            }
+          ]
+        }
+      ],
+      "details": {
+        "1m": {
+          "checked": 99,
+          "stale": 23
+        },
+        "15m": {
+          "checked": 99,
+          "stale": 10
+        },
+        "1h": {
+          "checked": 99,
+          "stale": 8
+        },
+        "1d": {
+          "checked": 99,
+          "stale": 6
+        }
+      }
+    },
+    "data_quality": {
+      "status": "healthy",
+      "issues": [],
+      "details": {
+        "records_checked": 1000,
+        "invalid_ohlc": 0,
+        "negative_values": 0
+      }
+    },
+    "pipeline_status": {
+      "status": "error",
+      "issues": [
+        {
+          "type": "check_failed",
+          "error": "{'message': \"Could not find the table 'public.pipeline_runs' in the schema cache\", 'code': 'PGRST205', 'hint': None, 'details': None}"
+        }
+      ],
+      "details": {}
+    },
+    "gap_status": {
+      "status": "error",
+      "issues": [
+        {
+          "type": "check_failed",
+          "error": "{'message': \"Could not find the table 'public.data_gaps' in the schema cache\", 'code': 'PGRST205', 'hint': \"Perhaps you meant the table 'public.strategy_setups'\", 'details': None}"
+        }
+      ],
+      "details": {}
+    }
+  }
+}

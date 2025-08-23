@@ -444,6 +444,8 @@ class DCADetector:
             "rsi": rsi,
             "volume_ratio": volume_ratio,
             "confidence": 0.5,  # Base confidence, ML will adjust
+            "position_size_multiplier": 1.0,  # Default multiplier, can be adjusted by ML/market conditions
+            "score": 50,  # Default score for consistency with swing detector
         }
 
         return setup

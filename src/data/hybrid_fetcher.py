@@ -39,15 +39,19 @@ class HybridDataFetcher:
         Returns:
             Table name to query
         """
-        now = datetime.utcnow()
-        time_diff = now - start_date
-
-        if time_diff.total_seconds() <= (self.today_hours * 3600):
-            return "ohlc_today"
-        elif time_diff.days <= self.recent_days:
-            return "ohlc_recent"
-        else:
-            return "ohlc_data"
+        # TEMPORARY FIX: Always use ohlc_data until we fix the materialized views
+        # The ohlc_today and ohlc_recent views are stale/broken
+        return "ohlc_data"
+        
+        # Original logic (disabled for now):
+        # now = datetime.utcnow()
+        # time_diff = now - start_date
+        # if time_diff.total_seconds() <= (self.today_hours * 3600):
+        #     return "ohlc_today"
+        # elif time_diff.days <= self.recent_days:
+        #     return "ohlc_recent"
+        # else:
+        #     return "ohlc_data"
 
     async def get_latest_price(
         self, symbol: str, timeframe: str = "1m"

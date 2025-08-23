@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     slack_webhook_signals: Optional[str] = Field(None, env="SLACK_WEBHOOK_SIGNALS")
     slack_webhook_reports: Optional[str] = Field(None, env="SLACK_WEBHOOK_REPORTS")
     slack_webhook_alerts: Optional[str] = Field(None, env="SLACK_WEBHOOK_ALERTS")
+    slack_webhook_system_alerts: Optional[str] = Field(None, env="SLACK_WEBHOOK_SYSTEM_ALERTS")
     slack_bot_token: Optional[str] = Field(None, env="SLACK_BOT_TOKEN")
     slack_app_token: Optional[str] = Field(None, env="SLACK_APP_TOKEN")
     slack_signing_secret: Optional[str] = Field(None, env="SLACK_SIGNING_SECRET")

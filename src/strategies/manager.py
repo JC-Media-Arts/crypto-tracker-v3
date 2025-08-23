@@ -24,8 +24,11 @@ from src.strategies.regime_detector import RegimeDetector, MarketRegime
 from src.strategies.scan_logger import ScanLogger
 from src.analysis.shadow_logger import ShadowLogger
 from src.ml.predictor import MLPredictor
+from src.strategies.simple_rules import SimpleRules
 from src.trading.position_sizer import AdaptivePositionSizer
+from src.trading.simple_position_sizer import SimplePositionSizer
 from src.config.settings import Settings
+import os
 
 
 class StrategyType(Enum):
@@ -97,12 +100,20 @@ class StrategyManager:
         self.config = config
         self.settings = Settings()
         self.supabase = supabase_client
+        
+        # Check if ML is enabled (from env or config)
+        self.ml_enabled = os.getenv("ML_ENABLED", "true").lower() == "true"
+        self.ml_enabled = config.get("ml_enabled", self.ml_enabled)
+        
+        # Check if shadow testing is enabled
+        self.shadow_enabled = os.getenv("SHADOW_TESTING_ENABLED", "true").lower() == "true"
+        self.shadow_enabled = config.get("shadow_testing_enabled", self.shadow_enabled)
 
-        # Initialize scan logger for ML learning
-        self.scan_logger = ScanLogger(supabase_client) if supabase_client else None
+        # Initialize scan logger for ML learning (only if ML enabled)
+        self.scan_logger = ScanLogger(supabase_client) if (supabase_client and self.ml_enabled) else None
 
-        # Initialize shadow logger for parallel testing
-        self.shadow_logger = ShadowLogger(supabase_client) if supabase_client else None
+        # Initialize shadow logger for parallel testing (only if shadow enabled)
+        self.shadow_logger = ShadowLogger(supabase_client) if (supabase_client and self.shadow_enabled) else None
 
         # Initialize strategy components
         self.dca_detector = DCADetector(config.get("dca_config", {}))
@@ -113,8 +124,19 @@ class StrategyManager:
         self.regime_detector = RegimeDetector(
             enabled=config.get("regime_detection_enabled", True)
         )
-        self.ml_predictor = MLPredictor(self.settings)
-        self.position_sizer = AdaptivePositionSizer(config)
+        
+        # Initialize either ML predictor or simple rules
+        if self.ml_enabled:
+            self.ml_predictor = MLPredictor(self.settings)
+            self.simple_rules = None
+            self.position_sizer = AdaptivePositionSizer(config)
+            logger.info("✅ ML predictions ENABLED")
+        else:
+            self.ml_predictor = None
+            self.simple_rules = SimpleRules(config)
+            self.position_sizer = SimplePositionSizer(config)  # Use simple sizer
+            logger.info("❌ ML predictions DISABLED - Using simple rules")
+            
         self.grid_calculator = GridCalculator(config.get("dca_config", {}))
 
         # Capital allocation (from MASTER_PLAN.md - updated for 3 strategies)
@@ -233,9 +255,13 @@ class StrategyManager:
             f"{len(channel_setups)} Channel | Regime: {regime.value}"
         )
 
-        # Flush scan logs to database
+        # Flush scan logs to database (only if ML enabled)
         if self.scan_logger:
             self.scan_logger.flush()
+            
+        # Flush shadow logs (only if shadow enabled)
+        if self.shadow_logger:
+            self.shadow_logger.flush()
 
         return signals
 
@@ -286,15 +312,23 @@ class StrategyManager:
                     )
                 continue
 
-            # Get ML prediction for DCA
-            features = self._extract_dca_features(data)
-            ml_result = self.ml_predictor.predict_dca(features)
+            # Get ML prediction or use simple rules
+            features = {}
+            if self.ml_enabled:
+                features = self._extract_dca_features(data)
+                ml_result = self.ml_predictor.predict_dca(features)
+            else:
+                # Use simple rules instead of ML
+                simple_setup = self.simple_rules.check_dca_setup(symbol, data)
+                if not simple_setup:
+                    continue
+                ml_result = self.simple_rules.predict_dca({})  # Fake ML format
 
-            # Check confidence threshold
-            min_confidence = self.config.get("min_confidence", 0.60)
+            # Check confidence threshold (skip if using simple rules)
+            min_confidence = self.config.get("min_confidence", 0.60) if self.ml_enabled else 0.0
             if ml_result["confidence"] < min_confidence:
-                # Log low confidence near-miss
-                if self.scan_logger:
+                # Log low confidence near-miss (only if ML enabled and scan logger exists)
+                if self.scan_logger and self.ml_enabled:
                     decision = (
                         "NEAR_MISS"
                         if ml_result["confidence"] > (min_confidence * 0.8)
@@ -327,9 +361,9 @@ class StrategyManager:
             base_size = self.config.get("dca_position_size", 100)
             position_size = self.position_sizer.calculate_position_size(
                 symbol=symbol,
-                strategy="DCA",
-                confidence=ml_result["confidence"],
                 portfolio_value=self.allocation.dca_available,
+                market_data={"confidence": ml_result["confidence"]},
+                ml_confidence=ml_result["confidence"],
             )
 
             # Log successful signal
@@ -380,24 +414,58 @@ class StrategyManager:
     ) -> List[StrategySignal]:
         """Scan for Swing setups"""
         signals = []
+        
+        # Generate market conditions for swing analyzer
+        market_conditions = self._generate_market_conditions(market_data)
 
         for symbol, data in market_data.items():
             if symbol in self.blocked_symbols:
                 continue
 
-            # Check if Swing setup exists
+            # Check if Swing setup exists (complex detector first)
             setup = self.swing_detector.detect_setup(symbol, data)
+            
+            # If complex detector didn't find anything, try SimpleRules as fallback
+            if not setup and not self.ml_enabled:
+                simple_setup = self.simple_rules.check_swing_setup(symbol, data)
+                if simple_setup:
+                    # Convert SimpleRules format to standard setup format
+                    setup = {
+                        "symbol": symbol,
+                        "detected_at": datetime.now().isoformat(),
+                        "price": simple_setup.get("entry_price", 0),
+                        "breakout_strength": simple_setup.get("breakout_pct", 0) / 100,
+                        "volume_surge": simple_setup.get("volume_surge", 1),
+                        "momentum_score": 0.5,
+                        "pattern": "simple_breakout",
+                        "confidence": simple_setup.get("confidence", 0.5),
+                        "position_size_multiplier": 1.0,  # Default multiplier
+                        "score": 50,  # Default score for simple setups
+                        "from_simple_rules": True
+                    }
+            
             if not setup:
                 continue
 
-            # Analyze the setup
-            analysis = self.swing_analyzer.analyze_setup(setup, data)
+            # Analyze the setup with market conditions
+            analysis = self.swing_analyzer.analyze_setup(setup, market_conditions)
 
-            # Get ML prediction for Swing
-            features = self._extract_swing_features(data, setup)
-            ml_result = self.ml_predictor.predict_swing(features)
+            # Get ML prediction or use confidence from detector
+            if self.ml_enabled:
+                features = self._extract_swing_features(data, setup)
+                ml_result = self.ml_predictor.predict_swing(features)
+                min_confidence = self.config.get("min_confidence", 0.65)
+            else:
+                # Use confidence from the detector (already calculated)
+                ml_result = {
+                    "confidence": setup.get("confidence", 0.5),
+                    "breakout_success_probability": setup.get("confidence", 0.5),
+                    "expected_hold_days": 3,
+                    "expected_profit_pct": 5.0
+                }
+                min_confidence = self.config.get("min_confidence_no_ml", 0.45)  # Lower threshold without ML
 
-            if ml_result["confidence"] < self.config.get("min_confidence", 0.65):
+            if ml_result["confidence"] < min_confidence:
                 continue
 
             # Calculate expected value
@@ -412,9 +480,9 @@ class StrategyManager:
             base_size = self.config.get("swing_position_size", 200)
             position_size = self.position_sizer.calculate_position_size(
                 symbol=symbol,
-                strategy="SWING",
-                confidence=ml_result["confidence"],
                 portfolio_value=self.allocation.swing_available,
+                market_data={"confidence": ml_result["confidence"]},
+                ml_confidence=ml_result["confidence"],
             )
 
             # Create signal
@@ -452,31 +520,68 @@ class StrategyManager:
             if symbol in self.blocked_symbols:
                 continue
 
-            # Check if Channel exists
+            # Check if Channel exists (complex detector first)
             channel = self.channel_detector.detect_channel(symbol, data)
-            if not channel or not channel.is_valid:
-                continue
-
-            # Get trading signal from channel
-            signal_type = self.channel_detector.get_trading_signal(channel)
-            if not signal_type:
-                continue
-
-            # Calculate targets
+            signal_type = None
+            targets = None
             current_price = data[0]["close"] if data else 0
-            targets = self.channel_detector.calculate_targets(
-                channel, current_price, signal_type
-            )
+            
+            if channel and channel.is_valid:
+                # Get trading signal from channel
+                signal_type = self.channel_detector.get_trading_signal(channel)
+                if signal_type:
+                    # Calculate targets
+                    targets = self.channel_detector.calculate_targets(
+                        channel, current_price, signal_type
+                    )
+            
+            # If complex detector didn't find anything, try SimpleRules as fallback
+            if (not channel or not signal_type) and not self.ml_enabled:
+                simple_setup = self.simple_rules.check_channel_setup(symbol, data)
+                if simple_setup and simple_setup.get("signal_type") == "BUY":
+                    # Create a simple channel object for compatibility
+                    from src.strategies.channel.detector import Channel
+                    channel = Channel(
+                        symbol=symbol,
+                        upper_line=simple_setup.get("channel_high", current_price * 1.05),
+                        lower_line=simple_setup.get("channel_low", current_price * 0.95),
+                        slope=0,  # Assume horizontal
+                        width=(simple_setup.get("channel_high", 0) - simple_setup.get("channel_low", 0)) / simple_setup.get("channel_low", 1) if simple_setup.get("channel_low", 0) > 0 else 0.05,
+                        touches_upper=2,  # Minimum viable
+                        touches_lower=2,  # Minimum viable
+                        strength=0.6,  # Moderate strength
+                        start_time=datetime.now() - timedelta(days=5),
+                        end_time=datetime.now(),
+                        current_position=simple_setup.get("position", 0.5)
+                    )
+                    signal_type = "BUY"
+                    # Simple targets
+                    targets = {
+                        "take_profit": simple_setup.get("channel_high", current_price * 1.05),
+                        "stop_loss": simple_setup.get("channel_low", current_price * 0.95) * 0.99,
+                        "take_profit_pct": 5.0,
+                        "stop_loss_pct": 2.0,
+                        "risk_reward": 2.5
+                    }
+            
+            if not channel or not signal_type:
+                continue
 
             # Check risk/reward
-            if targets.get("risk_reward", 0) < self.config.get("min_risk_reward", 1.5):
+            if targets and targets.get("risk_reward", 0) < self.config.get("min_risk_reward", 1.5):
                 continue
 
-            # For now, use a simple confidence based on channel strength
-            # In future, we'll add ML prediction for channels
-            confidence = channel.strength
+            # Calculate confidence
+            if self.ml_enabled:
+                # For now, use channel strength as confidence (ML for channels not yet implemented)
+                confidence = channel.strength
+                min_confidence = self.config.get("min_confidence", 0.60)
+            else:
+                # Use confidence scoring from detector
+                confidence = self.channel_detector.calculate_confidence_without_ml(channel, signal_type)
+                min_confidence = self.config.get("min_confidence_no_ml", 0.45)  # Lower threshold without ML
 
-            if confidence < self.config.get("min_confidence", 0.60):
+            if confidence < min_confidence:
                 continue
 
             # Calculate expected value
@@ -490,9 +595,9 @@ class StrategyManager:
             # Determine position size
             position_size = self.position_sizer.calculate_position_size(
                 symbol=symbol,
-                strategy="CHANNEL",
-                confidence=confidence,
                 portfolio_value=self.allocation.channel_available,
+                market_data={"confidence": confidence},
+                ml_confidence=confidence,
             )
 
             # Create signal
@@ -665,6 +770,43 @@ class StrategyManager:
 
         return score
 
+    def _generate_market_conditions(self, market_data: Dict) -> Dict:
+        """Generate market conditions from raw market data"""
+        
+        # Get BTC data if available for market trend
+        btc_data = market_data.get("BTC", [])
+        btc_trend = 0
+        if btc_data and len(btc_data) > 1:
+            # Calculate BTC trend from last 24 hours
+            btc_close_24h_ago = btc_data[-24]["close"] if len(btc_data) >= 24 else btc_data[0]["close"]
+            btc_close_now = btc_data[-1]["close"]
+            btc_trend = (btc_close_now - btc_close_24h_ago) / btc_close_24h_ago
+        
+        # Calculate market breadth (percentage of symbols up)
+        up_count = 0
+        total_count = 0
+        for symbol, data in market_data.items():
+            if data and len(data) > 1:
+                total_count += 1
+                if data[-1]["close"] > data[0]["close"]:
+                    up_count += 1
+        
+        market_breadth = (up_count / total_count * 100) if total_count > 0 else 50
+        
+        # Mock fear/greed index (would normally come from external source)
+        # For now, derive from BTC trend and market breadth
+        fear_greed = 50  # Neutral default
+        if btc_trend > 0.05 and market_breadth > 60:
+            fear_greed = 70  # Greed
+        elif btc_trend < -0.05 and market_breadth < 40:
+            fear_greed = 30  # Fear
+        
+        return {
+            "btc_trend": btc_trend,
+            "market_breadth": market_breadth,
+            "fear_greed_index": fear_greed
+        }
+    
     def _extract_dca_features(self, data: List[Dict]) -> Dict:
         """Extract features for DCA ML prediction"""
         # Calculate features from OHLC data

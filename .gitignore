@@ -28,6 +28,7 @@ logs/
 
 # Data
 data/*.csv
+data/gap_reports/*.json
 data/*.json
 data/*.pkl
 data/*.h5
