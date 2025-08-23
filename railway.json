@@ -10,7 +10,7 @@
   },
   "services": {
     "Paper Trading": {
-      "startCommand": "python scripts/run_paper_trading.py",
+      "startCommand": "python scripts/run_paper_trading_simple.py",
       "healthcheckPath": "/health",
       "healthcheckTimeout": 30
     },
@@ -33,6 +33,13 @@
       "startCommand": "python scripts/daily_data_cleanup.py",
       "cronSchedule": "0 10 * * *",
       "restartPolicyType": "NEVER"
+    },
+    "ML Analyzer": {
+      "startCommand": "python scripts/run_ml_analyzer.py",
+      "healthcheckPath": "/health",
+      "healthcheckTimeout": 30,
+      "restartPolicyType": "ON_FAILURE",
+      "restartPolicyMaxRetries": 3
     }
   }
 }
