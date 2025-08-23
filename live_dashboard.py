@@ -1464,15 +1464,9 @@ def get_trades():
 
 @app.route("/api/strategy-status")
 def get_strategy_status():
-    """Get current strategy status and proximity to triggers - sorted by readiness"""
+    """Get current strategy status from cache tables - sorted by readiness"""
     try:
-        print("DEBUG: Starting strategy-status endpoint")
-        # NOTE: Database queries are timing out on Supabase
-        # Returning simplified mock data to keep dashboard functional
-        # TODO: Fix the database timeout issue - likely need to:
-        # 1. Increase Supabase statement timeout
-        # 2. Create better indexes
-        # 3. Use a background service to pre-calculate this data
+        db = SupabaseClient()
 
         strategy_status = {
             "swing": {
@@ -1503,69 +1497,89 @@ def get_strategy_status():
             },
         }
 
-        # Skip database query for now - Supabase has timeout issues
-        # Use mock data to keep dashboard functional
-        btc_price = 95000  # Mock price
+        # Get data from cache tables
+        try:
+            # Get strategy status from cache
+            cache_result = (
+                db.client.table("strategy_status_cache").select("*").execute()
+            )
 
-        # Add mock candidates
-        strategy_status["swing"]["candidates"] = [
-            {
-                "symbol": "BTC",
-                "readiness": 75,
-                "current_price": f"${btc_price:.2f}",
-                "details": "Near breakout level",
-                "status": "CLOSE 🟡",
-            },
-            {
-                "symbol": "ETH",
-                "readiness": 65,
-                "current_price": "$3,200.00",
-                "details": "Building momentum",
-                "status": "WAITING ⚪",
-            },
-        ]
-        strategy_status["channel"]["candidates"] = [
-            {
-                "symbol": "SOL",
-                "readiness": 85,
-                "current_price": "$180.00",
-                "details": "Bottom of channel",
-                "status": "BUY ZONE 🟢",
-            },
-            {
-                "symbol": "BTC",
-                "readiness": 60,
-                "current_price": f"${btc_price:.2f}",
-                "details": "Middle of channel",
-                "status": "NEUTRAL 🟡",
-            },
-        ]
-        strategy_status["dca"]["candidates"] = [
-            {
-                "symbol": "BNB",
-                "readiness": 70,
-                "current_price": "$600.00",
-                "details": "Drop: -4.2% from high",
-                "status": "CLOSE 🟡",
-            },
-            {
-                "symbol": "XRP",
-                "readiness": 45,
-                "current_price": "$2.20",
-                "details": "Drop: -1.5% from high",
-                "status": "WAITING ⚪",
-            },
-        ]
+            if cache_result.data:
+                # Group by strategy
+                for entry in cache_result.data:
+                    strategy = entry["strategy_name"].lower()
+                    if strategy in strategy_status:
+                        # Format price
+                        price = (
+                            float(entry["current_price"])
+                            if entry["current_price"]
+                            else 0
+                        )
+                        price_str = f"${price:.2f}" if price > 1 else f"${price:.4f}"
 
-        market_condition = "NEUTRAL - DATABASE TIMEOUT"
-        best_strategy = "CHANNEL"
-        notes = "⚠️ Database timeout - showing mock data. Fix: Check Supabase statement_timeout setting"
+                        # Determine status emoji based on readiness
+                        if float(entry["readiness"]) >= 80:
+                            status_emoji = "🟢"
+                            status_text = "READY"
+                        elif float(entry["readiness"]) >= 60:
+                            status_emoji = "🟡"
+                            status_text = "CLOSE"
+                        else:
+                            status_emoji = "⚪"
+                            status_text = "WAITING"
 
-        strategy_status["market_summary"] = {
-            "condition": market_condition,
-            "best_strategy": best_strategy,
-            "notes": notes,
-        }
+                        strategy_status[strategy]["candidates"].append(
+                            {
+                                "symbol": entry["symbol"],
+                                "readiness": float(entry["readiness"]),
+                                "current_price": price_str,
+                                "details": entry["details"] or "",
+                                "status": f"{status_text} {status_emoji}",
+                            }
+                        )
+
+                # Sort each strategy by readiness (highest first) and take top 5
+                for strategy in ["swing", "channel", "dca"]:
+                    strategy_status[strategy]["candidates"].sort(
+                        key=lambda x: x["readiness"], reverse=True
+                    )
+                    # Limit to top 5
+                    strategy_status[strategy]["candidates"] = strategy_status[strategy][
+                        "candidates"
+                    ][:5]
+
+            # Get market summary from cache
+            market_result = (
+                db.client.table("market_summary_cache")
+                .select("*")
+                .order("calculated_at", desc=True)
+                .limit(1)
+                .execute()
+            )
+
+            if market_result.data and len(market_result.data) > 0:
+                summary = market_result.data[0]
+                strategy_status["market_summary"] = {
+                    "condition": summary["condition"],
+                    "best_strategy": summary["best_strategy"],
+                    "notes": summary["notes"],
+                }
+            else:
+                # Default if no market summary in cache
+                strategy_status["market_summary"] = {
+                    "condition": "CALCULATING",
+                    "best_strategy": "WAIT",
+                    "notes": "Pre-calculator is analyzing market conditions...",
+                }
+
+        except Exception as e:
+            logger.warning(f"Cache not ready yet: {e}")
+            # Cache not ready - pre-calculator may be starting up
+            strategy_status["market_summary"] = {
+                "condition": "INITIALIZING",
+                "best_strategy": "WAIT",
+                "notes": "Pre-calculator service is starting up. Data will be available shortly.",
+            }
 
         return jsonify(strategy_status)
 
