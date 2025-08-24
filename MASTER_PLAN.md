@@ -11,31 +11,162 @@
 
 ## Table of Contents
 
-1. [Daily Check-in & Progress Tracking](#daily-check-in--progress-tracking)
-2. [System Overview](#system-overview)
-3. [Phase 1 Architecture](#phase-1-architecture)
-4. [Trading Strategies](#trading-strategies)
-5. [Data Sources](#data-sources)
-6. [Database Schema](#database-schema)
-7. [ML Pipeline](#ml-pipeline)
-8. [Trading Logic](#trading-logic)
-9. [Paper Trading System (Hummingbot)](#paper-trading-system-hummingbot)
-10. [Risk Management](#risk-management)
-11. [Slack Integration](#slack-integration)
-12. [Data Health Monitoring](#data-health-monitoring)
-13. [Project Structure](#project-structure)
-14. [Implementation Plan](#implementation-plan)
-15. [Performance Tracking](#performance-tracking)
-16. [Key Milestones & Gates](#key-milestones--gates)
-17. [Environment Configuration](#environment-configuration)
-18. [Quick Start Guide](#quick-start-guide)
-19. [Success Metrics](#success-metrics)
-20. [Implementation Progress](#implementation-progress)
-21. [Phase 2 Preview](#phase-2-preview)
-22. [Deployment Architecture](#deployment-architecture)
-23. [Technical Challenges & Solutions](#technical-challenges--solutions)
-24. [Database Performance Optimization](#database-performance-optimization)
-25. [Shadow Testing System](#shadow-testing-system-implementation)
+1. [Current Active Systems](#current-active-systems)
+2. [Daily Check-in & Progress Tracking](#daily-check-in--progress-tracking)
+3. [System Overview](#system-overview)
+4. [Phase 1 Architecture](#phase-1-architecture)
+5. [Trading Strategies](#trading-strategies)
+6. [Data Sources](#data-sources)
+7. [Database Schema](#database-schema)
+8. [ML Pipeline](#ml-pipeline)
+9. [Trading Logic](#trading-logic)
+10. [Paper Trading System (Hummingbot)](#paper-trading-system-hummingbot)
+11. [Risk Management](#risk-management)
+12. [Slack Integration](#slack-integration)
+13. [Data Health Monitoring](#data-health-monitoring)
+14. [Project Structure](#project-structure)
+15. [Implementation Plan](#implementation-plan)
+16. [Performance Tracking](#performance-tracking)
+17. [Key Milestones & Gates](#key-milestones--gates)
+18. [Environment Configuration](#environment-configuration)
+19. [Quick Start Guide](#quick-start-guide)
+20. [Success Metrics](#success-metrics)
+21. [Implementation Progress](#implementation-progress)
+22. [Phase 2 Preview](#phase-2-preview)
+23. [Deployment Architecture](#deployment-architecture)
+24. [Technical Challenges & Solutions](#technical-challenges--solutions)
+25. [Database Performance Optimization](#database-performance-optimization)
+26. [Shadow Testing System](#shadow-testing-system-implementation)
+
+---
+
+## Current Active Systems
+
+**⚠️ CRITICAL: Always check this section first when working on the codebase!**
+
+This section lists the currently active production files and their deprecated versions.
+Last Updated: January 2025
+
+### Paper Trading System
+- **ACTIVE**: `scripts/run_paper_trading_simple.py` ✅
+  - Deployed to Railway as "Paper Trading" service
+  - Uses SimplePaperTraderV2 class
+  - Configuration: `configs/paper_trading.json`
+  - Related: `src/trading/paper_trader.py`, `src/trading/simple_paper_trader_v2.py`
+
+- **DEPRECATED**:
+  - `scripts/run_paper_trading.py` ❌ (Original version with Hummingbot)
+  - `scripts/run_paper_trading_v2.py` ❌ (Second iteration)
+  - `scripts/test_kraken_paper_trading.py` ❌ (Test script)
+  - `scripts/monitor_paper_trading.py` ❌ (Old monitoring)
+
+### Data Collection & Updates
+- **ACTIVE**: `scripts/incremental_ohlc_updater.py` ✅
+  - Scheduled via Railway cron
+  - Updates all OHLC timeframes (1m, 15m, 1h, 1d)
+  - Related: `src/data/hybrid_fetcher.py`
+
+- **DEPRECATED**:
+  - `scripts/run_data_collector.py` ❌ (Old WebSocket collector)
+  - `scripts/fetch_polygon_ohlc.py` ❌ (Single-purpose fetcher)
+  - `scripts/fetch_1min_ohlc.py` ❌ (Specific timeframe)
+  - `scripts/fetch_15min_ohlc.py` ❌ (Specific timeframe)
+
+### Feature Calculation
+- **ACTIVE**: `scripts/strategy_precalculator.py` ✅
+  - Deployed as "System - Pre-Calculator" on Railway
+  - Pre-calculates strategy readiness for dashboard
+  - Updates cache tables every 5 minutes
+
+- **DEPRECATED**:
+  - `scripts/run_feature_calculator.py` ❌ (Old feature calculator)
+  - `scripts/run_feature_calculator_dev.py` ❌ (Dev version)
+
+### ML System
+- **ACTIVE**: `scripts/run_ml_analyzer.py` ✅
+  - Deployed as "Research - ML Analyzer" on Railway
+  - Analyzes scan_history and generates predictions
+  - Models: `models/dca/`, `models/swing/`, `models/channel/`
+
+- **DEPRECATED**:
+  - `scripts/run_ml_trainer.py` ❌ (Old trainer)
+  - `scripts/test_ml_predictor.py` ❌ (Test script)
+
+### Trading Dashboard
+- **ACTIVE**: `live_dashboard.py` ✅
+  - Deployed as separate Railway service
+  - Reads from cache tables for performance
+  - Auto-refreshes every 10 seconds
+
+- **DEPRECATED**:
+  - `scripts/shadow_dashboard.py` ❌ (Shadow testing dashboard)
+  - `scripts/generate_trading_dashboard.py` ❌ (Static generator)
+
+### Daily Jobs & Maintenance
+- **ACTIVE**:
+  - `scripts/run_daily_retraining.py` ✅ (ML Retrainer Cron)
+  - `scripts/daily_data_cleanup.py` ✅ (Data retention)
+  - `scripts/refresh_materialized_views.py` ✅ (View refresh)
+
+- **DEPRECATED**:
+  - `scripts/schedule_retraining.py` ❌ (Old scheduler)
+  - `scripts/cleanup_1min_data_only.py` ❌ (Specific cleanup)
+
+### Strategy Detection
+- **ACTIVE MODULES**:
+  - `src/strategies/dca/detector.py` ✅
+  - `src/strategies/swing/detector.py` ✅
+  - `src/strategies/channel/detector.py` ✅
+  - `src/strategies/manager.py` ✅
+
+- **DEPRECATED**:
+  - Individual test scripts in root directory
+
+### Database Migrations
+- **LATEST**: `migrations/028_fix_exit_reason_labels.sql` ✅
+- **IMPORTANT**: Always check highest numbered migration
+- **KEY CHANGES**:
+  - **(1/24 - 028)**: Fixed mislabeled exit_reason (stop_loss vs trailing_stop)
+  - **(1/24 - 027)**: Added outcome_label to ML views for training
+  - **(1/24 - 026)**: Unified to single `paper_trades` table, dropped `trade_logs`
+- **DEPRECATED**: Various partial/test migrations (008a, 008b, 008c, etc.)
+
+### Configuration Files
+- **ACTIVE**:
+  - `configs/paper_trading.json` ✅ (Trading config)
+  - `configs/logging.yaml` ✅ (Logging config)
+  - `railway.json` ✅ (Railway deployment)
+  - `.env` (Local environment)
+
+- **DEPRECATED**:
+  - Various test configs in root directory
+
+### Railway Services (Production)
+| Service Name | Script | Status |
+|-------------|--------|--------|
+| Paper Trading | `scripts/run_paper_trading_simple.py` | ✅ Active |
+| System - Pre-Calculator | `scripts/strategy_precalculator.py` | ✅ Active |
+| Research - ML Analyzer | `scripts/run_ml_analyzer.py` | ✅ Active |
+| Live Dashboard | `live_dashboard.py` | ✅ Active |
+| ML Retrainer Cron | `scripts/run_daily_retraining.py` | ✅ Active |
+| Data Scheduler | `scripts/incremental_ohlc_updater.py` | ✅ Active |
+
+### Key Integration Points
+1. **Paper Trading Flow**:
+   - Data: Polygon API → `ohlc_data` table
+   - Features: `HybridDataFetcher` → strategies
+   - Trading: `SimplePaperTraderV2` → `paper_trades` table
+   - Dashboard: Cache tables → `live_dashboard.py`
+
+2. **ML Research Flow**:
+   - Scans: `scan_history` table → ML Analyzer
+   - Predictions: `ml_predictions` table
+   - Retraining: Daily cron → Model files in `models/`
+
+3. **Data Flow**:
+   - Historical: One-time backfill scripts
+   - Real-time: `incremental_ohlc_updater.py`
+   - Access: `HybridDataFetcher` (materialized views + main table)
 
 ---
 
@@ -1155,6 +1286,9 @@ crypto-tracker-v3/
 ### Risk Log
 | Date | Risk Identified | Impact | Mitigation | Status |
 |------|----------------|--------|------------|--------|
+| 1/24 | Exit reasons all mislabeled as trailing_stop | Can't distinguish stop losses from trailing stops, ML can't learn | Fixed logic in SimplePaperTraderV2 | ✅ Resolved |
+| 1/24 | CHANNEL strategy 100% loss rate | Strategy losing money on every trade | Investigation pending | 🔍 In Progress |
+| 1/24 | ML Retrainer looking at wrong table (trade_logs) | No ML retraining despite 177 completed trades | Unified to single paper_trades table | ✅ Resolved |
 | 8/16 | Historical data not complete | Can't train ML | Continue backfill over weekend | ✅ Resolved |
 | 8/16 | Fixed targets unsuitable for different coins | Poor performance | Implement adaptive targets | ✅ Resolved |
 | 8/17 | Multi-output model complexity | Harder to train | Start with simple model, iterate | Pending |
@@ -1166,6 +1300,11 @@ crypto-tracker-v3/
 ### Lessons Learned Log
 | Date | Lesson | Action |
 |------|--------|--------|
+| 1/24 | Critical bug: All stop losses were mislabeled as "trailing_stop" in paper trading | Fixed logic to only use trailing_stop when position was profitable first |
+| 1/24 | CHANNEL strategy has 100% stop loss rate (101/102 trades) indicating poor entry signals | Added investigation to understand why entries are consistently wrong |
+| 1/24 | Having both paper_trades and trade_logs tables was redundant and confusing | Unified to single paper_trades table with ML tracking columns |
+| 1/24 | ML Retrainer couldn't see completed trades (looking in wrong table) | Updated retrainer to use paper_trades, found 102 CHANNEL trades ready for training |
+| 1/24 | Manually closed trades (POSITION_LIMIT_CLEANUP) would confuse ML training | Excluded manual closes from ML training data |
 | 8/16 | ML needs good strategies to optimize, not random predictions | Pivoted to strategy-first approach |
 | 8/16 | Fixed 10% take profit doesn't work for all coins (0% hit rate for BTC) | Implemented adaptive targets by market cap |
 | 8/16 | RSI < 30 shows 70% win rate vs 0% for RSI > 50 | Added RSI as key feature for ML model |

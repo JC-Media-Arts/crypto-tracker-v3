@@ -461,11 +461,14 @@ class SimplePaperTraderV2:
             # Check exit conditions
             exit_reason = None
 
+            # First check for stop loss
             if current_price <= position.stop_loss:
                 exit_reason = "stop_loss"
+            # Only use trailing stop if position went profitable first
             elif (
                 current_price <= trailing_stop_price
-                and current_price < position.highest_price
+                and position.highest_price
+                > position.entry_price * 1.001  # Was profitable (0.1% buffer for fees)
             ):
                 exit_reason = "trailing_stop"
             elif current_price >= position.take_profit:

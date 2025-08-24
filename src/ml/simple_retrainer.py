@@ -6,7 +6,7 @@ Retrains models daily when enough new data is available
 import os
 import pickle
 import json
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Dict, Tuple, Optional
 import pandas as pd
 import numpy as np
@@ -27,7 +27,11 @@ class SimpleRetrainer:
             supabase_client: Supabase client for database access
             model_dir: Directory where models are stored
         """
-        self.supabase = supabase_client
+        # Handle both direct client and wrapper
+        if hasattr(supabase_client, "client"):
+            self.supabase = supabase_client.client  # Our wrapper
+        else:
+            self.supabase = supabase_client  # Direct client
         self.model_dir = model_dir
         self.min_new_samples = 20  # Minimum new trades to trigger retraining
         self.retrain_frequency = "daily"
@@ -47,13 +51,18 @@ class SimpleRetrainer:
             # Get last training timestamp
             last_train_time = self._get_last_train_time(strategy)
 
-            # Count completed trades since last training
-            query = self.supabase.table("trade_logs").select("*", count="exact")
+            # Count completed trades since last training (from paper_trades)
+            # Only count SELL trades (completed positions) with valid exit reasons
+            query = self.supabase.table("paper_trades").select("*", count="exact")
             query = query.eq("strategy_name", strategy)
-            query = query.in_("status", ["CLOSED_WIN", "CLOSED_LOSS"])
+            query = query.eq("side", "SELL")  # Completed trades only
+            query = query.not_.in_(
+                "exit_reason", ["POSITION_LIMIT_CLEANUP", "manual", "MANUAL"]
+            )
+            query = query.not_.is_("exit_reason", "null")
 
             if last_train_time:
-                query = query.gte("closed_at", last_train_time.isoformat())
+                query = query.gte("filled_at", last_train_time.isoformat())
 
             result = query.execute()
 
@@ -143,10 +152,11 @@ class SimpleRetrainer:
             return f"Retraining failed: {str(e)}"
 
     def _get_all_training_data(self, strategy: str) -> pd.DataFrame:
-        """Get all training data from the feedback view"""
+        """Get all training data from paper_trades"""
         try:
-            # Query the ml_training_feedback view
-            query = self.supabase.table("ml_training_feedback").select("*")
+            # Query completed trades from paper_trades
+            # Using the view we created in the migration
+            query = self.supabase.table("completed_trades_for_ml").select("*")
             query = query.eq("strategy_name", strategy)
             query = query.not_.is_("outcome_label", "null")  # Only completed trades
 
