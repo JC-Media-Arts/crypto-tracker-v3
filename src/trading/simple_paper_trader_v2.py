@@ -80,7 +80,7 @@ class SimplePaperTraderV2:
     ):
         # Load configuration
         self.config = self._load_config(config_path)
-        
+
         self.initial_balance = initial_balance
         self.balance = initial_balance
         self.positions: Dict[str, Position] = {}
@@ -105,9 +105,25 @@ class SimplePaperTraderV2:
         self.mid_cap = market_cap_config.get(
             "mid_cap",
             [
-                "SOL", "BNB", "XRP", "ADA", "AVAX", "DOT",
-                "LINK", "ATOM", "UNI", "NEAR", "ICP", "ARB",
-                "OP", "AAVE", "CRV", "MKR", "LDO", "SUSHI", "COMP",
+                "SOL",
+                "BNB",
+                "XRP",
+                "ADA",
+                "AVAX",
+                "DOT",
+                "LINK",
+                "ATOM",
+                "UNI",
+                "NEAR",
+                "ICP",
+                "ARB",
+                "OP",
+                "AAVE",
+                "CRV",
+                "MKR",
+                "LDO",
+                "SUSHI",
+                "COMP",
             ],
         )
 
@@ -144,7 +160,7 @@ class SimplePaperTraderV2:
                     return json.load(f)
             except Exception as e:
                 logger.warning(f"Failed to load config from {config_path}: {e}")
-        
+
         # Return default config if file doesn't exist or can't be loaded
         return {
             "strategies": {},
@@ -177,12 +193,16 @@ class SimplePaperTraderV2:
         if "exits_by_tier" in strategy_config:
             exits_config = strategy_config["exits_by_tier"].get(tier, {})
             if exits_config:
-                logger.debug(f"Using config exits for {symbol}/{strategy}: {exits_config}")
+                logger.debug(
+                    f"Using config exits for {symbol}/{strategy}: {exits_config}"
+                )
                 return exits_config
 
         # Fallback to hardcoded defaults if not in config
-        logger.debug(f"Using hardcoded exits for {symbol}/{strategy} (config not found)")
-        
+        logger.debug(
+            f"Using hardcoded exits for {symbol}/{strategy} (config not found)"
+        )
+
         # Comprehensive exit rules by tier and strategy
         exits = {
             "large_cap": {
