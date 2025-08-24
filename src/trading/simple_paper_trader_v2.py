@@ -176,10 +176,10 @@ class SimplePaperTraderV2:
                     "trailing_stop": 0.02,
                 },  # 5%  # 5%  # 2%
                 "channel": {
-                    "take_profit": 0.03,
-                    "stop_loss": 0.05,
-                    "trailing_stop": 0.02,
-                },  # 3%  # 5%  # 2%
+                    "take_profit": 0.015,  # 1.5% - Conservative
+                    "stop_loss": 0.02,  # 2% - Tighter stop
+                    "trailing_stop": 0.005,  # 0.5% - Quick protection
+                },  # Updated based on backtest analysis
             },
             "mid_cap": {
                 "dca": {
@@ -193,10 +193,10 @@ class SimplePaperTraderV2:
                     "trailing_stop": 0.04,
                 },  # 10%  # 7%  # 4%
                 "channel": {
-                    "take_profit": 0.05,
-                    "stop_loss": 0.07,
-                    "trailing_stop": 0.03,
-                },  # 5%  # 7%  # 3%
+                    "take_profit": 0.02,  # 2% - Conservative for mid-cap
+                    "stop_loss": 0.025,  # 2.5% - Slightly looser than large-cap
+                    "trailing_stop": 0.007,  # 0.7% - Quick protection
+                },  # Updated based on backtest analysis
             },
             "small_cap": {
                 "dca": {
@@ -210,10 +210,10 @@ class SimplePaperTraderV2:
                     "trailing_stop": 0.07,
                 },  # 15%  # 10%  # 7%
                 "channel": {
-                    "take_profit": 0.07,
-                    "stop_loss": 0.10,
-                    "trailing_stop": 0.05,
-                },  # 7%  # 10%  # 5%
+                    "take_profit": 0.025,  # 2.5% - Conservative for small-cap
+                    "stop_loss": 0.03,  # 3% - More room for volatility
+                    "trailing_stop": 0.01,  # 1% - Still tight protection
+                },  # Updated based on backtest analysis
             },
         }
 

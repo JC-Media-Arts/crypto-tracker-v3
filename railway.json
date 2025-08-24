@@ -14,16 +14,6 @@
       "healthcheckPath": "/health",
       "healthcheckTimeout": 30
     },
-    "Data Collector": {
-      "startCommand": "python scripts/run_data_collector.py",
-      "healthcheckPath": "/health",
-      "healthcheckTimeout": 30
-    },
-    "Feature Calculator": {
-      "startCommand": "python scripts/run_feature_calculator.py",
-      "healthcheckPath": "/health",
-      "healthcheckTimeout": 30
-    },
     "ML Retrainer Cron": {
       "startCommand": "python scripts/run_daily_retraining.py",
       "cronSchedule": "0 9 * * *",

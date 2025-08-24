@@ -10,7 +10,7 @@ print(f"Current directory: {os.getcwd()}")
 print(f"Script location: {os.path.abspath(__file__)}")
 
 # Check if directories exist
-dirs_to_check = ['scripts', 'src', 'src/ml', 'src/config', 'src/data']
+dirs_to_check = ["scripts", "src", "src/ml", "src/config", "src/data"]
 for d in dirs_to_check:
     exists = os.path.exists(d)
     print(f"Directory '{d}' exists: {exists}")
@@ -21,18 +21,21 @@ for d in dirs_to_check:
 print("\n=== Testing imports ===")
 try:
     from src.config.settings import get_settings
+
     print("✓ Successfully imported get_settings")
 except Exception as e:
     print(f"✗ Failed to import get_settings: {e}")
 
 try:
     from src.ml.feature_calculator import FeatureCalculator
+
     print("✓ Successfully imported FeatureCalculator")
 except Exception as e:
     print(f"✗ Failed to import FeatureCalculator: {e}")
 
 try:
     from src.ml.model_trainer import ModelTrainer
+
     print("✓ Successfully imported ModelTrainer")
 except Exception as e:
     print(f"✗ Failed to import ModelTrainer: {e}")

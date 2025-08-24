@@ -38,7 +38,9 @@ async def check_all_coins():
     print("=" * 70)
     print("DCA triggers when price drops 3.5% from 4-hour high")
     print("-" * 70)
-    print(f'{"Symbol":<8} {"Current":<10} {"4h High":<10} {"Drop %":<8} {"Need":<8} {"Status":<10}')
+    print(
+        f'{"Symbol":<8} {"Current":<10} {"4h High":<10} {"Drop %":<8} {"Need":<8} {"Status":<10}'
+    )
     print("-" * 70)
 
     ready_to_trigger = []
@@ -69,7 +71,9 @@ async def check_all_coins():
                 current_str = f"${current:.2f}"
                 high_str = f"${high_4h:.2f}"
 
-                print(f"{symbol:<8} {current_str:<10} {high_str:<10} {drop_pct:>7.2f}% {need_more:>7.2f}% {status:<10}")
+                print(
+                    f"{symbol:<8} {current_str:<10} {high_str:<10} {drop_pct:>7.2f}% {need_more:>7.2f}% {status:<10}"
+                )
         except Exception as e:
             print(f"{symbol:<8} Error fetching data: {str(e)[:30]}")
 
@@ -85,7 +89,9 @@ async def check_all_coins():
         for sym, drop in close_to_trigger:
             print(f"     - {sym}: {drop:.2f}%")
 
-    print(f"  ❌ Waiting: {len(symbols) - len(ready_to_trigger) - len(close_to_trigger)} coins")
+    print(
+        f"  ❌ Waiting: {len(symbols) - len(ready_to_trigger) - len(close_to_trigger)} coins"
+    )
 
     if len(ready_to_trigger) > 0:
         print(f"\n⚠️  {len(ready_to_trigger)} coins SHOULD be triggering DCA buys!")

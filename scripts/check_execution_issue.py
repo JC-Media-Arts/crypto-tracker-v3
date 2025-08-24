@@ -11,12 +11,20 @@ print("INVESTIGATING: Why only DCA executes trades")
 print("=" * 60)
 
 # Get all trades
-trades = db.client.table("paper_trades").select("*").eq("side", "BUY").order("created_at", desc=True).execute()
+trades = (
+    db.client.table("paper_trades")
+    .select("*")
+    .eq("side", "BUY")
+    .order("created_at", desc=True)
+    .execute()
+)
 
 print("\nAll BUY trades in database:")
 print("-" * 40)
 for trade in trades.data:
-    print(f"{trade['symbol']:6} | {trade['strategy_name']:10} | {trade['created_at'][:19]}")
+    print(
+        f"{trade['symbol']:6} | {trade['strategy_name']:10} | {trade['created_at'][:19]}"
+    )
 
 # Check if paper trader is running
 print("\n" + "=" * 60)
