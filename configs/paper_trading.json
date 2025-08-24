@@ -34,77 +34,62 @@
     },
     "SWING": {
       "enabled": true,
-      "min_confidence": 0.55,
-      "breakout_confirmation": 0.015,
-      "volume_surge": 1.5,
+      "min_confidence": 0.6,
       "exits_by_tier": {
         "large_cap": {
           "take_profit": 0.05,
-          "stop_loss": 0.05,
-          "trailing_stop": 0.02
+          "stop_loss": 0.04,
+          "trailing_stop": 0.025
         },
         "mid_cap": {
-          "take_profit": 0.10,
-          "stop_loss": 0.07,
+          "take_profit": 0.08,
+          "stop_loss": 0.06,
           "trailing_stop": 0.04
         },
         "small_cap": {
-          "take_profit": 0.15,
-          "stop_loss": 0.10,
-          "trailing_stop": 0.07
+          "take_profit": 0.12,
+          "stop_loss": 0.08,
+          "trailing_stop": 0.06
         }
       }
     },
     "CHANNEL": {
       "enabled": true,
-      "min_confidence": 0.55,
-      "entry_threshold": 0.9,
-      "exit_threshold": 0.1,
-      "channel_width_min": 0.02,
-      "channel_touches": 2,
+      "min_confidence": 0.5,
       "exits_by_tier": {
         "large_cap": {
-          "take_profit": 0.015,
-          "stop_loss": 0.02,
+          "take_profit": 0.020,
+          "stop_loss": 0.020,
           "trailing_stop": 0.005
         },
         "mid_cap": {
-          "take_profit": 0.02,
+          "take_profit": 0.025,
           "stop_loss": 0.025,
           "trailing_stop": 0.007
         },
         "small_cap": {
-          "take_profit": 0.025,
-          "stop_loss": 0.03,
-          "trailing_stop": 0.01
+          "take_profit": 0.030,
+          "stop_loss": 0.030,
+          "trailing_stop": 0.010
         }
       }
     }
   },
   "market_cap_tiers": {
-    "large_cap": ["BTC", "ETH", "BNB", "SOL", "XRP", "ADA", "DOGE", "AVAX", "DOT"],
-    "mid_cap": ["LINK", "MATIC", "ATOM", "UNI", "LTC", "FIL", "APT", "ARB", "OP", "NEAR"],
-    "small_cap": "All other symbols not in large_cap or mid_cap"
-  },
-  "slippage_rates": {
-    "large": 0.0008,
-    "mid": 0.0015,
-    "small": 0.0035
+    "large_cap": ["BTC", "ETH", "BNB", "SOL", "XRP", "ADA"],
+    "mid_cap": [
+      "LINK", "MATIC", "ATOM", "DOT", "AVAX", "UNI", "ICP",
+      "NEAR", "ARB", "OP", "AAVE", "CRV", "MKR", "LDO",
+      "SUSHI", "COMP", "FTM", "ALGO", "VET", "SAND", "MANA"
+    ]
   },
   "fees": {
-    "kraken_taker": 0.0026
+    "kraken_taker": 0.003,
+    "kraken_maker": 0.002
   },
-  "timeframes": {
-    "primary": "15m",
-    "confirmation": "1h",
-    "trend": "4h"
-  },
-  "filters": {
-    "min_volume_24h": 100000,
-    "min_price": 0.01,
-    "max_spread": 0.005,
-    "avoid_news_hours": false,
-    "trade_weekends": true
-  },
-  "updated_at": "2025-01-24T14:30:00.000000"
+  "slippage_rates": {
+    "large": 0.0015,
+    "mid": 0.0025,
+    "small": 0.0050
+  }
 }
