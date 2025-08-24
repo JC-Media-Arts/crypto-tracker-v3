@@ -1160,6 +1160,8 @@ crypto-tracker-v3/
 | 8/17 | Multi-output model complexity | Harder to train | Start with simple model, iterate | Pending |
 | 8/23 | Dashboard timeouts on 90+ symbols | Dashboard unusable | Built pre-calculation service with cache | ✅ Resolved |
 | 8/23 | Supabase statement timeout on large queries | Can't create indexes in SQL Editor | Used cache tables instead of full indexes | ✅ Resolved |
+| 8/23 | Position limit over-allocation | 126 positions opened instead of 50 | Enforced per-strategy limits, closed worst performers | ✅ Resolved |
+| 8/23 | P&L calculation errors | Incorrect percentages shown | Fixed to use weighted averages | ✅ Resolved |
 
 ### Lessons Learned Log
 | Date | Lesson | Action |
@@ -1182,6 +1184,9 @@ crypto-tracker-v3/
 | 8/23 | Always fix the source of problems, never use mock data | Dashboard timeouts fixed with pre-calculation service, not mock data bandaids |
 | 8/23 | Pre-commit hooks ensure code quality | Proper linting with Black, flake8 prevents technical debt |
 | 8/23 | Background services essential for heavy computation | Pre-calculator processes 94 symbols every 5 min, dashboard reads from cache |
+| 8/23 | Position limits must be enforced at multiple levels | Per-strategy limits prevent one strategy from consuming all capital |
+| 8/23 | P&L percentages require weighted averages | Can't simply sum percentages; must weight by position size |
+| 8/23 | Cleanup scripts valuable for position management | Created reusable script to analyze and close worst performers |
 
 ---
 
@@ -1582,6 +1587,45 @@ else:
 - Deploy and monitor paper trading performance
 - Train Swing ML model for momentum trades
 - Create Strategy Manager for orchestration
+
+### Session Update (August 23, 2025)
+
+#### 📊 Position Limit Enforcement & P&L Fixes (Aug 23)
+
+##### Position Management System Overhaul
+**Issue Resolved**: System had 126 open positions, far exceeding intended limits. CHANNEL strategy alone had 125 positions.
+
+**Root Cause**: Multiple conflicting position limits across different configuration files:
+- `SimplePaperTraderV2`: 50 positions (but not per-strategy)
+- `run_paper_trading_simple.py`: 30 positions in config
+- `paper_trading.json`/`paper_trading_config.py`: 5 positions
+
+**Solution Implemented**:
+1. **Closed 75 Worst Performing Positions** ✅
+   - Used `scripts/close_worst_positions.py` to identify and close underperformers
+   - Total P&L impact: -$15.95 (minimal loss for cleanup)
+   - Reduced CHANNEL positions from 125 → 50
+   - Current positions: 51 total (50 CHANNEL + 1 DCA)
+
+2. **Per-Strategy Position Limits** ✅
+   - Added `max_positions_per_strategy` parameter to SimplePaperTraderV2
+   - Each strategy (DCA, SWING, CHANNEL) now limited to 50 positions
+   - Total system limit: 150 positions (50 × 3 strategies)
+   - Enforcement at both total and per-strategy levels
+
+3. **Configuration Updates** ✅
+   - `configs/paper_trading.json`: Updated to 50 positions per strategy
+   - `configs/paper_trading_config.py`: Added max_positions_per_strategy field
+   - `scripts/run_paper_trading_simple.py`: 150 total, 50 per strategy
+   - `scripts/run_paper_trading_v2.py`: 150 total, 50 per strategy
+
+##### P&L Calculation Fixes
+**Issue Resolved**: Dashboard showing incorrect P&L percentages by summing percentages instead of calculating weighted averages.
+
+**Solution**: Modified `live_dashboard.py` to correctly calculate:
+- **Realized P&L**: `total_pnl_dollar / total_position_size`
+- **Unrealized P&L**: `unrealized_pnl_dollar / unrealized_position_size`
+- Now properly tracks position sizes for weighted average calculations
 
 ### Session Update (August 22, 2025)
 
@@ -3348,29 +3392,35 @@ Railway Project: crypto-tracker-v3
 
 ### **Current Status (August 23, 2025)**
 
-#### **✅ COMPLETED: Dashboard Performance Optimization**
+#### **✅ COMPLETED: Position Limit Enforcement & P&L Fixes**
 
-**Major Achievement**: Successfully resolved critical dashboard timeout issues affecting 90+ symbols by implementing a pre-calculation service with cache tables.
+**Major Achievements**: Successfully enforced position limits per strategy and fixed P&L calculation errors.
 
 **What We Accomplished Today:**
 
-1. **Dashboard Timeout Crisis Resolved** ✅
-   - Identified root cause: Complex real-time queries on 2.8M row table
-   - Rejected quick fix (mock data) in favor of proper solution
+1. **Position Limit Enforcement** ✅
+   - Identified over-allocation: 126 positions (125 CHANNEL, 1 DCA)
+   - Created `scripts/close_worst_positions.py` to analyze and close positions
+   - Closed 75 worst performing CHANNEL positions (P&L impact: -$15.95)
+   - Added per-strategy position limits to SimplePaperTraderV2
+   - Updated all configurations: 50 positions per strategy, 150 total
+
+2. **P&L Calculation Fixes** ✅
+   - Fixed dashboard to use weighted averages instead of summing percentages
+   - Corrected Realized P&L: `total_pnl_dollar / total_position_size`
+   - Corrected Unrealized P&L: `unrealized_pnl_dollar / unrealized_position_size`
+   - Now properly tracks position sizes for accurate calculations
+
+3. **Dashboard Performance Optimization** ✅
+   - Resolved critical dashboard timeout issues affecting 90+ symbols
    - Created cache tables `strategy_status_cache` and `market_summary_cache`
    - Built pre-calculation service processing all 94 symbols
    - Achieved 80x+ performance improvement (8s → 0.1s)
-
-2. **Pre-Calculator Service Deployed** ✅
-   - Created `scripts/strategy_precalculator.py`
-   - Processes 88 available symbols in ~5 seconds
-   - Updates cache every 5 minutes automatically
-   - Uses smart upsert to handle duplicate entries
    - Ready for Railway deployment as "System - Pre-Calculator"
 
-3. **Code Quality Maintained** ✅
+4. **Code Quality Maintained** ✅
    - Fixed all Black formatting issues (88 char line length)
-   - Resolved all flake8 linting errors (E402, F401, W293)
+   - Resolved all flake8 linting errors (E402, F401, W293, E501, E722)
    - Ensured pre-commit hooks pass
    - Pushed clean code to GitHub repository
 
