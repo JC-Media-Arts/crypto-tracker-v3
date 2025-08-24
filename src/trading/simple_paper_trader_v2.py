@@ -3,6 +3,7 @@ Enhanced Paper Trading System with Adaptive Exit Rules and Database Persistence
 """
 
 import json
+import os
 import random
 import string
 from datetime import datetime
@@ -75,7 +76,11 @@ class SimplePaperTraderV2:
         initial_balance: float = 10000.0,
         max_positions: int = 50,
         max_positions_per_strategy: int = 50,
+        config_path: str = "configs/paper_trading.json",
     ):
+        # Load configuration
+        self.config = self._load_config(config_path)
+        
         self.initial_balance = initial_balance
         self.balance = initial_balance
         self.positions: Dict[str, Position] = {}
@@ -84,8 +89,8 @@ class SimplePaperTraderV2:
         self.max_positions = max_positions  # Total max positions
         self.max_positions_per_strategy = max_positions_per_strategy  # Max per strategy
 
-        # Kraken taker fee
-        self.base_fee_rate = 0.0026  # 0.26%
+        # Load fee from config
+        self.base_fee_rate = self.config.get("fees", {}).get("kraken_taker", 0.0026)
 
         # Initialize Slack notifier
         self.notifier = None
@@ -94,36 +99,23 @@ class SimplePaperTraderV2:
         except Exception as e:
             logger.warning(f"Could not initialize Slack notifier: {e}")
 
-        # Market cap tiers for adaptive rules
-        self.large_cap = ["BTC", "ETH"]
-        self.mid_cap = [
-            "SOL",
-            "BNB",
-            "XRP",
-            "ADA",
-            "AVAX",
-            "DOT",
-            "LINK",
-            "ATOM",
-            "UNI",
-            "NEAR",
-            "ICP",
-            "ARB",
-            "OP",
-            "AAVE",
-            "CRV",
-            "MKR",
-            "LDO",
-            "SUSHI",
-            "COMP",
-        ]
+        # Load market cap tiers from config
+        market_cap_config = self.config.get("market_cap_tiers", {})
+        self.large_cap = market_cap_config.get("large_cap", ["BTC", "ETH"])
+        self.mid_cap = market_cap_config.get(
+            "mid_cap",
+            [
+                "SOL", "BNB", "XRP", "ADA", "AVAX", "DOT",
+                "LINK", "ATOM", "UNI", "NEAR", "ICP", "ARB",
+                "OP", "AAVE", "CRV", "MKR", "LDO", "SUSHI", "COMP",
+            ],
+        )
 
-        # Slippage rates by market cap
-        self.slippage_rates = {
-            "large": 0.0008,
-            "mid": 0.0015,
-            "small": 0.0035,
-        }  # 0.08%  # 0.15%  # 0.35%
+        # Load slippage rates from config
+        self.slippage_rates = self.config.get(
+            "slippage_rates",
+            {"large": 0.0008, "mid": 0.0015, "small": 0.0035},
+        )
 
         # Stats tracking
         self.total_trades = 0
@@ -144,6 +136,23 @@ class SimplePaperTraderV2:
         self.trades_file = Path("data/paper_trading_trades.json")
         self.load_state()
 
+    def _load_config(self, config_path: str) -> Dict:
+        """Load configuration from JSON file"""
+        if os.path.exists(config_path):
+            try:
+                with open(config_path, "r") as f:
+                    return json.load(f)
+            except Exception as e:
+                logger.warning(f"Failed to load config from {config_path}: {e}")
+        
+        # Return default config if file doesn't exist or can't be loaded
+        return {
+            "strategies": {},
+            "fees": {"kraken_taker": 0.0026},
+            "slippage_rates": {"large": 0.0008, "mid": 0.0015, "small": 0.0035},
+            "market_cap_tiers": {},
+        }
+
     def get_market_cap_tier(self, symbol: str) -> str:
         """Get market cap tier for adaptive rules"""
         if symbol in self.large_cap:
@@ -161,7 +170,19 @@ class SimplePaperTraderV2:
         """
         tier = self.get_market_cap_tier(symbol)
         strategy_lower = strategy.lower()
+        strategy_upper = strategy.upper()
 
+        # Try to get exits from config first
+        strategy_config = self.config.get("strategies", {}).get(strategy_upper, {})
+        if "exits_by_tier" in strategy_config:
+            exits_config = strategy_config["exits_by_tier"].get(tier, {})
+            if exits_config:
+                logger.debug(f"Using config exits for {symbol}/{strategy}: {exits_config}")
+                return exits_config
+
+        # Fallback to hardcoded defaults if not in config
+        logger.debug(f"Using hardcoded exits for {symbol}/{strategy} (config not found)")
+        
         # Comprehensive exit rules by tier and strategy
         exits = {
             "large_cap": {

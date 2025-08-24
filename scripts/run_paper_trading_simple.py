@@ -55,6 +55,7 @@ class SimplifiedPaperTradingSystem:
             initial_balance=1000.0,
             max_positions=150,  # Total max positions (50 per strategy × 3 strategies)
             max_positions_per_strategy=50,  # Max 50 positions per strategy
+            config_path="configs/paper_trading.json",  # Load all thresholds from config
         )
 
         # Initialize notifier for system-level alerts
