@@ -5,7 +5,8 @@ PAPER_TRADING_CONFIG = {
     "min_signal_strength": 0.6,
     "required_confirmations": 2,
     "position_size_multiplier": 1.5,
-    "max_positions": 5,
+    "max_positions": 50,  # Total max positions across all strategies
+    "max_positions_per_strategy": 50,  # Max positions per individual strategy
     "risk_per_trade": 0.02,
     "stop_loss_percentage": 0.02,
     "take_profit_percentage": 0.05,

@@ -9,23 +9,21 @@ Enhanced Paper Trading System with Adaptive Exit Rules
 """
 
 import asyncio
-import os
 import sys
 from pathlib import Path
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional
+from datetime import datetime
+from typing import Dict, List
 from loguru import logger
 import signal
 
 # Add project root to path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from src.strategies.manager import StrategyManager
-from src.data.hybrid_fetcher import HybridDataFetcher
-from src.trading.simple_paper_trader_v2 import SimplePaperTraderV2
-from src.config.settings import Settings
-from src.data.supabase_client import SupabaseClient
-from src.notifications.paper_trading_notifier import PaperTradingNotifier
+from src.strategies.manager import StrategyManager  # noqa: E402
+from src.data.hybrid_fetcher import HybridDataFetcher  # noqa: E402
+from src.trading.simple_paper_trader_v2 import SimplePaperTraderV2  # noqa: E402
+from src.config.settings import Settings  # noqa: E402
+from src.notifications.paper_trading_notifier import PaperTradingNotifier  # noqa: E402
 
 
 class PaperTradingSystem:
@@ -38,7 +36,8 @@ class PaperTradingSystem:
         self.data_fetcher = HybridDataFetcher()
         self.paper_trader = SimplePaperTraderV2(
             initial_balance=1000.0,
-            max_positions=50,  # Increased from 30 to allow more concurrent trades
+            max_positions=150,  # Total max positions (50 per strategy × 3 strategies)
+            max_positions_per_strategy=50,  # Max 50 positions per strategy
         )
 
         # Initialize notifier for system-level alerts
@@ -79,9 +78,9 @@ class PaperTradingSystem:
         logger.info(f"   Balance: ${self.paper_trader.balance:.2f}")
         logger.info(f"   Position Size: ${self.position_size}")
         logger.info(f"   Max Positions: {self.paper_trader.max_positions}")
-        logger.info(f"   Exit Rules: Adaptive by Market Cap")
+        logger.info("   Exit Rules: Adaptive by Market Cap")
         logger.info(f"   Timeout: {self.max_position_duration_hours} hours (3 days)")
-        logger.info(f"   Data: 1-minute candles for faster signals")
+        logger.info("   Data: 1-minute candles for faster signals")
         logger.info("=" * 80)
 
     def get_symbols(self) -> List[str]:
@@ -250,44 +249,44 @@ class PaperTradingSystem:
 
         return prices
 
-    async def execute_signal(self, signal, market_data: Dict) -> None:
+    async def execute_signal(self, trade_signal, market_data: Dict) -> None:
         """Execute a trading signal"""
         try:
             # Skip if we already have a position
-            if signal.symbol in self.paper_trader.positions:
-                logger.debug(f"Already have position in {signal.symbol}")
+            if trade_signal.symbol in self.paper_trader.positions:
+                logger.debug(f"Already have position in {trade_signal.symbol}")
                 return
 
             # Get current price
             current_price = None
-            if signal.symbol in market_data:
-                data = market_data[signal.symbol]
+            if trade_signal.symbol in market_data:
+                data = market_data[trade_signal.symbol]
                 if hasattr(data, "iloc"):
                     current_price = float(data.iloc[-1]["close"])
                 elif isinstance(data, list):
                     current_price = float(data[-1]["close"])
 
             if not current_price:
-                logger.warning(f"No price data for {signal.symbol}")
+                logger.warning(f"No price data for {trade_signal.symbol}")
                 return
 
             # Open position with adaptive exits
             result = await self.paper_trader.open_position(
-                symbol=signal.symbol,
+                symbol=trade_signal.symbol,
                 usd_amount=self.position_size,
                 market_price=current_price,
-                strategy=signal.strategy_type.value,
+                strategy=trade_signal.strategy_type.value,
                 use_adaptive=self.use_adaptive_exits,  # Use adaptive exits
             )
 
             # Handle both old format (None/bool) and new format (dict)
             if result and isinstance(result, dict) and result.get("success"):
                 logger.info(
-                    f"✅ Opened {signal.strategy_type.value} position for {signal.symbol}"
+                    f"✅ Opened {trade_signal.strategy_type.value} position for {trade_signal.symbol}"
                 )
             elif result is True:  # Old format compatibility
                 logger.info(
-                    f"✅ Opened {signal.strategy_type.value} position for {signal.symbol}"
+                    f"✅ Opened {trade_signal.strategy_type.value} position for {trade_signal.symbol}"
                 )
             else:
                 error_msg = (
@@ -296,11 +295,11 @@ class PaperTradingSystem:
                     else "Position opening failed"
                 )
                 logger.warning(
-                    f"Failed to open position for {signal.symbol}: {error_msg}"
+                    f"Failed to open position for {trade_signal.symbol}: {error_msg}"
                 )
 
         except Exception as e:
-            logger.error(f"Error executing signal for {signal.symbol}: {e}")
+            logger.error(f"Error executing signal for {trade_signal.symbol}: {e}")
 
     async def check_and_close_positions(self, market_data: Dict) -> None:
         """Check and close positions based on exit conditions"""
@@ -353,9 +352,9 @@ class PaperTradingSystem:
 
                 # Execute signals (only if we have room for more positions)
                 if stats["positions"] < stats["max_positions"]:
-                    for signal in signals:
-                        if signal.symbol not in self.paper_trader.positions:
-                            await self.execute_signal(signal, market_data)
+                    for trade_signal in signals:
+                        if trade_signal.symbol not in self.paper_trader.positions:
+                            await self.execute_signal(trade_signal, market_data)
 
                 # Check and close positions
                 await self.check_and_close_positions(market_data)
@@ -383,9 +382,11 @@ class PaperTradingSystem:
                             )
                             trailing_info = f" | Trail: ${trailing_stop_price:.4f}"
 
-                        logger.info(
-                            f"   {emoji} {symbol}: Entry ${position.entry_price:.4f} → ${current_price:.4f} ({pnl_pct:+.2f}%){trailing_info}"
+                        msg = (
+                            f"   {emoji} {symbol}: Entry ${position.entry_price:.4f} → "
+                            f"${current_price:.4f} ({pnl_pct:+.2f}%){trailing_info}"
                         )
+                        logger.info(msg)
 
                 # Summary every 5 trades
                 if (
@@ -412,7 +413,7 @@ class PaperTradingSystem:
                                 "Error": str(e)[:200],
                             },  # Truncate long errors
                         )
-                    except:
+                    except Exception:
                         pass  # Don't let notification errors crash the loop
 
             # Wait for next scan
@@ -517,7 +518,7 @@ async def main():
                     error_message="Paper trading system crashed",
                     details={"Error": str(e)[:500], "Component": "Main Process"},
                 )
-            except:
+            except Exception:
                 pass
 
 

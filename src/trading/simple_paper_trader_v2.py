@@ -70,15 +70,19 @@ class SimplePaperTraderV2:
     - Small-cap: TP 7-15%, SL 10-12%, Trail 6%
     """
 
-    def __init__(self, initial_balance: float = 10000.0, max_positions: int = 50):
+    def __init__(
+        self,
+        initial_balance: float = 10000.0,
+        max_positions: int = 50,
+        max_positions_per_strategy: int = 50,
+    ):
         self.initial_balance = initial_balance
         self.balance = initial_balance
         self.positions: Dict[str, Position] = {}
         self.trades: List[Trade] = []
         self.pending_orders: Dict[str, dict] = {}
-        self.max_positions = (
-            max_positions  # Increased to 50 for more trading opportunities
-        )
+        self.max_positions = max_positions  # Total max positions
+        self.max_positions_per_strategy = max_positions_per_strategy  # Max per strategy
 
         # Kraken taker fee
         self.base_fee_rate = 0.0026  # 0.26%
@@ -294,6 +298,19 @@ class SimplePaperTraderV2:
             return {
                 "success": False,
                 "error": f"Max {self.max_positions} positions reached",
+            }
+
+        # Check strategy-specific position limit
+        strategy_positions = sum(
+            1 for p in self.positions.values() if p.strategy == strategy
+        )
+        if strategy_positions >= self.max_positions_per_strategy:
+            logger.warning(
+                f"Max {strategy} positions limit reached ({self.max_positions_per_strategy})"
+            )
+            return {
+                "success": False,
+                "error": f"Max {self.max_positions_per_strategy} {strategy} positions reached",
             }
 
         # Check balance

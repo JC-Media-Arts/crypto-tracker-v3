@@ -52,7 +52,9 @@ class SimplifiedPaperTradingSystem:
         # Initialize components
         self.data_fetcher = HybridDataFetcher()
         self.paper_trader = SimplePaperTraderV2(
-            initial_balance=1000.0, max_positions=50
+            initial_balance=1000.0,
+            max_positions=150,  # Total max positions (50 per strategy × 3 strategies)
+            max_positions_per_strategy=50,  # Max 50 positions per strategy
         )
 
         # Initialize notifier for system-level alerts
