@@ -138,6 +138,8 @@ Last Updated: January 2025
     - Market cap tier definitions
     - Fees and slippage rates
     - **Updated 1/24**: Applied conservative CHANNEL thresholds (TP 1.5-2.5%, SL 2-3%)
+    - **Updated 1/24**: Adjusted thresholds to account for costs (TP 2.0-3.0%, SL 2-3%)
+    - **Updated 1/24**: Conservative fee/slippage (0.3% taker fee, 0.15-0.5% slippage)
   - `configs/logging.yaml` ✅ (Logging config)
   - `railway.json` ✅ (Railway deployment)
   - `.env` (Local environment)
@@ -1311,6 +1313,9 @@ crypto-tracker-v3/
 | 1/24 | Having both paper_trades and trade_logs tables was redundant and confusing | Unified to single paper_trades table with ML tracking columns |
 | 1/24 | ML Retrainer couldn't see completed trades (looking in wrong table) | Updated retrainer to use paper_trades, found 102 CHANNEL trades ready for training |
 | 1/24 | Manually closed trades (POSITION_LIMIT_CLEANUP) would confuse ML training | Excluded manual closes from ML training data |
+| 1/24 | Tighter thresholds increase trading frequency, providing more ML training data | Applied conservative CHANNEL thresholds, seeing immediate increase in trades |
+| 1/24 | Must account for realistic trading costs to ensure profitability | Implemented conservative fee (0.3%) and slippage (0.15-0.5%) estimates |
+| 1/24 | Thin profit margins require threshold adjustments | Adjusted CHANNEL TP from 1.5-2.5% to 2.0-3.0% to ensure >1% net profit after costs |
 | 8/16 | ML needs good strategies to optimize, not random predictions | Pivoted to strategy-first approach |
 | 8/16 | Fixed 10% take profit doesn't work for all coins (0% hit rate for BTC) | Implemented adaptive targets by market cap |
 | 8/16 | RSI < 30 shows 70% win rate vs 0% for RSI > 50 | Added RSI as key feature for ML model |
@@ -1520,9 +1525,13 @@ else:
 2. **Applied Conservative Thresholds** ✅
    - Ran backtest analysis on 102 completed CHANNEL trades
    - Implemented data-backed conservative thresholds:
-     - Large cap: TP 1.5%, SL 2%, Trail 0.5%
-     - Mid cap: TP 2%, SL 2.5%, Trail 0.7%
-     - Small cap: TP 2.5%, SL 3%, Trail 1%
+     - Initial: Large cap: TP 1.5%, SL 2%, Trail 0.5%
+     - Initial: Mid cap: TP 2%, SL 2.5%, Trail 0.7%
+     - Initial: Small cap: TP 2.5%, SL 3%, Trail 1%
+   - **Further adjusted for conservative fee/slippage estimates**:
+     - Final: Large cap: TP 2.0%, SL 2%, Trail 0.5% (ensures >1% net profit)
+     - Final: Mid cap: TP 2.5%, SL 2.5%, Trail 0.7% (ensures >1.4% net profit)
+     - Final: Small cap: TP 3.0%, SL 3%, Trail 1% (ensures >1.4% net profit)
    - Expected to significantly improve win rate by capturing profits earlier
 
 3. **Centralized Configuration System** ✅
@@ -1531,6 +1540,18 @@ else:
    - Includes market cap tiers, fees, and slippage rates
    - SimplePaperTraderV2 loads config on startup with graceful fallback
    - Added comprehensive documentation in `configs/README.md`
+
+4. **Conservative Trading Cost Estimates** ✅
+   - **Fees**: Increased to 0.3% taker fee (from 0.26%) for conservative buffer
+   - **Slippage**: Increased significantly to account for real market conditions
+     - Large cap: 0.15% (was 0.08%) - +87% increase
+     - Mid cap: 0.25% (was 0.15%) - +67% increase
+     - Small cap: 0.50% (was 0.35%) - +43% increase
+   - **Total Round-Trip Costs**:
+     - Large cap: 0.90% (0.60% fees + 0.30% slippage)
+     - Mid cap: 1.10% (0.60% fees + 0.50% slippage)
+     - Small cap: 1.60% (0.60% fees + 1.00% slippage)
+   - **Impact**: Ensures all trades have realistic profit margins after costs
 
 **Benefits**:
 - ✅ No more hunting through code to change thresholds
