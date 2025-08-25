@@ -365,6 +365,28 @@ PAPER_TRADING_TEMPLATE = r"""
 <h1 class="page-title">Paper Trading Dashboard</h1>
 <p class="subtitle">Live paper trading performance and positions</p>
 
+<!-- Engine Status Indicator -->
+<div id="engineStatus" style="position: fixed; top: 80px; right: 200px; display: flex; align-items: center; gap: 8px; background: rgba(30, 41, 59, 0.9); padding: 8px 16px; border-radius: 8px; border: 1px solid rgba(148, 163, 184, 0.2);">
+    <div id="statusLight" style="width: 12px; height: 12px; border-radius: 50%; background: #fbbf24;"></div>
+    <span id="statusText" style="font-size: 0.875rem; color: #94a3b8;">Checking...</span>
+</div>
+
+<!-- Trade Filter -->
+<div style="display: flex; justify-content: center; gap: 20px; margin-bottom: 25px; padding: 15px; background: rgba(30, 41, 59, 0.5); backdrop-filter: blur(10px); border: 1px solid rgba(148, 163, 184, 0.1); border-radius: 12px;">
+    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+        <input type="radio" name="tradeFilter" value="open" id="filterOpen" checked>
+        <span style="color: #e2e8f0;">Open Trades Only</span>
+    </label>
+    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+        <input type="radio" name="tradeFilter" value="all" id="filterAll">
+        <span style="color: #e2e8f0;">Open & Closed Trades</span>
+    </label>
+    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+        <input type="radio" name="tradeFilter" value="closed" id="filterClosed">
+        <span style="color: #e2e8f0;">Closed Trades Only</span>
+    </label>
+</div>
+
 <!-- Portfolio Stats -->
 <div class="stats-container" id="portfolioStats">
     <div class="stat-card">
@@ -372,8 +394,16 @@ PAPER_TRADING_TEMPLATE = r"""
         <div class="stat-value neutral" id="currentBalance">Loading...</div>
     </div>
     <div class="stat-card">
-        <div class="stat-label">Total P&L</div>
+        <div class="stat-label">Total Investment</div>
+        <div class="stat-value neutral" id="totalInvestment">Loading...</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Total P&L $</div>
         <div class="stat-value" id="totalPnl">Loading...</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Total P&L %</div>
+        <div class="stat-value" id="totalPnlPct">Loading...</div>
     </div>
     <div class="stat-card">
         <div class="stat-label">Win Rate</div>
@@ -395,24 +425,29 @@ PAPER_TRADING_TEMPLATE = r"""
             <tr>
                 <th>Symbol</th>
                 <th>Strategy</th>
+                <th>Amount</th>
                 <th>Entry Price</th>
+                <th>DCA Status</th>
                 <th>Current Price</th>
                 <th>P&L %</th>
                 <th>P&L $</th>
                 <th>Duration</th>
-                <th>Status</th>
+                <th>SL</th>
+                <th>TP</th>
+                <th>TS</th>
+                <th>Exit Reason</th>
             </tr>
         </thead>
         <tbody id="openPositionsTable">
-            <tr><td colspan="8" style="text-align: center;">Loading positions...</td></tr>
+            <tr><td colspan="13" style="text-align: center;">Loading positions...</td></tr>
         </tbody>
     </table>
 </div>
 
-<!-- Recent Trades Table -->
-<div class="table-container">
+<!-- Closed Trades Table (Hidden by default, shown based on filter) -->
+<div class="table-container" id="closedTradesContainer" style="display: none;">
     <div class="table-header">
-        <h2 class="table-title">Recent Closed Trades</h2>
+        <h2 class="table-title">Closed Trades</h2>
     </div>
     <table>
         <thead>
@@ -471,11 +506,11 @@ STRATEGIES_TEMPLATE = r"""
             <tr>
                 <th>Strategy</th>
                 <th>Symbol</th>
-                <th>Signal Strength</th>
+                <th>Readiness</th>
                 <th>Confidence</th>
                 <th>Current Price</th>
-                <th>Target</th>
-                <th>Notes</th>
+                <th>Status</th>
+                <th>Details</th>
             </tr>
         </thead>
         <tbody id="strategySignalsTable">
@@ -522,19 +557,19 @@ MARKET_TEMPLATE = r"""
 <!-- Market Protection Stats -->
 <div class="stats-container">
     <div class="stat-card">
-        <div class="stat-label">Market Regime</div>
+        <div class="stat-label">Protection Level</div>
         <div class="stat-value" id="marketRegime">Loading...</div>
     </div>
     <div class="stat-card">
-        <div class="stat-label">24h Volatility</div>
+        <div class="stat-label">Market Volatility</div>
         <div class="stat-value" id="volatility24h">Loading...</div>
     </div>
     <div class="stat-card">
-        <div class="stat-label">BTC 24h Change</div>
+        <div class="stat-label">BTC Movement</div>
         <div class="stat-value" id="btc24hChange">Loading...</div>
     </div>
     <div class="stat-card">
-        <div class="stat-label">Protected Symbols</div>
+        <div class="stat-label">Symbols on Cooldown</div>
         <div class="stat-value" id="protectedSymbols">Loading...</div>
     </div>
 </div>
@@ -580,10 +615,10 @@ MARKET_TEMPLATE = r"""
     </table>
 </div>
 
-<!-- Market Summary -->
+<!-- Trading Sentiment -->
 <div class="table-container">
     <div class="table-header">
-        <h2 class="table-title">Market Summary</h2>
+        <h2 class="table-title">Trading Sentiment</h2>
     </div>
     <div style="padding: 20px;">
         <div id="marketSummaryContent">
@@ -602,10 +637,10 @@ MARKET_TEMPLATE = r"""
             <tr>
                 <th>Symbol</th>
                 <th>Price</th>
-                <th>24h Change</th>
+                <th>Readiness</th>
                 <th>Volume</th>
-                <th>Market Cap Tier</th>
-                <th>Status</th>
+                <th>Type</th>
+                <th>Signal</th>
             </tr>
         </thead>
         <tbody id="topMoversTable">
@@ -618,33 +653,78 @@ MARKET_TEMPLATE = r"""
 # JavaScript for Paper Trading page
 PAPER_TRADING_SCRIPTS = r"""
 <script>
+let allTradesData = { open_trades: [], trades: [], stats: {} };
+let currentFilter = 'open';
+
+async function checkEngineStatus() {
+    try {
+        const response = await fetch('/api/engine-status');
+        const data = await response.json();
+
+        const statusLight = document.getElementById('statusLight');
+        const statusText = document.getElementById('statusText');
+
+        if (data.running) {
+            statusLight.style.background = '#10b981'; // green
+            statusText.textContent = 'Paper Trading Active';
+            statusText.style.color = '#10b981';
+        } else {
+            statusLight.style.background = '#ef4444'; // red
+            statusText.textContent = 'Paper Trading Stopped';
+            statusText.style.color = '#ef4444';
+        }
+    } catch (error) {
+        const statusLight = document.getElementById('statusLight');
+        const statusText = document.getElementById('statusText');
+        statusLight.style.background = '#fbbf24'; // yellow
+        statusText.textContent = 'Status Unknown';
+        statusText.style.color = '#fbbf24';
+    }
+}
+
 async function fetchTrades() {
     try {
         const response = await fetch('/api/trades');
         const data = await response.json();
+        allTradesData = data;
 
-        // Update portfolio stats
+        // Always update constant stats
         document.getElementById('currentBalance').textContent =
             `$${(data.stats.starting_capital + data.stats.total_pnl_dollar).toFixed(2)}`;
 
-        const pnlElement = document.getElementById('totalPnl');
-        pnlElement.textContent = `$${data.stats.total_pnl_dollar.toFixed(2)}`;
-        pnlElement.className = `stat-value ${data.stats.total_pnl_dollar >= 0 ? 'positive' : 'negative'}`;
-
-        const winRateElement = document.getElementById('winRate');
-        winRateElement.textContent = `${data.stats.win_rate.toFixed(1)}%`;
-        winRateElement.className = `stat-value ${data.stats.win_rate >= 50 ? 'positive' : 'negative'}`;
+        document.getElementById('totalInvestment').textContent =
+            `$${data.stats.starting_capital.toFixed(2)}`;
 
         document.getElementById('openPositions').textContent = data.stats.open_count;
 
-        // Update open positions table
-        const openTable = document.getElementById('openPositionsTable');
+        // Update filtered view
+        updateFilteredView();
+    } catch (error) {
+        console.error('Error fetching trades:', error);
+    }
+}
+
+function updateFilteredView() {
+    const data = allTradesData;
+    const openTable = document.getElementById('openPositionsTable');
+    const closedTable = document.getElementById('closedTradesTable');
+
+    // Calculate stats based on filter
+    let filteredPnl = 0;
+    let winCount = 0;
+    let lossCount = 0;
+    let totalTrades = 0;
+
+    if (currentFilter === 'open' || currentFilter === 'all') {
+        // Show open positions
         if (data.open_trades && data.open_trades.length > 0) {
             openTable.innerHTML = data.open_trades.map(trade => `
                 <tr>
                     <td style="font-weight: 600;">${trade.symbol}</td>
                     <td><span class="badge badge-strategy">${trade.strategy}</span></td>
+                    <td>${trade.amount ? trade.amount.toFixed(6) : 'N/A'}</td>
                     <td>$${trade.entry_price.toFixed(4)}</td>
+                    <td>${trade.dca_status || '-'}</td>
                     <td>$${trade.current_price ? trade.current_price.toFixed(4) : 'N/A'}</td>
                     <td class="${trade.unrealized_pnl_pct >= 0 ? 'positive' : 'negative'}">
                         ${trade.unrealized_pnl_pct.toFixed(2)}%
@@ -653,16 +733,28 @@ async function fetchTrades() {
                         $${trade.unrealized_pnl.toFixed(2)}
                     </td>
                     <td>${trade.hold_time}</td>
-                    <td>${trade.exit_strategy || 'HOLDING'}</td>
+                    <td>${trade.sl_display || '<span style="color: #6b7280;">Not Set</span>'}</td>
+                    <td>${trade.tp_display || '<span style="color: #6b7280;">Not Set</span>'}</td>
+                    <td>${trade.ts_display || '<span style="color: #6b7280;">Not Set</span>'}</td>
+                    <td>${trade.exit_reason || '—'}</td>
                 </tr>
             `).join('');
-        } else {
-            openTable.innerHTML = '<tr><td colspan="8" style="text-align: center;">No open positions</td></tr>';
-        }
 
-        // Update closed trades table
-        const closedTable = document.getElementById('closedTradesTable');
-        const closedTrades = data.trades.filter(t => t.status === 'closed').slice(0, 10);
+            // Add unrealized P&L to stats if showing open
+            data.open_trades.forEach(trade => {
+                filteredPnl += trade.unrealized_pnl || 0;
+            });
+        } else {
+            openTable.innerHTML = '<tr><td colspan="13" style="text-align: center;">No open positions</td></tr>';
+        }
+        document.getElementById('openPositionsTable').parentElement.style.display = 'block';
+    } else {
+        document.getElementById('openPositionsTable').parentElement.style.display = 'none';
+    }
+
+    if (currentFilter === 'closed' || currentFilter === 'all') {
+        // Show closed trades
+        const closedTrades = data.trades ? data.trades.filter(t => t.status === 'closed') : [];
 
         if (closedTrades.length > 0) {
             closedTable.innerHTML = closedTrades.map(trade => `
@@ -681,18 +773,67 @@ async function fetchTrades() {
                     <td>${trade.hold_time}</td>
                 </tr>
             `).join('');
+
+            // Calculate stats for closed trades
+            closedTrades.forEach(trade => {
+                filteredPnl += trade.pnl || 0;
+                totalTrades++;
+                if (trade.pnl > 0) winCount++;
+                else lossCount++;
+            });
         } else {
             closedTable.innerHTML = '<tr><td colspan="8" style="text-align: center;">No closed trades yet</td></tr>';
         }
-
-    } catch (error) {
-        console.error('Error fetching trades:', error);
+        document.getElementById('closedTradesContainer').style.display = 'block';
+    } else {
+        document.getElementById('closedTradesContainer').style.display = 'none';
     }
+
+    // Update dynamic stats based on filter
+    const pnlElement = document.getElementById('totalPnl');
+    const pnlToShow = currentFilter === 'open' ? filteredPnl :
+                      currentFilter === 'closed' ? filteredPnl :
+                      data.stats.total_pnl_dollar + (filteredPnl || 0);
+    pnlElement.textContent = `$${pnlToShow.toFixed(2)}`;
+    pnlElement.className = `stat-value ${pnlToShow >= 0 ? 'positive' : 'negative'}`;
+
+    // Calculate P&L %
+    const pnlPctElement = document.getElementById('totalPnlPct');
+    const pnlPct = (pnlToShow / data.stats.starting_capital) * 100;
+    pnlPctElement.textContent = `${pnlPct.toFixed(2)}%`;
+    pnlPctElement.className = `stat-value ${pnlPct >= 0 ? 'positive' : 'negative'}`;
+
+    // Update win rate based on filter
+    const winRateElement = document.getElementById('winRate');
+    let winRate = 0;
+    if (currentFilter === 'closed' && totalTrades > 0) {
+        winRate = (winCount / totalTrades) * 100;
+    } else if (currentFilter === 'all') {
+        winRate = data.stats.win_rate || 0;
+    } else if (currentFilter === 'open') {
+        winRate = 0; // No win rate for open positions
+    }
+    winRateElement.textContent = `${winRate.toFixed(1)}%`;
+    winRateElement.className = `stat-value ${winRate >= 50 ? 'positive' : winRate > 0 ? 'neutral' : ''}`;
 }
 
-// Initial load and refresh
-fetchTrades();
-setInterval(fetchTrades, 10000); // Refresh every 10 seconds
+// Add event listeners for filters
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('input[name="tradeFilter"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            currentFilter = this.value;
+            updateFilteredView();
+        });
+    });
+
+    // Initial load
+    fetchTrades();
+    checkEngineStatus();
+
+    // Set up refresh intervals
+    setInterval(fetchTrades, 10000); // Refresh trades every 10 seconds
+    setInterval(checkEngineStatus, 30000); // Check engine status every 30 seconds
+});
 </script>
 """
 
@@ -712,33 +853,36 @@ async function fetchStrategyStatus() {
         ['dca', 'swing', 'channel'].forEach(strategy => {
             if (data[strategy] && data[strategy].candidates) {
                 data[strategy].candidates.forEach(candidate => {
+                    // Parse readiness percentage
+                    const readinessValue = parseFloat(candidate.readiness) || 0;
+
                     allSignals.push({
                         strategy: strategy.toUpperCase(),
                         symbol: candidate.symbol,
-                        strength: candidate.signal_strength || candidate.drop_pct || candidate.breakout_pct || 0,
-                        confidence: candidate.confidence || 0,
-                        price: candidate.current_price,
-                        target: candidate.target_price || 0,
-                        notes: candidate.reason || ''
+                        strength: readinessValue,  // Use readiness as strength
+                        confidence: readinessValue / 100,  // Convert to 0-1 scale
+                        price: candidate.price || 0,
+                        status: candidate.status || '',
+                        notes: candidate.details || ''
                     });
                 });
             }
         });
 
         if (allSignals.length > 0) {
-            // Sort by confidence
-            allSignals.sort((a, b) => b.confidence - a.confidence);
+            // Sort by readiness/strength
+            allSignals.sort((a, b) => b.strength - a.strength);
 
             signalsTable.innerHTML = allSignals.slice(0, 20).map(signal => `
                 <tr>
                     <td><span class="badge badge-strategy">${signal.strategy}</span></td>
                     <td style="font-weight: 600;">${signal.symbol}</td>
-                    <td>${signal.strength.toFixed(2)}%</td>
+                    <td>${signal.strength.toFixed(1)}%</td>
                     <td class="${signal.confidence >= 0.7 ? 'positive' : signal.confidence >= 0.5 ? 'neutral' : 'negative'}">
                         ${(signal.confidence * 100).toFixed(1)}%
                     </td>
                     <td>$${signal.price ? signal.price.toFixed(4) : 'N/A'}</td>
-                    <td>${signal.target ? `$${signal.target.toFixed(4)}` : 'N/A'}</td>
+                    <td>${signal.status}</td>
                     <td style="font-size: 0.85rem; color: #94a3b8;">${signal.notes}</td>
                 </tr>
             `).join('');
@@ -876,12 +1020,22 @@ async function fetchMarketData() {
         const response = await fetch('/api/market-summary');
         const data = await response.json();
 
-        // Update market summary
+        // Update trading sentiment
         const summaryDiv = document.getElementById('marketSummaryContent');
+        let conditionColor = '#60a5fa';
+        let conditionIcon = '📊';
+        if (data.condition === 'BULLISH') {
+            conditionColor = '#10b981';
+            conditionIcon = '📈';
+        } else if (data.condition === 'BEARISH') {
+            conditionColor = '#ef4444';
+            conditionIcon = '📉';
+        }
+
         summaryDiv.innerHTML = `
-            <h3 style="color: #60a5fa; margin-bottom: 10px;">Market Condition: ${data.condition}</h3>
-            <p style="color: #94a3b8; margin-bottom: 10px;">Best Strategy: <strong>${data.best_strategy}</strong></p>
-            <p style="color: #94a3b8;">${data.notes}</p>
+            <h3 style="color: ${conditionColor}; margin-bottom: 10px;">${conditionIcon} Trading Condition: ${data.condition}</h3>
+            <p style="color: #94a3b8; margin-bottom: 10px;">Recommended Strategy: <strong style="color: #60a5fa;">${data.best_strategy}</strong></p>
+            <p style="color: #94a3b8; font-size: 0.9rem;">${data.notes}</p>
         `;
 
         // Update top movers table
@@ -890,15 +1044,17 @@ async function fetchMarketData() {
             moversTable.innerHTML = data.top_movers.map(mover => `
                 <tr>
                     <td style="font-weight: 600;">${mover.symbol}</td>
-                    <td>$${mover.price.toFixed(4)}</td>
-                    <td class="${mover.change_24h >= 0 ? 'positive' : 'negative'}">
-                        ${mover.change_24h.toFixed(2)}%
+                    <td>$${mover.price ? mover.price.toFixed(4) : 'N/A'}</td>
+                    <td class="positive">
+                        ${mover.change_24h}%
                     </td>
-                    <td>$${(mover.volume / 1000000).toFixed(2)}M</td>
-                    <td>${mover.tier}</td>
-                    <td>${mover.tradeable ? '✅' : '🔒'}</td>
+                    <td>${mover.volume}</td>
+                    <td>${mover.market_cap}</td>
+                    <td>${mover.status}</td>
                 </tr>
             `).join('');
+        } else {
+            document.getElementById('topMoversTable').innerHTML = '<tr><td colspan="6" style="text-align: center;">No active market movers</td></tr>';
         }
 
     } catch (error) {
@@ -957,6 +1113,62 @@ def market():
     )
 
 
+@app.route("/api/engine-status")
+def get_engine_status():
+    """Check if paper trading engine is running"""
+    try:
+        # If running on Railway, check database for recent activity
+        if os.environ.get("RAILWAY_ENVIRONMENT"):
+            # Check for recent trades or scan history entries (within last 30 minutes)
+            db = SupabaseClient()
+            thirty_minutes_ago = (
+                datetime.now(timezone.utc) - timedelta(minutes=30)
+            ).isoformat()
+
+            # Check for recent scan history (paper trading logs scans frequently)
+            result = (
+                db.client.table("scan_history")
+                .select("timestamp")
+                .gte("timestamp", thirty_minutes_ago)
+                .limit(1)
+                .execute()
+            )
+
+            # If we have recent scans, paper trading is running
+            paper_trading_running = bool(result.data)
+
+            # Also check for recent trades as backup
+            if not paper_trading_running:
+                trade_result = (
+                    db.client.table("paper_trades")
+                    .select("created_at")
+                    .gte("created_at", thirty_minutes_ago)
+                    .limit(1)
+                    .execute()
+                )
+                paper_trading_running = bool(trade_result.data)
+
+            return jsonify({"running": paper_trading_running, "source": "railway"})
+        else:
+            # Local check - look for process
+            import subprocess
+
+            result = subprocess.run(
+                ["pgrep", "-f", "run_paper_trading"], capture_output=True, text=True
+            )
+            is_running = bool(result.stdout.strip())
+
+            return jsonify(
+                {
+                    "running": is_running,
+                    "pid": result.stdout.strip() if is_running else None,
+                }
+            )
+    except Exception as e:
+        logger.error(f"Error checking engine status: {e}")
+        return jsonify({"running": False, "error": str(e)})
+
+
 @app.route("/api/market-protection")
 def get_market_protection():
     """API endpoint for market protection status"""
@@ -967,14 +1179,53 @@ def get_market_protection():
         # Get trade limiter stats
         limiter_stats = trade_limiter.get_limiter_stats()
 
+        # Try to get actual BTC data from database
+        btc_24h_change = 0
+        volatility = 0
+        try:
+            db = SupabaseClient()
+
+            # Get recent BTC price data
+            now = datetime.now()
+            yesterday = now - timedelta(days=1)
+
+            btc_data = (
+                db.client.table("ohlc_data")
+                .select("close, timestamp")
+                .eq("symbol", "BTC")
+                .gte("timestamp", yesterday.isoformat())
+                .order("timestamp", desc=True)
+                .limit(100)
+                .execute()
+            )
+
+            if btc_data.data and len(btc_data.data) > 1:
+                latest_price = btc_data.data[0].get("close", 0)
+                oldest_price = btc_data.data[-1].get("close", 0)
+                if oldest_price > 0:
+                    btc_24h_change = (
+                        (latest_price - oldest_price) / oldest_price
+                    ) * 100
+
+                # Calculate volatility from price range
+                prices = [
+                    d.get("close", 0) for d in btc_data.data if d.get("close", 0) > 0
+                ]
+                if len(prices) > 1:
+                    volatility = ((max(prices) - min(prices)) / min(prices)) * 100
+
+        except Exception as e:
+            logger.debug(f"Could not get BTC data: {e}")
+
         # Format response
         response = {
             "regime": regime_stats["current_regime"],
             "btc_1h_change": regime_stats.get("btc_1h_change", 0) or 0,
             "btc_4h_change": regime_stats.get("btc_4h_change", 0) or 0,
-            "btc_24h_change": regime_stats.get("btc_24h_change", 0) or 0,
-            "volatility_24h": regime_stats.get("volatility_24h", 0) or 0,
-            "volatility_smoothed": regime_stats.get("volatility_smoothed", 0) or 0,
+            "btc_24h_change": btc_24h_change,
+            "volatility_24h": volatility,
+            "volatility_smoothed": regime_stats.get("volatility_smoothed", volatility)
+            or volatility,
             "disabled_strategies": list(regime_stats.get("disabled_strategies", [])),
             "strategy_info": {},
             "symbols_on_cooldown": [],
@@ -1000,37 +1251,37 @@ def get_market_protection():
                         "time_remaining": f"{hours}h {minutes}m",
                     }
 
-        # Add cooldown symbols
-        for symbol, until in limiter_stats["symbols_on_cooldown"].items():
-            time_remaining = (until - datetime.now()).total_seconds()
-            if time_remaining > 0:
-                hours = int(time_remaining // 3600)
-                minutes = int((time_remaining % 3600) // 60)
-                response["symbols_on_cooldown"].append(
-                    {
-                        "symbol": symbol,
-                        "reason": "Stop loss cooldown",
-                        "cooldown_until": until.strftime("%H:%M"),
-                        "time_remaining": f"{hours}h {minutes}m",
-                        "status": "COOLDOWN",
-                        "consecutive_stops": limiter_stats.get(
-                            "consecutive_stops", {}
-                        ).get(symbol, 0),
-                    }
-                )
+        # Add cooldown symbols (they come as a list of dicts)
+        cooldown_symbols = limiter_stats.get("symbols_on_cooldown", [])
+        if isinstance(cooldown_symbols, list):
+            for item in cooldown_symbols:
+                if isinstance(item, dict):
+                    response["symbols_on_cooldown"].append(
+                        {
+                            "symbol": item.get("symbol", "Unknown"),
+                            "reason": item.get("reason", "Stop loss cooldown"),
+                            "cooldown_until": "Active",
+                            "time_remaining": "Check limiter",
+                            "status": "COOLDOWN",
+                            "consecutive_stops": item.get("consecutive_stops", 0),
+                        }
+                    )
 
-        # Add banned symbols
-        for symbol in limiter_stats["symbols_banned"]:
-            response["symbols_banned"].append(
-                {
-                    "symbol": symbol,
-                    "reason": "3+ consecutive stops",
-                    "cooldown_until": "Manual reset required",
-                    "time_remaining": "∞",
-                    "status": "BANNED",
-                    "consecutive_stops": 3,
-                }
-            )
+        # Add banned symbols (they also come as a list of dicts)
+        banned_symbols = limiter_stats.get("symbols_banned", [])
+        if isinstance(banned_symbols, list):
+            for item in banned_symbols:
+                if isinstance(item, dict):
+                    response["symbols_banned"].append(
+                        {
+                            "symbol": item.get("symbol", "Unknown"),
+                            "reason": item.get("reason", "3+ consecutive stops"),
+                            "cooldown_until": "Manual reset required",
+                            "time_remaining": "∞",
+                            "status": "BANNED",
+                            "consecutive_stops": item.get("consecutive_stops", 3),
+                        }
+                    )
 
         return jsonify(response)
 
@@ -1055,35 +1306,58 @@ def get_market_summary():
     try:
         db = SupabaseClient()
 
-        # Try to get from cache first
+        # Get top movers from strategy cache
+        top_movers = []
         try:
-            cache_result = (
-                db.client.table("strategy_cache")
-                .select("*")
-                .eq("cache_key", "market_summary")
-                .single()
+            # Get top gainers from strategy status cache
+            gainers = (
+                db.client.table("strategy_status_cache")
+                .select("symbol, current_price, readiness, status, strategy_name")
+                .gte("readiness", 70)
+                .order("readiness", desc=True)
+                .limit(5)
                 .execute()
             )
 
-            if cache_result.data:
-                summary = cache_result.data.get("cache_value", {})
-                return jsonify(
-                    {
-                        "condition": summary.get("condition", "NORMAL"),
-                        "best_strategy": summary.get("best_strategy", "WAIT"),
-                        "notes": summary.get("notes", ""),
-                        "top_movers": [],  # Would need separate query for this
-                    }
-                )
-        except:
-            pass
+            if gainers.data:
+                for item in gainers.data:
+                    top_movers.append(
+                        {
+                            "symbol": item.get("symbol"),
+                            "price": item.get("current_price", 0),
+                            "change_24h": f"{item.get('readiness', 0):.1f}",  # Use readiness as proxy for momentum
+                            "volume": "N/A",
+                            "market_cap": "CRYPTO",
+                            "status": item.get("status", ""),
+                            "strategy": item.get("strategy_name", ""),
+                        }
+                    )
+        except Exception as e:
+            logger.debug(f"Could not get top movers: {e}")
+
+        # Determine overall market condition
+        condition = "NORMAL"
+        best_strategy = "WAIT"
+        total_symbols = len(top_movers)
+
+        if total_symbols > 0:
+            # If we have high readiness scores, market might be good
+            avg_readiness = sum(float(m["change_24h"]) for m in top_movers) / len(
+                top_movers
+            )
+            if avg_readiness > 80:
+                condition = "BULLISH"
+                best_strategy = "SWING"
+            elif avg_readiness > 70:
+                condition = "NORMAL"
+                best_strategy = "DCA"
 
         return jsonify(
             {
-                "condition": "CALCULATING",
-                "best_strategy": "WAIT",
-                "notes": "Market data being analyzed...",
-                "top_movers": [],
+                "condition": condition,
+                "best_strategy": best_strategy,
+                "notes": f"Monitoring {total_symbols} active signals",
+                "top_movers": top_movers,
             }
         )
 
@@ -1103,7 +1377,6 @@ def get_market_summary():
 @app.route("/api/trades")
 def get_trades():
     """API endpoint to get current trades data - using trade_group_id for proper grouping"""
-    from datetime import datetime, timezone
 
     try:
         db = SupabaseClient()
@@ -1193,8 +1466,10 @@ def get_trades():
                     earliest_buy = None
 
                     for buy in group_data["buys"]:
-                        cost = float(buy["position_size"])
-                        amount = float(buy["amount"])
+                        # Calculate position size from price and amount
+                        price = float(buy.get("price", 0))
+                        amount = float(buy.get("amount", 0))
+                        cost = price * amount  # Calculate position size in USD
                         total_cost += cost
                         total_amount += amount
                         if not earliest_buy:
@@ -1279,16 +1554,67 @@ def get_trades():
                         minutes = int((hold_duration.total_seconds() % 3600) / 60)
                         hold_time = f"{hours}h {minutes}m"
 
+                        # Get additional fields from the first buy trade
+                        stop_loss = earliest_buy.get("stop_loss")
+                        take_profit = earliest_buy.get("take_profit")
+                        trailing_stop = earliest_buy.get("trailing_stop_pct")
+
+                        # Calculate SL/TP/TS displays
+                        sl_display = None
+                        tp_display = None
+                        ts_display = None
+
+                        if stop_loss:
+                            sl_price = float(stop_loss)
+                            sl_pnl = (
+                                (sl_price - avg_entry_price) / avg_entry_price
+                            ) * 100
+                            sl_display = f"{unrealized_pnl_pct:.1f}% / {sl_pnl:.1f}%"
+
+                        if take_profit:
+                            tp_price = float(take_profit)
+                            tp_pnl = (
+                                (tp_price - avg_entry_price) / avg_entry_price
+                            ) * 100
+                            tp_display = f"{unrealized_pnl_pct:.1f}% / {tp_pnl:.1f}%"
+
+                        if trailing_stop:
+                            ts_pct = float(trailing_stop) * 100
+                            if take_profit:
+                                tp_price = float(take_profit)
+                                tp_pnl = (
+                                    (tp_price - avg_entry_price) / avg_entry_price
+                                ) * 100
+                                if unrealized_pnl_pct >= tp_pnl:
+                                    ts_display = f"🟢 Active: {unrealized_pnl_pct:.1f}% / -{ts_pct:.1f}%"
+                                else:
+                                    ts_display = (
+                                        f"⚪ Inactive (activates at TP: {tp_pnl:.1f}%)"
+                                    )
+
+                        # Determine DCA status
+                        dca_status = (
+                            "Single"
+                            if len(group_data["buys"]) == 1
+                            else f"DCA x{len(group_data['buys'])}"
+                        )
+
                         open_trades.append(
                             {
                                 "symbol": symbol,
                                 "strategy": strategy,
+                                "amount": total_amount,
                                 "entry_price": avg_entry_price,
+                                "dca_status": dca_status,
                                 "current_price": current_price,
                                 "unrealized_pnl": unrealized_pnl,
                                 "unrealized_pnl_pct": unrealized_pnl_pct,
                                 "hold_time": hold_time,
+                                "sl_display": sl_display,
+                                "tp_display": tp_display,
+                                "ts_display": ts_display,
                                 "position_size": total_cost,
+                                "exit_reason": "",  # Open positions don't have exit reason
                             }
                         )
 
@@ -1315,64 +1641,85 @@ def get_strategy_status():
 
         # Try to get from cache first
         try:
-            # Get DCA candidates
-            dca_result = (
-                db.client.table("strategy_cache")
+            # Get candidates by strategy name (readiness > 70 means ready)
+            dca_results = (
+                db.client.table("strategy_status_cache")
                 .select("*")
-                .eq("cache_key", "dca_candidates")
-                .single()
+                .eq("strategy_name", "DCA")
+                .gte("readiness", 70)  # Readiness score >= 70 means ready
+                .order("readiness", desc=True)
+                .limit(10)
                 .execute()
             )
 
-            if dca_result.data:
+            if dca_results.data:
                 strategy_status["dca"] = {
                     "name": "DCA",
-                    "thresholds": dca_result.data.get("cache_value", {}).get(
-                        "thresholds", {}
-                    ),
-                    "candidates": dca_result.data.get("cache_value", {}).get(
-                        "candidates", []
-                    )[:10],
+                    "thresholds": {},
+                    "candidates": [
+                        {
+                            "symbol": item.get("symbol"),
+                            "price": item.get("current_price", 0),
+                            "readiness": f"{item.get('readiness', 0):.1f}%",
+                            "status": item.get("status", ""),
+                            "details": item.get("details", {}),
+                        }
+                        for item in dca_results.data
+                    ],
                 }
 
             # Get Swing candidates
-            swing_result = (
-                db.client.table("strategy_cache")
+            swing_results = (
+                db.client.table("strategy_status_cache")
                 .select("*")
-                .eq("cache_key", "swing_candidates")
-                .single()
+                .eq("strategy_name", "SWING")
+                .gte("readiness", 70)  # Readiness score >= 70 means ready
+                .order("readiness", desc=True)
+                .limit(10)
                 .execute()
             )
 
-            if swing_result.data:
+            if swing_results.data:
                 strategy_status["swing"] = {
                     "name": "SWING",
-                    "thresholds": swing_result.data.get("cache_value", {}).get(
-                        "thresholds", {}
-                    ),
-                    "candidates": swing_result.data.get("cache_value", {}).get(
-                        "candidates", []
-                    )[:10],
+                    "thresholds": {},
+                    "candidates": [
+                        {
+                            "symbol": item.get("symbol"),
+                            "price": item.get("current_price", 0),
+                            "readiness": f"{item.get('readiness', 0):.1f}%",
+                            "status": item.get("status", ""),
+                            "details": item.get("details", {}),
+                        }
+                        for item in swing_results.data
+                    ],
                 }
 
             # Get Channel candidates
-            channel_result = (
-                db.client.table("strategy_cache")
+            channel_results = (
+                db.client.table("strategy_status_cache")
                 .select("*")
-                .eq("cache_key", "channel_candidates")
-                .single()
+                .eq("strategy_name", "CHANNEL")
+                .gte("readiness", 70)  # Readiness score >= 70 means ready
+                .order("readiness", desc=True)
+                .limit(10)
                 .execute()
             )
 
-            if channel_result.data:
+            if channel_results.data:
                 strategy_status["channel"] = {
                     "name": "CHANNEL",
-                    "thresholds": channel_result.data.get("cache_value", {}).get(
-                        "thresholds", {}
-                    ),
-                    "candidates": channel_result.data.get("cache_value", {}).get(
-                        "candidates", []
-                    )[:10],
+                    "thresholds": {},
+                    "candidates": [
+                        {
+                            "symbol": item.get("symbol"),
+                            "price": item.get("current_price", 0),
+                            "readiness": f"{item.get('readiness', 0):.1f}%",
+                            "status": item.get("status", ""),
+                            "details": item.get("details", {}),
+                        }
+                        for item in channel_results.data
+                    ],
                 }
 
         except Exception as e:
@@ -1386,8 +1733,6 @@ def get_strategy_status():
 
 
 if __name__ == "__main__":
-    import os
-
     # Get port from Railway or default to 8080 for local
     port = int(os.environ.get("PORT", 8080))
 
