@@ -7,21 +7,26 @@ from flask import Flask, render_template_string, jsonify
 import pytz
 import sys
 from pathlib import Path
+import json
+import os
+from datetime import datetime, timedelta
 
 sys.path.append(str(Path(__file__).parent))
 
 from src.data.supabase_client import SupabaseClient  # noqa: E402
 from loguru import logger  # noqa: E402
+from src.strategies.regime_detector import RegimeDetector  # noqa: E402
+from src.trading.trade_limiter import TradeLimiter  # noqa: E402
 
 app = Flask(__name__)
 
-HTML_TEMPLATE = r"""  # noqa: E501
+BASE_TEMPLATE = r"""  # noqa: E501
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Trading Dashboard</title>
+    <title>{{ title }} - Crypto Trading Dashboard</title>
     <style>
         * {
             margin: 0;

@@ -13,6 +13,7 @@ from loguru import logger
 from pathlib import Path
 from src.data.supabase_client import SupabaseClient
 from src.notifications.paper_trading_notifier import PaperTradingNotifier
+from src.strategies.regime_detector import RegimeDetector, MarketRegime
 
 
 @dataclass
@@ -98,6 +99,9 @@ class SimplePaperTraderV2:
             self.notifier = PaperTradingNotifier()
         except Exception as e:
             logger.warning(f"Could not initialize Slack notifier: {e}")
+
+        # Initialize regime detector for adaptive stop losses
+        self.regime_detector = RegimeDetector(enabled=True)
 
         # Load market cap tiers from config
         market_cap_config = self.config.get("market_cap_tiers", {})
@@ -275,6 +279,91 @@ class SimplePaperTraderV2:
         else:
             return self.slippage_rates["small"]
 
+    def get_adjusted_stop_loss(
+        self,
+        symbol: str,
+        base_stop_loss: float,
+        current_volatility: Optional[float] = None,
+    ) -> float:
+        """
+        Adjust stop loss based on market volatility and regime
+
+        Args:
+            symbol: Trading symbol
+            base_stop_loss: Base stop loss percentage (e.g., 0.05 for 5%)
+            current_volatility: Current 24h volatility percentage (optional)
+
+        Returns:
+            Adjusted stop loss percentage
+        """
+        # Get market protection config
+        market_protection = self.config.get("market_protection", {})
+        if not market_protection.get("stop_widening", {}).get("enabled", False):
+            return base_stop_loss
+
+        # Get current regime and volatility if not provided
+        if current_volatility is None:
+            volatility_24h = self.regime_detector.calculate_volatility(24)
+            current_volatility = volatility_24h if volatility_24h else 5.0  # Default 5%
+
+        current_regime = self.regime_detector.get_market_regime()
+
+        # Get tier for max caps
+        tier = self.get_market_cap_tier(symbol)
+        is_memecoin = symbol in self.config.get("market_cap_tiers", {}).get(
+            "memecoin", []
+        )
+
+        # Get tier-specific max cap
+        max_caps = market_protection.get("stop_widening", {}).get("max_caps", {})
+        if is_memecoin:
+            max_cap = 0.15  # 15% for memecoins
+        elif tier == "large_cap":
+            max_cap = max_caps.get("large_cap", 0.10)
+        elif tier == "mid_cap":
+            max_cap = max_caps.get("mid_cap", 0.12)
+        else:
+            max_cap = max_caps.get("small_cap", 0.15)
+
+        # Calculate volatility-based adjustment
+        vol_factor = market_protection.get("stop_widening", {}).get(
+            "volatility_factor", 0.5
+        )
+        adjusted_stop = base_stop_loss
+
+        if current_volatility > 5:  # Above 5% volatility
+            # For every 1% volatility above 5%, widen stop by vol_factor%
+            volatility_excess = current_volatility - 5
+            adjustment = (volatility_excess * vol_factor) / 100
+            adjusted_stop = base_stop_loss * (1 + adjustment)
+
+        # Apply regime-based multipliers
+        regime_multipliers = market_protection.get("stop_widening", {}).get(
+            "regime_multipliers", {}
+        )
+        if current_regime == MarketRegime.PANIC:
+            multiplier = regime_multipliers.get("PANIC", 2.0)
+            adjusted_stop = adjusted_stop * multiplier
+        elif current_regime == MarketRegime.CAUTION:
+            multiplier = regime_multipliers.get("CAUTION", 1.5)
+            adjusted_stop = adjusted_stop * multiplier
+        elif current_regime == MarketRegime.EUPHORIA:
+            multiplier = regime_multipliers.get("EUPHORIA", 0.8)
+            adjusted_stop = adjusted_stop * multiplier
+
+        # Apply cap
+        adjusted_stop = min(adjusted_stop, max_cap)
+
+        # Log if adjustment was significant
+        if abs(adjusted_stop - base_stop_loss) > 0.01:  # More than 1% difference
+            logger.info(
+                f"📊 Stop Loss Adjusted for {symbol}: "
+                f"Base: {base_stop_loss:.1%} → Adjusted: {adjusted_stop:.1%} "
+                f"(Volatility: {current_volatility:.1f}%, Regime: {current_regime.value})"
+            )
+
+        return adjusted_stop
+
     def calculate_entry_price(
         self, symbol: str, market_price: float, is_buy: bool = True
     ) -> tuple[float, float]:
@@ -376,6 +465,9 @@ class SimplePaperTraderV2:
             if take_profit_pct is None:
                 take_profit_pct = 0.10  # 10% default
             trailing_stop_pct = 0.05  # 5% default trailing
+
+        # Apply volatility-based stop loss adjustment
+        stop_loss_pct = self.get_adjusted_stop_loss(symbol, stop_loss_pct)
 
         # Calculate actual entry price with slippage
         actual_price, slippage_cost = self.calculate_entry_price(

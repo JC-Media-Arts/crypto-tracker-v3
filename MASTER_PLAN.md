@@ -3430,6 +3430,276 @@ Max Retries: 10
 - Background services should handle heavy computation
 - Always process ALL symbols, not just a subset [[memory:6639946]]
 
+## 📊 **Market Event Analysis Methodology** (August 2025)
+
+### **Overview**
+Comprehensive methodology for analyzing crypto market movements and their impact on trading performance. This process should be run regularly to understand system behavior during significant market events.
+
+### **Critical Analysis Principles**
+
+1. **ALWAYS check BOTH realized AND unrealized P&L**
+   - Closed trades only show partial picture
+   - Open positions can have massive unrealized losses
+   - Dashboard P&L is the ground truth, not database queries alone
+
+2. **Use proper data aggregation**
+   - Group trades by `trade_group_id` to avoid counting duplicates
+   - BUY and SELL are separate records but part of same trade
+   - Calculate weighted averages for P&L, not simple sums
+
+3. **Verify data completeness**
+   - Use pagination to get ALL data, not just first 1000 rows
+   - Check all symbols tracked (currently ~90)
+   - Ensure time ranges cover full period of interest
+
+### **Standard Analysis Scripts**
+
+#### **1. Comprehensive Market Analysis** (`scripts/analyze_24hr_market_event.py`)
+**Purpose**: Full analysis of market movements and trading impact
+
+**Key Features**:
+- Fetches all OHLC data with pagination
+- Analyzes BTC movements in detail (drawdowns, volatility, extreme moves)
+- Calculates market-wide correlations and beta values
+- Examines paper trading performance
+- Identifies market regime (crash, correction, normal, etc.)
+- Generates actionable insights and HTML visualizations
+
+**Usage**:
+```bash
+python3 scripts/analyze_24hr_market_event.py
+```
+
+**Outputs**:
+- JSON report: `data/market_analysis_YYYYMMDD_HHMMSS.json`
+- HTML visualization: `data/market_analysis_YYYYMMDD_HHMMSS.html`
+
+#### **2. Trading Behavior Analysis** (`scripts/analyze_trading_behavior.py`)
+**Purpose**: Deep dive into trading patterns and strategy performance
+
+**Key Features**:
+- Symbol-by-symbol performance breakdown
+- Entry timing analysis
+- Open vs closed position analysis
+- Exit reason distribution
+- Market condition correlation
+- Strategy-specific insights
+
+**Usage**:
+```bash
+python3 scripts/analyze_trading_behavior.py
+```
+
+#### **3. Portfolio Status Check** (`scripts/check_real_portfolio_status.py`)
+**Purpose**: Accurate assessment of current portfolio status
+
+**Key Features**:
+- Proper trade grouping using `trade_group_id`
+- Distinguishes truly open positions (no SELL) from closed
+- Calculates both realized and unrealized P&L
+- Shows position distribution by symbol
+
+**Usage**:
+```bash
+python3 scripts/check_real_portfolio_status.py
+```
+
+#### **4. Data Export for External Analysis** (`scripts/export_48hr_market_data.py`)
+**Purpose**: Export comprehensive data for analysis with external tools
+
+**Key Features**:
+- Exports all OHLC data with pagination
+- Includes all paper trades
+- Generates statistics summary
+- Creates markdown report
+- CSV format for Excel/Python/R analysis
+
+**Usage**:
+```bash
+python3 scripts/export_48hr_market_data.py
+```
+
+**Outputs**:
+- Raw OHLC: `data/market_data_48hr_YYYYMMDD_HHMMSS.csv`
+- Statistics: `data/market_stats_48hr_YYYYMMDD_HHMMSS.csv`
+- Trades: `data/paper_trades_48hr_YYYYMMDD_HHMMSS.csv`
+- Summary: `data/market_analysis_48hr_YYYYMMDD_HHMMSS.md`
+
+### **Analysis Workflow**
+
+#### **Step 1: Initial Assessment**
+```bash
+# Check current portfolio status
+python3 scripts/check_real_portfolio_status.py
+
+# Compare with dashboard
+# Visit: https://trading-dashboard-production-b646.up.railway.app/
+```
+
+#### **Step 2: Comprehensive Analysis**
+```bash
+# Run full market analysis
+python3 scripts/analyze_24hr_market_event.py
+
+# Deep dive into trading behavior
+python3 scripts/analyze_trading_behavior.py
+```
+
+#### **Step 3: Data Export (if needed)**
+```bash
+# Export for external analysis
+python3 scripts/export_48hr_market_data.py
+```
+
+### **Common Analysis Mistakes to Avoid**
+
+1. **Looking only at closed trades**
+   - Error: "System is profitable because closed trades show profit"
+   - Reality: Open positions may have huge unrealized losses
+   - Solution: Always check both realized and unrealized P&L
+
+2. **Incorrect status interpretation**
+   - Error: Counting "FILLED" as open positions
+   - Reality: Need to check for absence of matching SELL
+   - Solution: Use `trade_group_id` for proper grouping
+
+3. **Incomplete data fetching**
+   - Error: Query returns 1000 rows, assume that's all
+   - Reality: Database has millions of rows
+   - Solution: Use pagination to get complete dataset
+
+4. **Time zone confusion**
+   - Error: Mixing UTC and local times
+   - Reality: All database times are UTC
+   - Solution: Always use `pytz.UTC` for queries
+
+5. **Missing price context**
+   - Error: "BTC up 0.47%" without checking timing
+   - Reality: Could have crashed -5% then recovered
+   - Solution: Analyze intraday movements, not just endpoints
+
+### **Key Metrics to Track**
+
+#### **Market Metrics**
+- BTC price change (%) and direction
+- Maximum drawdown and recovery time
+- Volatility (rolling standard deviation)
+- Market breadth (winners vs losers)
+- Correlation breakdown events
+
+#### **Portfolio Metrics**
+- Total P&L (realized + unrealized)
+- Open positions count and distribution
+- Win rate (closed trades only)
+- Average hold time
+- Exit reason distribution
+
+#### **Strategy Metrics**
+- Trades per strategy
+- Win rate by strategy
+- Average P&L by strategy
+- Strategy correlation with market
+
+### **Interpretation Guidelines**
+
+#### **Market Regimes**
+- **FLASH CRASH**: >10% drop in <4 hours
+- **SHARP CORRECTION**: 5-10% drop
+- **MODERATE CORRECTION**: 3-5% drop
+- **NORMAL**: <3% movement
+- **V-RECOVERY**: >5% drop followed by recovery
+
+#### **System Health Indicators**
+- **Healthy**: Win rate >50%, controlled position count
+- **Concerning**: Many open positions during downtrend
+- **Critical**: Unrealized losses >10% of portfolio
+- **Emergency**: System opening positions during crash
+
+### **Action Triggers**
+
+Based on analysis results, consider these actions:
+
+1. **If unrealized losses >5%**:
+   - Review position limits
+   - Check trend detection logic
+   - Consider emergency position reduction
+
+2. **If win rate <40%**:
+   - Analyze entry timing
+   - Review strategy thresholds
+   - Check market regime detection
+
+3. **If concentrated in few symbols**:
+   - Implement position limits per symbol
+   - Review diversification rules
+   - Check symbol selection logic
+
+4. **If trading during crashes**:
+   - Implement crash detection
+   - Add circuit breakers
+   - Review market regime filters
+
+### **Reporting Template**
+
+```markdown
+## Market Analysis Report - [DATE]
+
+### Market Conditions
+- Period: [Start] to [End] UTC
+- BTC Movement: [+/-X.XX%]
+- Market Regime: [REGIME]
+- Volatility: [Low/Medium/High]
+
+### Portfolio Performance  
+- Total P&L: $[XXX.XX] ([X.X%])
+  - Realized: $[XXX.XX]
+  - Unrealized: $[XXX.XX]
+- Open Positions: [XX]
+- Closed Trades: [XX]
+- Win Rate: [XX%]
+
+### Key Issues Identified
+1. [Issue 1]
+2. [Issue 2]
+3. [Issue 3]
+
+### Recommended Actions
+1. [Action 1]
+2. [Action 2]
+3. [Action 3]
+
+### Files Generated
+- [List of analysis files]
+```
+
+### **Integration with Daily Operations**
+
+1. **Daily Check (5 minutes)**:
+   - Run portfolio status check
+   - Compare with dashboard
+   - Note any discrepancies
+
+2. **Weekly Analysis (30 minutes)**:
+   - Run comprehensive market analysis
+   - Review strategy performance
+   - Document findings in Slack
+
+3. **After Major Events (1 hour)**:
+   - Full analysis suite
+   - Export data for deep dive
+   - Generate action items
+   - Update strategy parameters if needed
+
+### **Maintenance**
+
+These analysis scripts should be maintained as first-class citizens:
+- Keep updated with schema changes
+- Add new metrics as needed  
+- Optimize for performance
+- Document any modifications
+
+Remember: **The dashboard P&L is reality**. If analysis disagrees with dashboard, investigate why - don't assume analysis is correct [[memory:6639946]].
+
 ## 🏗️ **Architecture Separation: ML/Shadow as Research Module** (January 2025)
 
 ### **Overview**

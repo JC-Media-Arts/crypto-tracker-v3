@@ -81,7 +81,75 @@
       "LINK", "MATIC", "ATOM", "DOT", "AVAX", "UNI", "ICP",
       "NEAR", "ARB", "OP", "AAVE", "CRV", "MKR", "LDO",
       "SUSHI", "COMP", "FTM", "ALGO", "VET", "SAND", "MANA"
+    ],
+    "memecoin": [
+      "PEPE", "WIF", "BONK", "FLOKI", "MEME", "POPCAT", "MEW",
+      "TURBO", "NEIRO", "PNUT", "GOAT", "ACT", "TRUMP",
+      "FARTCOIN", "MOG", "PONKE", "TREMP", "BRETT", "GIGA", "HIPPO"
     ]
+  },
+  "market_protection": {
+    "enabled": true,
+    "enhanced_regime": true,
+    "stop_widening": true,
+    "volatility_thresholds": {
+      "panic": 12.0,
+      "high": 8.0,
+      "moderate": 5.0,
+      "strategy_limits": {
+        "CHANNEL": 8.0,
+        "SWING": 15.0,
+        "DCA": 20.0
+      }
+    },
+    "cumulative_decline": {
+      "24h_threshold": -3.0,
+      "48h_threshold": -5.0,
+      "check_from_peak": true
+    },
+    "trade_limiter": {
+      "cooldown_hours_by_tier": {
+        "large_cap": 4,
+        "mid_cap": 6,
+        "small_cap": 12,
+        "memecoin": 24
+      },
+      "max_consecutive_stops": 3,
+      "ban_duration_hours": 24,
+      "reset_on_50pct_tp": true,
+      "reset_on_trailing_stop": true,
+      "persist_state": true
+    },
+    "stop_loss_widening": {
+      "enabled": true,
+      "volatility_multipliers": {
+        "extreme": 2.0,
+        "high": 1.5,
+        "moderate": 1.25
+      },
+      "regime_multipliers": {
+        "CAUTION": 1.2,
+        "EUPHORIA": 1.3,
+        "PANIC": 1.5
+      },
+      "max_stop_by_tier": {
+        "large_cap": 0.10,
+        "mid_cap": 0.12,
+        "small_cap": 0.15,
+        "memecoin": 0.15
+      }
+    },
+    "hysteresis": {
+      "channel_disable_volatility": 8.0,
+      "channel_reenable_volatility": 6.0,
+      "reenable_cooldown_hours": 2
+    },
+    "alerts": {
+      "immediate_panic": true,
+      "immediate_channel_disable": true,
+      "batch_caution": true,
+      "batch_cooldowns": true
+    }
   },
   "fees": {
     "kraken_taker": 0.003,

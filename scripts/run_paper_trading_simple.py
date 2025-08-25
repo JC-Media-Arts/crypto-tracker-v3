@@ -34,6 +34,7 @@ from src.strategies.swing.detector import SwingDetector  # noqa: E402
 from src.strategies.channel.detector import ChannelDetector  # noqa: E402
 from src.strategies.simple_rules import SimpleRules  # noqa: E402
 from src.strategies.regime_detector import RegimeDetector, MarketRegime  # noqa: E402
+from src.trading.trade_limiter import TradeLimiter  # noqa: E402
 
 
 class SimplifiedPaperTradingSystem:
@@ -93,6 +94,10 @@ class SimplifiedPaperTradingSystem:
         self.channel_detector = ChannelDetector(self.config)
         self.regime_detector = RegimeDetector(enabled=True)
         self.current_regime = MarketRegime.NORMAL  # Default until first scan
+
+        # Initialize Trade Limiter for revenge trading protection
+        self.trade_limiter = TradeLimiter()
+        logger.info("✅ Trade Limiter initialized for revenge trading protection")
 
         # Track active positions
         self.active_positions = self.paper_trader.positions
@@ -258,6 +263,13 @@ class SimplifiedPaperTradingSystem:
             logger.warning("🚨 Market PANIC detected - skipping all new trades")
             return
 
+        # Log regime and volatility info
+        regime_stats = self.regime_detector.get_regime_stats()
+        if regime_stats.get("volatility_24h"):
+            logger.info(
+                f"Market Regime: {self.current_regime.value}, Volatility: {regime_stats['volatility_24h']:.2f}%"
+            )
+
         # Fetch BTC price for correlations
         if "BTC" in market_data:
             btc_data = market_data["BTC"]
@@ -276,113 +288,118 @@ class SimplifiedPaperTradingSystem:
                 current_price = data[-1]["close"] if data else 0
 
                 # Check each strategy type and log ALL scans
-                # DCA
-                dca_signal = self.simple_rules.check_dca_setup(symbol, data)
-                if dca_signal and dca_signal.get("signal"):
-                    dca_signal["should_trade"] = True
-                    dca_signal["strategy"] = "DCA"
-                    # Ensure we have current_price in all signals
-                    if "current_price" not in dca_signal:
-                        dca_signal["current_price"] = dca_signal.get(
-                            "price", current_price
+                # DCA - Check if disabled due to volatility
+                if not self.regime_detector.should_disable_strategy("DCA"):
+                    dca_signal = self.simple_rules.check_dca_setup(symbol, data)
+                    if dca_signal and dca_signal.get("signal"):
+                        dca_signal["should_trade"] = True
+                        dca_signal["strategy"] = "DCA"
+                        # Ensure we have current_price in all signals
+                        if "current_price" not in dca_signal:
+                            dca_signal["current_price"] = dca_signal.get(
+                                "price", current_price
+                            )
+                        signals.append(dca_signal)
+                        logger.info(
+                            f"📊 DCA Signal: {symbol} - drop {dca_signal.get('drop_pct', 0):.1f}% "
+                            f"(confidence: {dca_signal['confidence']:.2f})"
                         )
-                    signals.append(dca_signal)
-                    logger.info(
-                        f"📊 DCA Signal: {symbol} - drop {dca_signal.get('drop_pct', 0):.1f}% "
-                        f"(confidence: {dca_signal['confidence']:.2f})"
-                    )
-                    # Log positive scan
-                    await self.log_scan(
-                        symbol,
-                        "DCA",
-                        "BUY",
-                        "Signal detected",
-                        confidence=dca_signal["confidence"],
-                        metadata={"drop_pct": dca_signal.get("drop_pct", 0)},
-                        market_data=data,
-                    )
-                else:
-                    # Log negative scan
-                    await self.log_scan(
-                        symbol,
-                        "DCA",
-                        "SKIP",
-                        "No signal",
-                        confidence=0.0,
-                        market_data=data,
-                    )
+                        # Log positive scan
+                        await self.log_scan(
+                            symbol,
+                            "DCA",
+                            "BUY",
+                            "Signal detected",
+                            confidence=dca_signal["confidence"],
+                            metadata={"drop_pct": dca_signal.get("drop_pct", 0)},
+                            market_data=data,
+                        )
+                    else:
+                        # Log negative scan
+                        await self.log_scan(
+                            symbol,
+                            "DCA",
+                            "SKIP",
+                            "No signal",
+                            confidence=0.0,
+                            market_data=data,
+                        )
 
-                # Swing
-                swing_signal = self.simple_rules.check_swing_setup(symbol, data)
-                if swing_signal and swing_signal.get("signal"):
-                    swing_signal["should_trade"] = True
-                    swing_signal["strategy"] = "SWING"
-                    # Ensure we have current_price
-                    if "current_price" not in swing_signal:
-                        swing_signal["current_price"] = swing_signal.get(
-                            "price", current_price
+                # Swing - Check if disabled due to volatility
+                if not self.regime_detector.should_disable_strategy("SWING"):
+                    swing_signal = self.simple_rules.check_swing_setup(symbol, data)
+                    if swing_signal and swing_signal.get("signal"):
+                        swing_signal["should_trade"] = True
+                        swing_signal["strategy"] = "SWING"
+                        # Ensure we have current_price
+                        if "current_price" not in swing_signal:
+                            swing_signal["current_price"] = swing_signal.get(
+                                "price", current_price
+                            )
+                        signals.append(swing_signal)
+                        logger.info(
+                            f"📊 Swing Signal: {symbol} - breakout {swing_signal.get('breakout_pct', 0):.1f}% "
+                            f"(confidence: {swing_signal['confidence']:.2f})"
                         )
-                    signals.append(swing_signal)
-                    logger.info(
-                        f"📊 Swing Signal: {symbol} - breakout {swing_signal.get('breakout_pct', 0):.1f}% "
-                        f"(confidence: {swing_signal['confidence']:.2f})"
-                    )
-                    # Log positive scan
-                    await self.log_scan(
-                        symbol,
-                        "SWING",
-                        "BUY",
-                        "Signal detected",
-                        confidence=swing_signal["confidence"],
-                        metadata={"breakout_pct": swing_signal.get("breakout_pct", 0)},
-                        market_data=data,
-                    )
-                else:
-                    # Log negative scan
-                    await self.log_scan(
-                        symbol,
-                        "SWING",
-                        "SKIP",
-                        "No signal",
-                        confidence=0.0,
-                        market_data=data,
-                    )
+                        # Log positive scan
+                        await self.log_scan(
+                            symbol,
+                            "SWING",
+                            "BUY",
+                            "Signal detected",
+                            confidence=swing_signal["confidence"],
+                            metadata={
+                                "breakout_pct": swing_signal.get("breakout_pct", 0)
+                            },
+                            market_data=data,
+                        )
+                    else:
+                        # Log negative scan
+                        await self.log_scan(
+                            symbol,
+                            "SWING",
+                            "SKIP",
+                            "No signal",
+                            confidence=0.0,
+                            market_data=data,
+                        )
 
-                # Channel
-                channel_signal = self.simple_rules.check_channel_setup(symbol, data)
-                if channel_signal and channel_signal.get("signal"):
-                    channel_signal["should_trade"] = True
-                    channel_signal["strategy"] = "CHANNEL"
-                    # Ensure we have current_price
-                    if "current_price" not in channel_signal:
-                        channel_signal["current_price"] = channel_signal.get(
-                            "price", current_price
+                # Channel - Check if disabled due to volatility
+                if not self.regime_detector.should_disable_strategy("CHANNEL"):
+                    channel_signal = self.simple_rules.check_channel_setup(symbol, data)
+                    if channel_signal and channel_signal.get("signal"):
+                        channel_signal["should_trade"] = True
+                        channel_signal["strategy"] = "CHANNEL"
+                        # Ensure we have current_price
+                        if "current_price" not in channel_signal:
+                            channel_signal["current_price"] = channel_signal.get(
+                                "price", current_price
+                            )
+                        signals.append(channel_signal)
+                        logger.info(
+                            f"📊 Channel Signal: {symbol} - position {channel_signal.get('position', 0):.2f} "
+                            f"(confidence: {channel_signal['confidence']:.2f})"
                         )
-                    signals.append(channel_signal)
-                    logger.info(
-                        f"📊 Channel Signal: {symbol} - position {channel_signal.get('position', 0):.2f} "
-                        f"(confidence: {channel_signal['confidence']:.2f})"
-                    )
-                    # Log positive scan
-                    await self.log_scan(
-                        symbol,
-                        "CHANNEL",
-                        "BUY",
-                        "Signal detected",
-                        confidence=channel_signal["confidence"],
-                        metadata={"position": channel_signal.get("position", 0)},
-                        market_data=data,
-                    )
-                else:
-                    # Log negative scan
-                    await self.log_scan(
-                        symbol,
-                        "CHANNEL",
-                        "SKIP",
-                        "No signal",
-                        confidence=0.0,
-                        market_data=data,
-                    )
+                        # Log positive scan
+                        await self.log_scan(
+                            symbol,
+                            "CHANNEL",
+                            "BUY",
+                            "Signal detected",
+                            confidence=channel_signal["confidence"],
+                            metadata={"position": channel_signal.get("position", 0)},
+                            market_data=data,
+                        )
+                    else:
+                        # Log negative scan
+                        await self.log_scan(
+                            symbol,
+                            "CHANNEL",
+                            "SKIP",
+                            "No signal",
+                            confidence=0.0,
+                            market_data=data,
+                        )
 
             except Exception as e:
                 logger.error(f"Error evaluating {symbol}: {e}")
@@ -397,6 +414,12 @@ class SimplifiedPaperTradingSystem:
 
         for trading_signal in signals_to_take:
             if trading_signal["confidence"] >= self.config["min_confidence"]:
+                # Check trade limiter before executing
+                symbol = trading_signal["symbol"]
+                can_trade, reason = self.trade_limiter.can_trade_symbol(symbol)
+                if not can_trade:
+                    logger.warning(f"⛔ Skipping {symbol}: {reason}")
+                    continue
                 await self.execute_trade(trading_signal)
 
     def _calculate_features(self, symbol: str, market_data: list) -> dict:
@@ -631,6 +654,20 @@ class SimplifiedPaperTradingSystem:
                     f"P&L: ${trade.pnl:.2f}"
                 )
 
+                # Update trade limiter based on exit
+                if trade.exit_reason == "stop_loss":
+                    self.trade_limiter.record_stop_loss(trade.symbol)
+                else:
+                    # Record successful trade for potential reset
+                    # Get take profit target from position if available
+                    take_profit_target = 0.10  # Default 10%, could get from position
+                    self.trade_limiter.record_successful_trade(
+                        trade.symbol,
+                        trade.exit_reason,
+                        trade.pnl_percent if hasattr(trade, "pnl_percent") else None,
+                        take_profit_target,
+                    )
+
                 # Log outcome for research
                 try:
                     self.supabase.client.table("trade_logs").insert(
@@ -679,6 +716,18 @@ class SimplifiedPaperTradingSystem:
                     f"Positions: {stats['positions']}, "
                     f"P&L: ${stats['total_pnl']:.2f}"
                 )
+
+                # Show trade limiter status if active
+                limiter_stats = self.trade_limiter.get_limiter_stats()
+                if (
+                    limiter_stats["symbols_on_cooldown"]
+                    or limiter_stats["symbols_banned"]
+                ):
+                    logger.warning(
+                        f"Trade Limiter Active: "
+                        f"{len(limiter_stats['symbols_on_cooldown'])} cooldowns, "
+                        f"{len(limiter_stats['symbols_banned'])} bans"
+                    )
 
                 # Performance metrics are automatically saved by SimplePaperTraderV2
                 # when trades are closed, so no need to manually insert here
