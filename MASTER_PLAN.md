@@ -83,14 +83,28 @@ Last Updated: January 2025
   - `scripts/run_feature_calculator_dev.py` ❌ (Dev version)
 
 ### ML System
-- **ACTIVE**: `scripts/run_ml_analyzer.py` ✅
-  - Deployed as "Research - ML Analyzer" on Railway
-  - Analyzes scan_history and generates predictions
-  - Models: `models/dca/`, `models/swing/`, `models/channel/`
+- **ACTIVE**:
+  - `scripts/run_ml_analyzer.py` ✅
+    - Deployed as "Research - ML Analyzer" on Railway
+    - Analyzes scan_history and generates predictions
+    - Models: `models/dca/`, `models/swing/`, `models/channel/`
+  - `scripts/run_daily_retraining.py` ✅
+    - ML Retrainer Cron service
+    - Runs daily at 2 AM PST
+    - Uses `src/ml/simple_retrainer.py` internally
+    - **FIXED 8/24**: Converts 'WIN'/'LOSS' strings to 1/0 for XGBoost
 
-- **DEPRECATED**:
+- **DEPRECATED** (moved to `_deprecated/` folder):
   - `scripts/run_ml_trainer.py` ❌ (Old trainer)
   - `scripts/test_ml_predictor.py` ❌ (Test script)
+  - `scripts/train_dca_model.py` ❌ (One-off initial training)
+  - `scripts/train_swing_model.py` ❌ (One-off initial training)
+  - `scripts/train_channel_model.py` ❌ (One-off initial training)
+  - `scripts/railway_retrainer.py` ❌ (Old Railway retrainer)
+  - `scripts/enrich_training_data.py` ❌ (Data enrichment utility)
+  - `scripts/verify_ml_setup.py` ❌ (Setup verification)
+  - `scripts/check_ml_features.py` ❌ (Feature checking)
+  - `scripts/disable_ml_shadow.py` ❌ (Utility script)
 
 ### Trading Dashboard
 - **ACTIVE**: `live_dashboard.py` ✅
@@ -104,12 +118,12 @@ Last Updated: January 2025
 
 ### Daily Jobs & Maintenance
 - **ACTIVE**:
-  - `scripts/run_daily_retraining.py` ✅ (ML Retrainer Cron)
+  - `scripts/run_daily_retraining.py` ✅ (ML Retrainer Cron - see ML System above)
   - `scripts/daily_data_cleanup.py` ✅ (Data retention)
   - `scripts/refresh_materialized_views.py` ✅ (View refresh)
 
 - **DEPRECATED**:
-  - `scripts/schedule_retraining.py` ❌ (Old scheduler)
+  - `scripts/schedule_retraining.py` ❌ (Old scheduler - replaced by Railway cron)
   - `scripts/cleanup_1min_data_only.py` ❌ (Specific cleanup)
 
 ### Strategy Detection
@@ -1292,6 +1306,7 @@ crypto-tracker-v3/
 ### Risk Log
 | Date | Risk Identified | Impact | Mitigation | Status |
 |------|----------------|--------|------------|--------|
+| 8/24 | ML Retrainer expects numeric labels but gets strings | Retraining fails with "Expected: {0 1}, got {'LOSS' 'WIN'}" | Fixed label conversion in simple_retrainer.py | ✅ Resolved |
 | 1/24 | Exit reasons all mislabeled as trailing_stop | Can't distinguish stop losses from trailing stops, ML can't learn | Fixed logic in SimplePaperTraderV2 | ✅ Resolved |
 | 1/24 | CHANNEL strategy 99% loss rate | Strategy losing money on 101/102 trades | Applied conservative thresholds via config | ✅ Resolved |
 | 1/24 | Strategy thresholds scattered in code | Hard to adjust and maintain | Centralized in configs/paper_trading.json | ✅ Resolved |
@@ -1307,6 +1322,8 @@ crypto-tracker-v3/
 ### Lessons Learned Log
 | Date | Lesson | Action |
 |------|--------|--------|
+| 8/24 | Database migration can break ML training if data types change | Always check ML components after database migrations, added string-to-numeric conversion |
+| 8/24 | Multiple deprecated scripts cause confusion about which is active | Moved all deprecated ML scripts to _deprecated/ folder, documented in MASTER_PLAN |
 | 1/24 | Critical bug: All stop losses were mislabeled as "trailing_stop" in paper trading | Fixed logic to only use trailing_stop when position was profitable first |
 | 1/24 | CHANNEL strategy had 99% loss rate (101/102 trades) due to overly ambitious thresholds | Applied conservative thresholds: TP 1.5-2.5%, SL 2-3% based on backtest analysis |
 | 1/24 | Configuration scattered across code made strategy adjustments difficult | Centralized all thresholds in configs/paper_trading.json for easy management |
