@@ -3,6 +3,7 @@
 Simplified Paper Trading System - NO ML, NO Shadow Testing
 Pure rule-based trading for complete independence
 Designed to run 24/7 on Railway without any ML dependencies
+Version: 2.1 - Fixed trade execution bug
 """
 
 import asyncio
