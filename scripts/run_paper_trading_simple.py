@@ -618,14 +618,14 @@ class SimplifiedPaperTradingSystem:
                     position_size *= 0.5
 
             # Execute trade (using async method)
-            success = await self.paper_trader.open_position(
+            result = await self.paper_trader.open_position(
                 symbol=symbol,
                 usd_amount=position_size,
                 market_price=trading_signal["current_price"],
                 strategy=strategy,
             )
 
-            if success:
+            if result.get("success"):
                 logger.info(
                     f"✅ Opened {strategy} position: {symbol} @ ${trading_signal['current_price']:.4f}"
                 )
