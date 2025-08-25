@@ -62,3 +62,5 @@ rich==13.7.0
 tqdm==4.66.1
 
 # Development
+black==23.12.1
+flake8==7.0.0
