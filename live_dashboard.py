@@ -83,6 +83,42 @@ HTML_TEMPLATE = r"""  # noqa: E501
             margin-bottom: 30px;
         }
 
+        .filter-container {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 25px;
+            padding: 15px;
+            background: rgba(30, 41, 59, 0.5);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: 12px;
+        }
+
+        .filter-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .filter-option input[type="radio"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #3b82f6;
+            cursor: pointer;
+        }
+
+        .filter-option label {
+            cursor: pointer;
+            color: #cbd5e1;
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+
+        .filter-option input[type="radio"]:checked + label {
+            color: #60a5fa;
+        }
+
         .stat-card {
             background: rgba(30, 41, 59, 0.5);
             backdrop-filter: blur(10px);
@@ -513,26 +549,46 @@ HTML_TEMPLATE = r"""  # noqa: E501
         <h1>Live Trading Dashboard</h1>
         <p class="subtitle" id="last-updated">Loading...</p>
 
+        <!-- Trade Filter Radio Buttons -->
+        <div class="filter-container">
+            <div class="filter-option">
+                <input type="radio" id="filter-open" name="trade-filter" value="open" checked>
+                <label for="filter-open">Open Trades Only</label>
+            </div>
+            <div class="filter-option">
+                <input type="radio" id="filter-closed" name="trade-filter" value="closed">
+                <label for="filter-closed">Closed Trades Only</label>
+            </div>
+            <div class="filter-option">
+                <input type="radio" id="filter-all" name="trade-filter" value="all">
+                <label for="filter-all">Open & Closed Trades</label>
+            </div>
+        </div>
+
         <div class="stats-container">
+            <div class="stat-card">
+                <div class="stat-label">Starting Capital</div>
+                <div class="stat-value" style="color: #94a3b8;" id="starting-capital">$10,000</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Current Portfolio Value</div>
+                <div class="stat-value" style="color: #60a5fa;" id="portfolio-value">$10,000</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total P&L</div>
+                <div class="stat-value" id="portfolio-pnl">0.00% / $0.00</div>
+            </div>
             <div class="stat-card">
                 <div class="stat-label">Trades Open</div>
                 <div class="stat-value" style="color: #60a5fa;" id="open-positions">0/50</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Closed Trades</div>
-                <div class="stat-value" id="closed-count">0</div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">Win Rate</div>
                 <div class="stat-value" id="win-rate">0%</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">Unrealized P&L</div>
-                <div class="stat-value" id="unrealized-pnl">0.00% / $0.00</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Total P&L</div>
-                <div class="stat-value" id="total-pnl">0.00% / $0.00</div>
+                <div class="stat-label">Invested Capital</div>
+                <div class="stat-value" id="invested-capital">$0</div>
             </div>
         </div>
 
@@ -617,6 +673,8 @@ HTML_TEMPLATE = r"""  # noqa: E501
 
     <script>
         let countdown = 10; // Update every 10 seconds
+        let allTradesData = [];  // Store all trades for filtering
+        let allStats = {};  // Store complete stats for filtering
 
         async function checkEngineStatus() {
             try {
@@ -765,42 +823,141 @@ HTML_TEMPLATE = r"""  # noqa: E501
                 const response = await fetch('/api/trades');
                 const data = await response.json();
 
+                // Store all data for filtering
+                allTradesData = data.trades;
+                allStats = data.stats;
+
                 // Update last updated time
                 document.getElementById('last-updated').textContent =
                     'Last updated: ' + data.timestamp;
 
-                // Update stats
-                document.getElementById('open-positions').textContent = data.stats.open_count + '/50';
-                document.getElementById('closed-count').textContent = data.stats.closed_count;
-                document.getElementById('win-rate').textContent = data.stats.win_rate.toFixed(1) + '%';
+                // Apply current filter
+                applyTradeFilter();
 
-                // Format Unrealized P&L with both % and $
-                const unrealizedSign = data.stats.unrealized_pnl_dollar >= 0 ? '+' : '';
-                document.getElementById('unrealized-pnl').textContent =
-                    data.stats.unrealized_pnl.toFixed(2) + '% / ' +
-                    unrealizedSign + '$' + Math.abs(data.stats.unrealized_pnl_dollar).toFixed(2);
+            } catch (error) {
+                console.error('Error fetching trades:', error);
+            } finally {
+                indicator.classList.remove('updating');
+            }
+        }
 
-                // Format Total P&L with both % and $
-                const totalSign = data.stats.total_pnl_dollar >= 0 ? '+' : '';
-                document.getElementById('total-pnl').textContent =
-                    data.stats.total_pnl.toFixed(2) + '% / ' +
-                    totalSign + '$' + Math.abs(data.stats.total_pnl_dollar).toFixed(2);
+        function applyTradeFilter() {
+            const filter = document.querySelector('input[name="trade-filter"]:checked').value;
 
-                // Color code win rate, unrealized PnL and total PnL
-                const winRateEl = document.getElementById('win-rate');
-                winRateEl.style.color = data.stats.win_rate >= 50 ? '#22c55e' : '#ef4444';
+            // Filter trades based on selection
+            let filteredTrades = [];
+            let filteredStats = {};
 
-                const unrealizedPnlEl = document.getElementById('unrealized-pnl');
-                unrealizedPnlEl.style.color = data.stats.unrealized_pnl_dollar >= 0 ? '#22c55e' : '#ef4444';
+            if (filter === 'open') {
+                filteredTrades = allTradesData.filter(t => t.status === 'open');
+                // Calculate stats for open trades only
+                filteredStats = calculateFilteredStats(filteredTrades, 'open');
+            } else if (filter === 'closed') {
+                filteredTrades = allTradesData.filter(t => t.status === 'closed');
+                // Calculate stats for closed trades only
+                filteredStats = calculateFilteredStats(filteredTrades, 'closed');
+            } else {
+                // Show all trades
+                filteredTrades = allTradesData;
+                filteredStats = allStats;
+            }
 
-                const totalPnlEl = document.getElementById('total-pnl');
-                totalPnlEl.style.color = data.stats.total_pnl_dollar >= 0 ? '#22c55e' : '#ef4444';
+            // Update display with filtered data
+            updateStatsDisplay(filteredStats);
+            updateTradesTable(filteredTrades);
+        }
 
-                // Update trades table
-                const tbody = document.getElementById('trades-body');
-                tbody.innerHTML = '';
+        function calculateFilteredStats(trades, filter) {
+            // Start with base portfolio values
+            const stats = {
+                starting_capital: allStats.starting_capital,
+                current_portfolio_value: allStats.current_portfolio_value,
+                portfolio_pnl_dollar: allStats.portfolio_pnl_dollar,
+                portfolio_pnl_pct: allStats.portfolio_pnl_pct,
+                total_invested: 0,
+                open_count: 0,
+                closed_count: 0,
+                win_count: 0,
+                loss_count: 0,
+                win_rate: 0
+            };
 
-                data.trades.forEach(trade => {
+            // Calculate stats based on filtered trades
+            trades.forEach(trade => {
+                if (trade.status === 'open') {
+                    stats.open_count++;
+                    stats.total_invested += trade.position_size || 0;
+                } else {
+                    stats.closed_count++;
+                    if (trade.pnl_pct > 0.1) {
+                        stats.win_count++;
+                    } else if (trade.pnl_pct < -0.1) {
+                        stats.loss_count++;
+                    }
+                }
+            });
+
+            // Calculate win rate for closed trades
+            const totalClosed = stats.win_count + stats.loss_count;
+            if (totalClosed > 0) {
+                stats.win_rate = (stats.win_count / totalClosed) * 100;
+            }
+
+            // If showing only open trades, invested capital is relevant
+            if (filter === 'open') {
+                stats.total_invested = allStats.total_invested;
+            }
+
+            return stats;
+        }
+
+        function updateStatsDisplay(stats) {
+            // Update portfolio metrics
+            document.getElementById('starting-capital').textContent =
+                '$' + stats.starting_capital.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+
+            document.getElementById('portfolio-value').textContent =
+                '$' + stats.current_portfolio_value.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+            // Format Portfolio P&L with both % and $
+            const portfolioSign = stats.portfolio_pnl_dollar >= 0 ? '+' : '';
+            document.getElementById('portfolio-pnl').textContent =
+                portfolioSign + stats.portfolio_pnl_pct.toFixed(2) + '% / ' +
+                portfolioSign + '$' + Math.abs(stats.portfolio_pnl_dollar).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+            // Color code portfolio P&L
+            const portfolioPnlEl = document.getElementById('portfolio-pnl');
+            portfolioPnlEl.style.color = stats.portfolio_pnl_dollar >= 0 ? '#22c55e' : '#ef4444';
+
+            // Update other stats
+            document.getElementById('open-positions').textContent = stats.open_count + '/50';
+            document.getElementById('win-rate').textContent = stats.win_rate.toFixed(1) + '%';
+
+            // Update invested capital
+            document.getElementById('invested-capital').textContent =
+                '$' + stats.total_invested.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+            // Color code win rate
+            const winRateEl = document.getElementById('win-rate');
+            winRateEl.style.color = stats.win_rate >= 50 ? '#22c55e' : '#ef4444';
+        }
+
+        function updateTradesTable(trades) {
+            // Update trades table
+            const tbody = document.getElementById('trades-body');
+            tbody.innerHTML = '';
+
+            if (trades.length === 0) {
+                const row = tbody.insertRow();
+                const cell = row.insertCell();
+                cell.colSpan = 16;
+                cell.style.textAlign = 'center';
+                cell.style.color = '#94a3b8';
+                cell.textContent = 'No trades to display';
+                return;
+            }
+
+            trades.forEach(trade => {
                     const row = tbody.insertRow();
 
                     // Status dot
@@ -907,12 +1064,6 @@ HTML_TEMPLATE = r"""  # noqa: E501
                     // Exit Reason
                     row.insertCell().textContent = trade.exit_reason || '—';
                 });
-
-            } catch (error) {
-                console.error('Error fetching trades:', error);
-            } finally {
-                indicator.classList.remove('updating');
-            }
         }
 
         // Function to toggle DCA details
@@ -1012,6 +1163,13 @@ HTML_TEMPLATE = r"""  # noqa: E501
             }
             document.getElementById('countdown').textContent = countdown;
         }, 1000);
+
+        // Add event listeners for filter radio buttons
+        document.querySelectorAll('input[name="trade-filter"]').forEach(radio => {
+            radio.addEventListener('change', () => {
+                applyTradeFilter();
+            });
+        });
 
         // Initial load
         fetchTrades();
@@ -1119,6 +1277,10 @@ def get_trades():
         )
 
         trades_data = []
+
+        # Initialize portfolio metrics
+        STARTING_CAPITAL = 10000.0  # Default starting capital for paper trading
+
         stats = {
             "open_count": 0,
             "closed_count": 0,
@@ -1131,6 +1293,9 @@ def get_trades():
             "unrealized_pnl": 0,
             "unrealized_pnl_dollar": 0,
             "unrealized_position_size": 0,  # Track total position size for open trades
+            "starting_capital": STARTING_CAPITAL,
+            "current_portfolio_value": STARTING_CAPITAL,  # Will be calculated
+            "total_invested": 0,  # Total amount currently invested in open positions
         }
 
         if result.data:
@@ -1373,6 +1538,9 @@ def get_trades():
                         stats["open_count"] += 1
                         stats["unrealized_pnl_dollar"] += position_size * pnl_pct / 100
                         stats["unrealized_position_size"] += position_size
+                        stats[
+                            "total_invested"
+                        ] += position_size  # Track invested capital
 
                         # Add open position to list
                         trades_data.append(
@@ -1464,6 +1632,26 @@ def get_trades():
             ) * 100
         else:
             stats["unrealized_pnl"] = 0
+
+        # Calculate current portfolio value
+        # Portfolio = Starting Capital + Realized P&L + Unrealized P&L
+        stats["current_portfolio_value"] = (
+            stats["starting_capital"]
+            + stats["total_pnl_dollar"]
+            + stats["unrealized_pnl_dollar"]
+        )
+
+        # Calculate overall portfolio P&L percentage
+        stats["portfolio_pnl_pct"] = (
+            (stats["current_portfolio_value"] - stats["starting_capital"])
+            / stats["starting_capital"]
+            * 100
+        )
+
+        # Calculate overall portfolio P&L dollar amount
+        stats["portfolio_pnl_dollar"] = (
+            stats["current_portfolio_value"] - stats["starting_capital"]
+        )
 
         # Sort trades: open first, then by status
         trades_data.sort(key=lambda x: (x["status"] != "open", x.get("entry_price", 0)))
