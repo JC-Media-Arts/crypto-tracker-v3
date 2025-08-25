@@ -10,6 +10,8 @@ from loguru import logger
 from enum import Enum
 import json
 import os
+import asyncio
+from src.notifications.slack_notifier import SlackNotifier, NotificationType
 
 
 class MarketRegime(Enum):
@@ -59,6 +61,18 @@ class RegimeDetector:
         # Load configuration
         self.config = self._load_config(config_path)
         self.market_protection = self.config.get("market_protection", {})
+
+        # Initialize Slack notifier for PANIC alerts
+        self.slack_notifier = None
+        slack_webhook = os.getenv("SLACK_WEBHOOK_TRADES")
+        if slack_webhook:
+            try:
+                self.slack_notifier = SlackNotifier(webhook_url=slack_webhook)
+                logger.info("Slack notifier initialized for PANIC alerts to #trades")
+            except Exception as e:
+                logger.error(f"Failed to initialize Slack notifier: {e}")
+        else:
+            logger.warning("No SLACK_WEBHOOK_TRADES configured - PANIC alerts disabled")
 
         logger.info(f"Enhanced Regime Detector initialized (enabled={enabled})")
         logger.info(
@@ -220,6 +234,42 @@ class RegimeDetector:
             f"BTC 1h: {btc_1h:.2f}%, 24h: {btc_24h:.2f}%, Volatility: {volatility:.2f}%"
         )
         logger.critical(f"ALL NEW TRADES HALTED!")
+
+        # Send Slack alert if configured
+        if self.slack_notifier and self.market_protection.get("alerts", {}).get(
+            "immediate_panic", True
+        ):
+            try:
+                # Determine the primary trigger
+                trigger_reason = []
+                if btc_1h <= -5:
+                    trigger_reason.append(f"BTC 1h drop: {btc_1h:.1f}%")
+                if btc_24h <= -10:
+                    trigger_reason.append(f"BTC 24h drop: {btc_24h:.1f}%")
+                if volatility >= 12:
+                    trigger_reason.append(f"Extreme volatility: {volatility:.1f}%")
+
+                asyncio.run(
+                    self.slack_notifier.send_notification(
+                        title="🚨🚨🚨 MARKET PANIC DETECTED - TRADING HALTED",
+                        message=f"All new trades have been automatically halted due to extreme market conditions.",
+                        notification_type=NotificationType.REGIME_CHANGE,
+                        color="danger",
+                        details={
+                            "Trigger": " | ".join(trigger_reason)
+                            if trigger_reason
+                            else "Multiple conditions",
+                            "BTC 1h Change": f"{btc_1h:+.2f}%",
+                            "BTC 24h Change": f"{btc_24h:+.2f}%",
+                            "Market Volatility": f"{volatility:.2f}%",
+                            "Protection Status": "🛑 FULL PROTECTION ACTIVATED",
+                            "Action Required": "Monitor market conditions. System will resume automatically when stable.",
+                        },
+                    )
+                )
+                logger.info("PANIC alert sent to Slack #trades channel")
+            except Exception as e:
+                logger.error(f"Failed to send PANIC alert to Slack: {e}")
 
     def _log_regime_change(
         self, new_regime: MarketRegime, btc_1h: float, btc_4h: Optional[float]
@@ -512,7 +562,41 @@ class RegimeDetector:
 
     def _send_strategy_disable_alert(self, strategy: str, volatility: float):
         """Send immediate Slack alert for strategy disable"""
-        # This would integrate with your Slack notifier
         logger.critical(
             f"🚨 STRATEGY DISABLED: {strategy} (volatility: {volatility:.2f}%)"
         )
+
+        # Send Slack alert if configured (only for first CHANNEL disable)
+        if (
+            self.slack_notifier
+            and strategy == "CHANNEL"
+            and self.market_protection.get("alerts", {}).get(
+                "immediate_channel_disable", True
+            )
+        ):
+            try:
+                # Get re-enable time
+                reenable_time = self.strategy_reenable_times.get(strategy)
+                reenable_str = (
+                    reenable_time.strftime("%H:%M %Z") if reenable_time else "Unknown"
+                )
+
+                asyncio.run(
+                    self.slack_notifier.send_notification(
+                        title=f"⚠️ {strategy} STRATEGY DISABLED",
+                        message=f"The {strategy} strategy has been automatically disabled due to high market volatility.",
+                        notification_type=NotificationType.REGIME_CHANGE,
+                        color="warning",
+                        details={
+                            "Reason": f"Market volatility exceeded {strategy} threshold",
+                            "Current Volatility": f"{volatility:.2f}%",
+                            "Threshold": f"{self.market_protection.get('volatility_thresholds', {}).get('strategy_limits', {}).get(strategy, 'N/A')}%",
+                            "Re-enable Volatility": f"{self.market_protection.get('hysteresis', {}).get('channel_reenable_volatility', 6.0)}%",
+                            "Estimated Re-enable": reenable_str,
+                            "Note": "Strategy will re-enable automatically when volatility drops",
+                        },
+                    )
+                )
+                logger.info(f"{strategy} disable alert sent to Slack #trades channel")
+            except Exception as e:
+                logger.error(f"Failed to send {strategy} disable alert to Slack: {e}")
