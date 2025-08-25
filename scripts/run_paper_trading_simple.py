@@ -3,7 +3,8 @@
 Simplified Paper Trading System - NO ML, NO Shadow Testing
 Pure rule-based trading for complete independence
 Designed to run 24/7 on Railway without any ML dependencies
-Version: 2.1 - Fixed trade execution bug
+Version: 2.2 - FORCE REBUILD - Fixed trade execution bug
+BUILD_ID: 20250825-232500
 """
 
 import asyncio
@@ -124,7 +125,8 @@ class SimplifiedPaperTradingSystem:
         self.shutdown = False
 
         logger.info("=" * 80)
-        logger.info("🚀 SIMPLIFIED PAPER TRADING SYSTEM")
+        logger.info("🚀 SIMPLIFIED PAPER TRADING SYSTEM v2.2")
+        logger.info("   BUILD_ID: 20250825-232500 - Fixed trade execution bug")
         logger.info("   Mode: Rule-Based Only (NO ML, NO Shadow)")
         logger.info(f"   Balance: ${self.paper_trader.balance:.2f}")
         logger.info(f"   Position Size: ${self.config['position_size']}")
