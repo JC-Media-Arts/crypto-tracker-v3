@@ -6,16 +6,14 @@ Incorporates shadow trading data into ML model training with weighted samples
 import os
 import pickle
 import json
-from datetime import datetime, timedelta
-from typing import Dict, Tuple, Optional, List
+from datetime import datetime
+from typing import Dict, Tuple, Optional
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, precision_score, recall_score, roc_auc_score
 import xgboost as xgb
 from loguru import logger
-
-from src.config.shadow_config import ShadowConfig
 
 
 class ShadowEnhancedRetrainer:
@@ -354,7 +352,11 @@ class ShadowEnhancedRetrainer:
 
         # Get labels (1 for win, 0 for loss)
         if "outcome_label" in data.columns:
-            labels = data["outcome_label"].values
+            # Convert string labels to numeric for XGBoost
+            # 'WIN' -> 1, 'LOSS' -> 0
+            labels = (
+                data["outcome_label"].apply(lambda x: 1 if x == "WIN" else 0).values
+            )
         else:
             # Create labels from status
             labels = (data["status"] == "CLOSED_WIN").astype(int).values

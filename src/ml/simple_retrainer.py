@@ -217,7 +217,10 @@ class SimpleRetrainer:
                 ]
 
             features_list.append(features)
-            labels_list.append(row["outcome_label"])
+            # Convert string labels to numeric for XGBoost
+            # 'WIN' -> 1, 'LOSS' -> 0
+            label = 1 if row["outcome_label"] == "WIN" else 0
+            labels_list.append(label)
 
         return np.array(features_list), np.array(labels_list)
 
