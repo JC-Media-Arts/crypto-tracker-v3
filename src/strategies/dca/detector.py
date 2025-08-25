@@ -9,13 +9,10 @@ Identifies opportunities for Dollar Cost Averaging (DCA) entries:
 """
 
 import pandas as pd
-import numpy as np
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 from loguru import logger
-from src.data.supabase_client import SupabaseClient
 from src.data.hybrid_fetcher import HybridDataFetcher
-import asyncio
 
 
 class DCADetector:
@@ -43,9 +40,9 @@ class DCADetector:
 
     def _load_strategy_config(self) -> Dict:
         """Load DCA strategy configuration from database."""
-        # Default configuration
+        # Default configuration (Custom balanced approach - moderate settings)
         default_config = {
-            "price_drop_threshold": -5.0,
+            "price_drop_threshold": -4.0,  # Changed from -5.0 (moderate adjustment)
             "timeframe": "4h",
             "volume_filter": "above_average",
             "btc_regime_filter": ["BULL", "NEUTRAL"],
@@ -56,6 +53,7 @@ class DCADetector:
             "stop_loss": -8.0,
             "time_exit_hours": 72,
             "ml_confidence_threshold": 0.60,
+            "volume_requirement_multiplier": 0.85,  # Added: 0.85x average volume (was 1.0x)
         }
 
         if not self.supabase:
@@ -64,8 +62,6 @@ class DCADetector:
 
         try:
             # Try to load from database
-            from supabase import Client
-
             if hasattr(self.supabase, "table"):
                 # It's a supabase client
                 result = (
@@ -164,7 +160,7 @@ class DCADetector:
                         "support_levels": support_levels,
                         "btc_regime": btc_regime,
                         "volume_avg_ratio": self._calculate_volume_ratio(price_data),
-                        "rsi": self._calculate_rsi(price_data["price"]),
+                        "rsi": self._calculate_rsi_series(price_data["price"]),
                     },
                 }
 
@@ -221,7 +217,11 @@ class DCADetector:
         if self.config["volume_filter"] == "above_average":
             recent_volume = price_data["volume"].iloc[-60:].mean()  # Last hour
             avg_volume = price_data["volume"].mean()
-            return recent_volume > avg_volume * 0.8  # At least 80% of average
+            # Use configurable volume requirement multiplier (default 0.85)
+            volume_multiplier = self.config.get("volume_requirement_multiplier", 0.85)
+            return (
+                recent_volume > avg_volume * volume_multiplier
+            )  # Now 85% of average (was 80%)
         return True
 
     def _calculate_support_levels(self, price_data: pd.DataFrame) -> List[float]:
@@ -252,8 +252,8 @@ class DCADetector:
         avg_volume = price_data["volume"].mean()
         return recent_volume / avg_volume if avg_volume > 0 else 1.0
 
-    def _calculate_rsi(self, prices: pd.Series, period: int = 14) -> float:
-        """Calculate RSI indicator."""
+    def _calculate_rsi_series(self, prices: pd.Series, period: int = 14) -> float:
+        """Calculate RSI indicator from pandas Series."""
         delta = prices.diff()
         gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
         loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
@@ -418,8 +418,10 @@ class DCADetector:
         else:
             return None
 
-        # Check if this meets DCA criteria
-        drop_threshold = self.config.get("drop_threshold", -5.0)
+        # Check if this meets DCA criteria (using updated threshold)
+        drop_threshold = self.config.get(
+            "price_drop_threshold", -4.0
+        )  # Use correct config key
         if drop_pct > drop_threshold:
             return None
 

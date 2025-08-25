@@ -7,10 +7,9 @@ Optimized for bull market conditions
 import pandas as pd
 import numpy as np
 from typing import Dict, List, Optional, Tuple
-from datetime import datetime, timedelta
+from datetime import datetime
 import logging
 from src.data.hybrid_fetcher import HybridDataFetcher
-import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -28,16 +27,16 @@ class SwingDetector:
         self.supabase = supabase_client
         self.fetcher = HybridDataFetcher()
 
-        # Swing detection parameters
+        # Swing detection parameters (Custom balanced approach - aggressive settings)
         self.config = {
             # Breakout detection
             "breakout_lookback": 20,  # periods to look back for resistance
-            "breakout_threshold": 1.02,  # 2% above resistance
-            "volume_spike_threshold": 2.0,  # 2x average volume
+            "breakout_threshold": 1.015,  # 1.5% above resistance (was 2%)
+            "volume_spike_threshold": 1.5,  # 1.5x average volume (was 2x)
             # Momentum indicators
             "momentum_period": 14,
-            "rsi_overbought": 70,
-            "rsi_bullish_min": 50,  # RSI should be above 50 for bullish momentum
+            "rsi_overbought": 75,  # Raised from 70
+            "rsi_bullish_min": 45,  # RSI above 45 for bullish momentum (was 50)
             "macd_signal_cross": True,
             # Trend filters
             "sma_fast": 20,
@@ -284,7 +283,6 @@ class SwingDetector:
             return None
 
         latest = df.iloc[-1]
-        prev = df.iloc[-2]
 
         # Skip if already in active setup
         if symbol in self.active_setups:
@@ -341,8 +339,8 @@ class SwingDetector:
         if pattern == "None":
             pattern = self._identify_pattern(df)
 
-        # Minimum score threshold
-        if score < 50:
+        # Minimum score threshold (lowered from 50 to 40 for more signals)
+        if score < 40:
             return None
 
         # Risk checks
@@ -387,9 +385,9 @@ class SwingDetector:
 
         # Check if current price is breaking above recent resistance
         if latest["close"] > prev_high * self.config["breakout_threshold"]:
-            # Confirm with volume (must be 2x for strong breakout per MASTER_PLAN)
+            # Confirm with volume (now 1.5x for strong breakout, was 2x)
             if latest["volume_ratio"] > self.config["volume_spike_threshold"]:
-                # Also check RSI is bullish (>50)
+                # Also check RSI is bullish (>45, was >50)
                 if latest.get("rsi", 50) > self.config["rsi_bullish_min"]:
                     breakout_info["detected"] = True
                     breakout_info["pattern"] = "resistance_breakout"

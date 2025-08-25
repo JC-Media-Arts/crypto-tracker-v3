@@ -7,7 +7,7 @@ Works best in sideways markets but can work in trending markets too
 import numpy as np
 import pandas as pd
 from typing import Dict, List, Optional, Tuple
-from datetime import datetime, timedelta
+from datetime import datetime
 from loguru import logger
 from scipy import stats
 from dataclasses import dataclass
@@ -33,9 +33,9 @@ class Channel:
     def is_valid(self) -> bool:
         """Check if channel is valid for trading"""
         return (
-            self.touches_upper >= 2
-            and self.touches_lower >= 2
-            and self.strength > 0.6
+            self.touches_upper >= 3  # Increased from 2
+            and self.touches_lower >= 3  # Increased from 2
+            and self.strength > 0.7  # Increased from 0.6
             and self.width > 1.0  # At least 1% wide
         )
 
@@ -58,8 +58,10 @@ class ChannelDetector:
     def __init__(self, config: Optional[Dict] = None):
         self.config = config or {}
 
-        # Channel detection parameters
-        self.min_touches = self.config.get("min_touches", 2)  # Min touches per line
+        # Channel detection parameters (Custom balanced approach - aggressive settings)
+        self.min_touches = self.config.get(
+            "min_touches", 3
+        )  # Min touches per line (was 2)
         self.lookback_periods = self.config.get(
             "lookback_periods", 100
         )  # Bars to analyze
@@ -76,9 +78,13 @@ class ChannelDetector:
             "parallel_tolerance", 0.15
         )  # 15% slope difference
 
-        # Trading zones
-        self.buy_zone = self.config.get("buy_zone", 0.25)  # Bottom 25% of channel
-        self.sell_zone = self.config.get("sell_zone", 0.75)  # Top 25% of channel
+        # Trading zones (tighter zones for fewer signals)
+        self.buy_zone = self.config.get(
+            "buy_zone", 0.15
+        )  # Bottom 15% of channel (was 25%)
+        self.sell_zone = self.config.get(
+            "sell_zone", 0.85
+        )  # Top 15% of channel (was 75%)
 
         logger.info("Channel Detector initialized")
 
@@ -184,12 +190,12 @@ class ChannelDetector:
         try:
             slope, intercept, r_value, _, _ = stats.linregress(x, y)
 
-            # Check if fit is good enough (lowered threshold for synthetic data)
-            if abs(r_value) < 0.5:  # R-squared threshold
+            # Check if fit is good enough (raised threshold for better quality)
+            if abs(r_value) < 0.6:  # R-squared threshold (was 0.5)
                 return None
 
             return (slope, intercept)
-        except:
+        except Exception:
             return None
 
     def _are_parallel(
