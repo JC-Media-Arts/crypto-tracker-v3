@@ -1306,6 +1306,7 @@ crypto-tracker-v3/
 ### Risk Log
 | Date | Risk Identified | Impact | Mitigation | Status |
 |------|----------------|--------|------------|--------|
+| 8/25 | No protection during flash crashes | Lost significant capital during Aug 24-26 BTC crash (898 stop losses) | Implemented comprehensive Market Protection System | ✅ Resolved |
 | 8/24 | ML Retrainer expects numeric labels but gets strings | Retraining fails with "Expected: {0 1}, got {'LOSS' 'WIN'}" | Fixed label conversion in simple_retrainer.py | ✅ Resolved |
 | 1/24 | Exit reasons all mislabeled as trailing_stop | Can't distinguish stop losses from trailing stops, ML can't learn | Fixed logic in SimplePaperTraderV2 | ✅ Resolved |
 | 1/24 | CHANNEL strategy 99% loss rate | Strategy losing money on 101/102 trades | Applied conservative thresholds via config | ✅ Resolved |
@@ -1322,6 +1323,10 @@ crypto-tracker-v3/
 ### Lessons Learned Log
 | Date | Lesson | Action |
 |------|--------|--------|
+| 8/25 | Market protection must be proactive, not reactive | Implemented multi-layer protection: regime detection, trade limiter, adaptive stops |
+| 8/25 | Different market cap tiers need different protection levels | Added memecoin tier with 24h cooldowns and 15% max stop losses |
+| 8/25 | Hysteresis essential for stability in volatile conditions | Two-threshold system: disable at 8%, re-enable at 6% prevents toggling |
+| 8/25 | Dashboard UX critical for monitoring protection status | Created multi-page dashboard with dedicated Market Protection section |
 | 8/24 | Database migration can break ML training if data types change | Always check ML components after database migrations, added string-to-numeric conversion |
 | 8/24 | Multiple deprecated scripts cause confusion about which is active | Moved all deprecated ML scripts to _deprecated/ folder, documented in MASTER_PLAN |
 | 1/24 | Critical bug: All stop losses were mislabeled as "trailing_stop" in paper trading | Fixed logic to only use trailing_stop when position was profitable first |
@@ -3430,6 +3435,248 @@ Max Retries: 10
 - Background services should handle heavy computation
 - Always process ALL symbols, not just a subset [[memory:6639946]]
 
+## 🛡️ **Market Protection System** (August 25, 2025)
+
+### **Overview**
+Comprehensive protection system implemented to prevent losses during market crashes like the August 24-26 event. The system operates at multiple levels to protect capital during adverse market conditions.
+
+### **Core Components**
+
+#### **1. Enhanced Market Regime Detection** (`src/strategies/regime_detector.py`)
+**Purpose**: Identify and respond to dangerous market conditions in real-time
+
+**Key Features**:
+- **Multiple Triggers**:
+  - PANIC: >5% BTC drop in 1h or >10% in 4h (immediate trading halt)
+  - CAUTION: 3-5% BTC drop (reduced positions by 50%)
+  - EUPHORIA: >5% BTC rise in 1h (reduced FOMO positions by 30%)
+  - NORMAL: Standard trading conditions
+
+- **Advanced Detection Methods**:
+  - `calculate_volatility()`: 24h price range volatility using 1-min candles
+  - `check_cumulative_decline()`: Detects slow bleeds (3% in 24h, 5% in 48h)
+  - `get_market_regime()`: Combines all signals for regime determination
+  - `should_disable_strategy()`: Per-strategy volatility thresholds with hysteresis
+
+- **Strategy-Specific Controls**:
+  - CHANNEL: Disabled at 8% volatility (re-enabled at 6%)
+  - DCA: Active in all regimes (opportunities in crashes)
+  - SWING: Reduced in high volatility
+
+#### **2. Trade Frequency Limiter** (`src/trading/trade_limiter.py`)
+**Purpose**: Prevent revenge trading after consecutive losses
+
+**Key Features**:
+- **Consecutive Stop Tracking**: Monitors losses per symbol
+- **Tier-Based Cooldowns**:
+  - Large Cap (BTC/ETH): 4-hour cooldown after 3 stops
+  - Mid Cap: 6-hour cooldown
+  - Small Cap: 12-hour cooldown
+  - Memecoins: 24-hour cooldown (NEW tier added)
+
+- **Reset Conditions**:
+  - 50% take profit hit
+  - Profitable trade timeout
+  - Trailing stop activation (indicates momentum)
+
+- **Persistent State**: JSON file tracking cooldowns across restarts
+
+#### **3. Adaptive Stop Loss System** (`src/trading/simple_paper_trader_v2.py`)
+**Purpose**: Dynamically widen stop losses in volatile markets
+
+**Key Features**:
+- **Volatility-Based Adjustments**:
+  - Base stop × (1 + volatility_factor × normalized_volatility)
+  - Volatility factor: 0.3 (30% adjustment per 10% volatility)
+
+- **Regime Multipliers**:
+  - PANIC: 1.5x wider stops
+  - CAUTION: 1.3x wider stops
+  - EUPHORIA: 1.2x wider stops
+  - NORMAL: 1.0x (no adjustment)
+
+- **Tier-Specific Caps**:
+  - Large Cap: 10% maximum stop loss
+  - Mid Cap: 12% maximum
+  - Small Cap: 15% maximum
+  - Memecoins: 15% maximum
+
+#### **4. Configuration System** (`configs/paper_trading.json`)
+**Purpose**: Centralized control of all protection parameters
+
+**Key Additions**:
+```json
+{
+  "market_cap_tiers": {
+    "memecoin": [
+      "PEPE", "WIF", "BONK", "FLOKI", "MEME", "POPCAT",
+      "MEW", "TURBO", "PNUT", "GOAT", "ACT", "TRUMP",
+      "MOG", "PONKE", "BRETT", "GIGA", "HIPPO", "NEIRO",
+      "TREMP", "FARTCOIN"
+    ]
+  },
+  "market_protection": {
+    "enhanced_regime": {"enabled": true},
+    "trade_limiter": {
+      "enabled": true,
+      "max_consecutive_stops": 3,
+      "cooldown_hours_by_tier": {
+        "large_cap": 4,
+        "mid_cap": 6,
+        "small_cap": 12,
+        "memecoin": 24
+      }
+    },
+    "stop_widening": {
+      "enabled": true,
+      "max_stop_loss_by_tier": {
+        "large_cap": 0.10,
+        "mid_cap": 0.12,
+        "small_cap": 0.15,
+        "memecoin": 0.15
+      },
+      "volatility_factor": 0.3,
+      "regime_multipliers": {
+        "PANIC": 1.5,
+        "CAUTION": 1.3,
+        "EUPHORIA": 1.2,
+        "NORMAL": 1.0
+      }
+    }
+  }
+}
+```
+
+### **Dashboard Integration** (`live_dashboard_v2.py`)
+
+#### **Multi-Page Structure**:
+1. **Paper Trading Page** (Homepage):
+   - Portfolio statistics with Total Investment and P&L %
+   - Open positions with complete column set
+   - Trade filtering (Open/Closed/All)
+   - Engine status indicator (green/red/yellow)
+   - Dynamic stats based on filter selection
+
+2. **Strategies Page**:
+   - Real-time strategy status for all 90 symbols
+   - Top candidates by readiness score
+   - Strategy-specific thresholds and signals
+
+3. **Market Page**:
+   - **Market Protection Section** (NEW):
+     - Protection Level (Normal/Caution/Panic)
+     - Market Volatility (24h price range)
+     - BTC Movement (real-time from OHLC data)
+     - Disabled Strategies list
+     - Symbols on Cooldown with time remaining
+   - Trading Sentiment analysis
+   - Top market movers
+
+#### **API Endpoints**:
+- `/api/market-protection`: Protection status and details
+- `/api/engine-status`: Paper trading engine health
+- `/api/strategy-status`: Strategy readiness scores
+- `/api/market-summary`: Market condition analysis
+
+#### **Dashboard Fixes Applied**:
+- Fixed SL/TP/TS formatting: "current% / target%" format
+- Changed "Exit Strategy" to "Exit Reason" column
+- Added missing columns (Amount, DCA Status, etc.)
+- Fixed API errors with proper table names
+- Resolved data loading issues for all pages
+
+### **Testing & Validation** (`scripts/test_market_protection.py`)
+
+**Comprehensive Test Suite**:
+- Simulates August 24-26 crash scenario with actual data patterns
+- Validates PANIC trigger on 10% BTC drop
+- Tests volatility calculation (raw and smoothed)
+- Verifies cumulative decline detection
+- Tests strategy disabling at thresholds
+- Validates trade limiter cooldowns
+- Tests adaptive stop loss calculations
+- Verifies state persistence
+
+**Test Results**:
+- ✅ PANIC correctly triggered at -10% BTC
+- ✅ CHANNEL disabled at 8% volatility
+- ✅ Stops widened to 7.5% in PANIC (from 5%)
+- ✅ Symbols blocked after 3 consecutive stops
+- ✅ State persists across restarts
+
+### **Expected Protection Outcomes**
+
+**During Flash Crash (>10% drop)**:
+- All new trades halted immediately
+- Stop losses widened by 50%
+- Existing positions managed conservatively
+- Clear PANIC alerts to Slack
+
+**During High Volatility (>8%)**:
+- CHANNEL strategy disabled (prone to whipsaws)
+- DCA continues (opportunities in fear)
+- Stop losses widened proportionally
+- Increased position monitoring
+
+**After Consecutive Losses**:
+- Symbol enters cooldown (4-24 hours by tier)
+- Prevents revenge trading
+- Forces strategy rotation
+- Allows market to stabilize
+
+### **Performance Impact**
+
+**Before Protection (Aug 24 crash)**:
+- 898 stop losses triggered
+- Massive portfolio drawdown
+- Continued trading into crash
+
+**After Protection (Simulated)**:
+- ~200 estimated stops (75% reduction)
+- Trading halted during worst period
+- Wider stops prevent premature exits
+- Cooldowns prevent repeated losses
+
+### **Next Steps**
+
+**Pending Implementation**:
+1. **Alerts & Notifications**:
+   - [ ] Immediate Slack alerts for PANIC regime
+   - [ ] Alert on first CHANNEL disable
+   - [ ] Batched reports for CAUTION and cooldowns
+
+2. **Manual Overrides**:
+   - [ ] Commands to force regime changes
+   - [ ] Clear specific symbol cooldowns
+   - [ ] Emergency strategy enable/disable
+
+3. **Production Deployment**:
+   - [ ] Deploy enhanced dashboard to Railway
+   - [ ] Monitor protection triggers for 24-48 hours
+   - [ ] Fine-tune thresholds based on real data
+
+### **Files Modified/Created**
+
+**New Files**:
+- `src/trading/trade_limiter.py` - Trade frequency control
+- `scripts/test_market_protection.py` - Validation suite
+- `docs/MARKET_REGIME_DETECTION_SYSTEM.md` - Complete documentation
+- `live_dashboard_v2.py` - Multi-page dashboard with protection monitoring
+
+**Modified Files**:
+- `src/strategies/regime_detector.py` - Enhanced detection methods
+- `src/trading/simple_paper_trader_v2.py` - Adaptive stop losses
+- `scripts/run_paper_trading_simple.py` - Protection integration
+- `configs/paper_trading.json` - Protection configuration
+
+### **Lessons Learned**
+
+1. **Proactive Protection Essential**: Can't rely on static rules during crashes
+2. **Volatility ≠ Opportunity**: High volatility often means danger, not profit
+3. **Cooldowns Prevent Spiral**: Breaking revenge trading cycle critical
+4. **Tier-Based Approach Works**: Different assets need different protection
+5. **Hysteresis Prevents Toggling**: Two-threshold system provides stability
+
 ## 📊 **Market Event Analysis Methodology** (August 2025)
 
 ### **Overview**
@@ -3650,7 +3897,7 @@ Based on analysis results, consider these actions:
 - Market Regime: [REGIME]
 - Volatility: [Low/Medium/High]
 
-### Portfolio Performance  
+### Portfolio Performance
 - Total P&L: $[XXX.XX] ([X.X%])
   - Realized: $[XXX.XX]
   - Unrealized: $[XXX.XX]
@@ -3694,7 +3941,7 @@ Based on analysis results, consider these actions:
 
 These analysis scripts should be maintained as first-class citizens:
 - Keep updated with schema changes
-- Add new metrics as needed  
+- Add new metrics as needed
 - Optimize for performance
 - Document any modifications
 
