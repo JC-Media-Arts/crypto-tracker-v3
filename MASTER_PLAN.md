@@ -1306,6 +1306,7 @@ crypto-tracker-v3/
 ### Risk Log
 | Date | Risk Identified | Impact | Mitigation | Status |
 |------|----------------|--------|------------|--------|
+| 8/25 | Strategy imbalance - CHANNEL 98.4% of trades | SWING never triggered, DCA underutilized, no diversification | Applied custom balanced threshold adjustments | ✅ Resolved |
 | 8/25 | No protection during flash crashes | Lost significant capital during Aug 24-26 BTC crash (898 stop losses) | Implemented comprehensive Market Protection System | ✅ Resolved |
 | 8/24 | ML Retrainer expects numeric labels but gets strings | Retraining fails with "Expected: {0 1}, got {'LOSS' 'WIN'}" | Fixed label conversion in simple_retrainer.py | ✅ Resolved |
 | 1/24 | Exit reasons all mislabeled as trailing_stop | Can't distinguish stop losses from trailing stops, ML can't learn | Fixed logic in SimplePaperTraderV2 | ✅ Resolved |
@@ -1323,6 +1324,8 @@ crypto-tracker-v3/
 ### Lessons Learned Log
 | Date | Lesson | Action |
 |------|--------|--------|
+| 8/25 | Strategy balance critical for system health - one dominant strategy creates concentration risk | Applied custom balanced thresholds to ensure all strategies participate |
+| 8/25 | Backtesting essential before threshold changes - must analyze impact across all strategies | Created comprehensive_backtest.py for systematic analysis |
 | 8/25 | Market protection must be proactive, not reactive | Implemented multi-layer protection: regime detection, trade limiter, adaptive stops |
 | 8/25 | Different market cap tiers need different protection levels | Added memecoin tier with 24h cooldowns and 15% max stop losses |
 | 8/25 | Hysteresis essential for stability in volatile conditions | Two-threshold system: disable at 8%, re-enable at 6% prevents toggling |
@@ -1525,6 +1528,58 @@ else:
 ---
 
 ## Implementation Progress
+
+### Recent Updates (August 25, 2025)
+
+#### Strategy Threshold Rebalancing - Custom Balanced Approach - COMPLETED
+
+**Issue Resolved**: Severe strategy imbalance - SWING not triggering (0 trades), CHANNEL dominating (98.4% of trades), DCA underperforming (1.6%)
+
+**Comprehensive 14-Day Backtest Analysis**:
+- Period analyzed: August 11-25, 2025
+- Total trades: 1016 (0 SWING, 1000 CHANNEL, 16 DCA)
+- CHANNEL win rate: 71.1% but completely overwhelming the system
+- Created comprehensive_backtest.py for analysis
+
+**Root Causes Identified**:
+1. SWING thresholds too restrictive (breakout 2%, volume 2x, RSI 50-70)
+2. CHANNEL thresholds too loose (25%/75% zones, 2 touches minimum)
+3. DCA drop threshold too conservative (-5%)
+
+**Solutions Implemented - Custom Balanced Approach**:
+
+1. **SWING Strategy (Aggressive Loosening)** ✅
+   - Breakout threshold: 1.02 → 1.015 (1.5% above resistance)
+   - Volume spike: 2.0 → 1.5 (1.5x average)
+   - RSI range: 50-70 → 45-75 (wider acceptance)
+   - Min score: 50 → 40 (lower barrier)
+   - Expected: ~20-30 trades/14 days
+
+2. **CHANNEL Strategy (Aggressive Tightening)** ✅
+   - Buy zone: 0.25 → 0.15 (bottom 15% of channel)
+   - Sell zone: 0.75 → 0.85 (top 15% of channel)
+   - Min touches: 2 → 3 (more confirmation required)
+   - Min confidence: 0.55 → 0.65 (higher quality setups)
+   - Channel strength: 0.6 → 0.7 (stronger patterns only)
+   - Expected: ~300-400 trades/14 days (70% reduction)
+
+3. **DCA Strategy (Moderate Loosening)** ✅
+   - Drop threshold: -5.0 → -4.0% from 4h high
+   - Volume requirement: 1.0 → 0.85x average
+   - Expected: ~25-35 trades/14 days
+
+**Testing & Validation**:
+- Created test_threshold_updates.py to verify all changes
+- Ran simulations with moderate vs aggressive adjustments
+- Selected custom balanced approach combining best of both
+- All detectors and configurations updated successfully
+
+**Benefits**:
+- ✅ Balanced strategy distribution (no single strategy dominates)
+- ✅ SWING strategy now active (was completely dead)
+- ✅ CHANNEL reduced to manageable levels
+- ✅ DCA more opportunities during dips
+- ✅ Better overall system diversification
 
 ### Recent Updates (January 24, 2025)
 
