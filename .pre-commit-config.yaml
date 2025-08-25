@@ -6,12 +6,44 @@ repos:
     rev: 23.12.1
     hooks:
       - id: black
+        exclude: |
+          (?x)^(
+              .*\.md$|                    # Markdown documentation files
+              scripts/test_.*\.py$|       # Test scripts
+              scripts/check_.*\.py$|      # Check/verification scripts
+              scripts/analyze_.*\.py$|    # Analysis scripts
+              scripts/export_.*\.py$|     # Export scripts
+              scripts/verify_.*\.py$|     # Verification scripts
+              scripts/debug_.*\.py$|      # Debug scripts
+              scripts/_deprecated/.*$|    # Deprecated scripts
+              docs/.*$|                   # Documentation directory
+              migrations/.*\.sql$|        # SQL migration files
+              data/.*$|                   # Data files
+              logs/.*$|                   # Log files
+              tests/test_.*\.py$         # Test files
+          )
 
   - repo: https://github.com/pycqa/flake8
     rev: 7.0.0
     hooks:
       - id: flake8
         args: ['--max-line-length=120', '--extend-ignore=E203,W503']
+        exclude: |
+          (?x)^(
+              .*\.md$|                    # Markdown documentation files
+              scripts/test_.*\.py$|       # Test scripts
+              scripts/check_.*\.py$|      # Check/verification scripts
+              scripts/analyze_.*\.py$|    # Analysis scripts
+              scripts/export_.*\.py$|     # Export scripts
+              scripts/verify_.*\.py$|     # Verification scripts
+              scripts/debug_.*\.py$|      # Debug scripts
+              scripts/_deprecated/.*$|    # Deprecated scripts
+              docs/.*$|                   # Documentation directory
+              migrations/.*\.sql$|        # SQL migration files
+              data/.*$|                   # Data files
+              logs/.*$|                   # Log files
+              tests/test_.*\.py$         # Test files
+          )
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0

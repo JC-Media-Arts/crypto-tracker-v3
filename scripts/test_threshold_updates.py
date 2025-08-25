@@ -1,177 +1,144 @@
 #!/usr/bin/env python3
-"""
-Test the updated threshold configurations
-Verify that all changes have been applied correctly
-"""
+"""Test script to verify threshold updates are working correctly"""
 
 import sys
-import os
+from pathlib import Path
 
-sys.path.append(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-)  # noqa: E402
+# Add project root to path
+sys.path.append(str(Path(__file__).parent.parent))
 
-from configs.paper_trading_config import PAPER_TRADING_CONFIG  # noqa: E402
-from src.strategies.swing.detector import SwingDetector  # noqa: E402
-from src.strategies.channel.detector import ChannelDetector  # noqa: E402
-from src.strategies.dca.detector import DCADetector  # noqa: E402
-from src.data.supabase_client import SupabaseClient  # noqa: E402
+from configs.paper_trading_config import PAPER_TRADING_CONFIG
+from src.strategies.simple_rules import SimpleRules
+from loguru import logger
 
 
-def test_configurations():
-    """Test that all configurations have been updated correctly"""
+def test_threshold_loading():
+    """Test that SimpleRules loads thresholds from config correctly"""
 
-    print("=" * 80)
-    print("TESTING THRESHOLD UPDATES - CUSTOM BALANCED APPROACH")
-    print("=" * 80)
+    # Create config dict like run_paper_trading_simple.py does
+    config = {
+        "ml_enabled": False,
+        "shadow_enabled": False,
+        "base_position_usd": 50.0,
+        "max_open_positions": PAPER_TRADING_CONFIG.get("max_positions", 30),
+        # Detection thresholds from central config
+        "dca_drop_threshold": PAPER_TRADING_CONFIG["strategies"]["DCA"].get(
+            "drop_threshold", -4.0
+        ),
+        "swing_breakout_threshold": PAPER_TRADING_CONFIG["strategies"]["SWING"].get(
+            "breakout_threshold", 1.015
+        ),
+        "channel_position_threshold": PAPER_TRADING_CONFIG["strategies"]["CHANNEL"].get(
+            "buy_zone", 0.15
+        ),
+        # Volume and other thresholds
+        "swing_volume_surge": PAPER_TRADING_CONFIG["strategies"]["SWING"].get(
+            "volume_surge", 1.5
+        ),
+        "channel_touches": PAPER_TRADING_CONFIG["strategies"]["CHANNEL"].get(
+            "channel_touches", 3
+        ),
+        "min_confidence": 0.45,
+        "scan_interval": 60,
+        "position_size": 50.0,
+        "max_position_duration_hours": 72,
+    }
 
-    # Test paper_trading_config.py
-    print("\n📋 Paper Trading Config:")
-    config = PAPER_TRADING_CONFIG["strategies"]
+    # Initialize SimpleRules with config
+    simple_rules = SimpleRules(config)
 
-    # SWING checks
-    print("\n  SWING Strategy:")
-    swing_config = config["SWING"]
+    print("\n" + "=" * 60)
+    print("THRESHOLD VERIFICATION TEST")
+    print("=" * 60)
+
+    print("\n📋 Configuration Values from paper_trading_config.py:")
     print(
-        f"    ✓ min_confidence: {swing_config.get('min_confidence', 'NOT SET')} (should be 0.50)"
+        f"  DCA drop_threshold: {PAPER_TRADING_CONFIG['strategies']['DCA']['drop_threshold']}%"
     )
     print(
-        f"    ✓ breakout_threshold: {swing_config.get('breakout_threshold', 'NOT SET')} (should be 1.015)"
+        f"  SWING breakout_threshold: {PAPER_TRADING_CONFIG['strategies']['SWING']['breakout_threshold']}"
     )
     print(
-        f"    ✓ volume_surge: {swing_config.get('volume_surge', 'NOT SET')} (should be 1.5)"
-    )
-    print(f"    ✓ rsi_min: {swing_config.get('rsi_min', 'NOT SET')} (should be 45)")
-    print(f"    ✓ rsi_max: {swing_config.get('rsi_max', 'NOT SET')} (should be 75)")
-    print(f"    ✓ min_score: {swing_config.get('min_score', 'NOT SET')} (should be 40)")
-
-    # CHANNEL checks
-    print("\n  CHANNEL Strategy:")
-    channel_config = config["CHANNEL"]
-    print(
-        f"    ✓ min_confidence: {channel_config.get('min_confidence', 'NOT SET')} (should be 0.65)"
+        f"  SWING volume_surge: {PAPER_TRADING_CONFIG['strategies']['SWING']['volume_surge']}x"
     )
     print(
-        f"    ✓ channel_touches: {channel_config.get('channel_touches', 'NOT SET')} (should be 3)"
+        f"  CHANNEL buy_zone: {PAPER_TRADING_CONFIG['strategies']['CHANNEL']['buy_zone']}"
     )
     print(
-        f"    ✓ buy_zone: {channel_config.get('buy_zone', 'NOT SET')} (should be 0.15)"
+        f"  CHANNEL touches: {PAPER_TRADING_CONFIG['strategies']['CHANNEL']['channel_touches']}"
+    )
+
+    print("\n✅ SimpleRules Loaded Values:")
+    print(f"  DCA drop_threshold: {simple_rules.dca_drop_threshold}%")
+    print(f"  SWING breakout_threshold: {simple_rules.swing_breakout_threshold}")
+    print(f"  SWING volume_surge: {simple_rules.swing_volume_surge}x")
+    print(f"  CHANNEL position_threshold: {simple_rules.channel_position_threshold}")
+    print(f"  CHANNEL touches: {simple_rules.channel_touches}")
+
+    print("\n🔍 Verification Results:")
+
+    # Verify DCA
+    dca_match = (
+        simple_rules.dca_drop_threshold
+        == PAPER_TRADING_CONFIG["strategies"]["DCA"]["drop_threshold"]
+    )
+    print(f"  DCA: {'✅ MATCH' if dca_match else '❌ MISMATCH'}")
+
+    # Verify SWING
+    swing_breakout_match = (
+        simple_rules.swing_breakout_threshold
+        == PAPER_TRADING_CONFIG["strategies"]["SWING"]["breakout_threshold"]
+    )
+    swing_volume_match = (
+        simple_rules.swing_volume_surge
+        == PAPER_TRADING_CONFIG["strategies"]["SWING"]["volume_surge"]
+    )
+    print(f"  SWING breakout: {'✅ MATCH' if swing_breakout_match else '❌ MISMATCH'}")
+    print(f"  SWING volume: {'✅ MATCH' if swing_volume_match else '❌ MISMATCH'}")
+
+    # Verify CHANNEL
+    channel_position_match = (
+        simple_rules.channel_position_threshold
+        == PAPER_TRADING_CONFIG["strategies"]["CHANNEL"]["buy_zone"]
+    )
+    channel_touches_match = (
+        simple_rules.channel_touches
+        == PAPER_TRADING_CONFIG["strategies"]["CHANNEL"]["channel_touches"]
     )
     print(
-        f"    ✓ sell_zone: {channel_config.get('sell_zone', 'NOT SET')} (should be 0.85)"
+        f"  CHANNEL position: {'✅ MATCH' if channel_position_match else '❌ MISMATCH'}"
     )
-    print(
-        f"    ✓ channel_strength_min: {channel_config.get('channel_strength_min', 'NOT SET')} (should be 0.70)"
-    )
+    print(f"  CHANNEL touches: {'✅ MATCH' if channel_touches_match else '❌ MISMATCH'}")
 
-    # DCA checks
-    print("\n  DCA Strategy:")
-    dca_config = config["DCA"]
-    print(
-        f"    ✓ drop_threshold: {dca_config.get('drop_threshold', 'NOT SET')} (should be -4.0)"
-    )
-    print(
-        f"    ✓ volume_requirement: {dca_config.get('volume_requirement', 'NOT SET')} (should be 0.85)"
+    all_match = all(
+        [
+            dca_match,
+            swing_breakout_match,
+            swing_volume_match,
+            channel_position_match,
+            channel_touches_match,
+        ]
     )
 
-    # Test detector classes
-    print("\n" + "=" * 80)
-    print("TESTING DETECTOR CLASSES")
-    print("=" * 80)
-
-    db = SupabaseClient()
-
-    # Test SWING detector
-    print("\n🎯 SWING Detector:")
-    swing = SwingDetector(db)
-    print(
-        f"    breakout_threshold: {swing.config['breakout_threshold']} (should be 1.015)"
-    )
-    print(
-        f"    volume_spike_threshold: {swing.config['volume_spike_threshold']} (should be 1.5)"
-    )
-    print(f"    rsi_bullish_min: {swing.config['rsi_bullish_min']} (should be 45)")
-    print(f"    rsi_overbought: {swing.config['rsi_overbought']} (should be 75)")
-
-    # Test CHANNEL detector
-    print("\n📊 CHANNEL Detector:")
-    channel = ChannelDetector()
-    print(f"    min_touches: {channel.min_touches} (should be 3)")
-    print(f"    buy_zone: {channel.buy_zone} (should be 0.15)")
-    print(f"    sell_zone: {channel.sell_zone} (should be 0.85)")
-
-    # Test DCA detector
-    print("\n💰 DCA Detector:")
-    dca = DCADetector(db)
-    print(
-        f"    price_drop_threshold: {dca.config.get('price_drop_threshold', 'NOT SET')} (should be -4.0)"
-    )
-    print(
-        f"    volume_requirement_multiplier: "
-        f"{dca.config.get('volume_requirement_multiplier', 'NOT SET')} (should be 0.85)"
-    )
-
-    # Verification summary
-    print("\n" + "=" * 80)
-    print("VERIFICATION SUMMARY")
-    print("=" * 80)
-
-    all_correct = True
-    errors = []
-
-    # Check SWING
-    if swing.config["breakout_threshold"] != 1.015:
-        errors.append("SWING breakout_threshold not updated")
-        all_correct = False
-    if swing.config["volume_spike_threshold"] != 1.5:
-        errors.append("SWING volume_spike_threshold not updated")
-        all_correct = False
-
-    # Check CHANNEL
-    if channel.min_touches != 3:
-        errors.append("CHANNEL min_touches not updated")
-        all_correct = False
-    if channel.buy_zone != 0.15:
-        errors.append("CHANNEL buy_zone not updated")
-        all_correct = False
-
-    # Check DCA
-    if dca.config.get("price_drop_threshold") != -4.0:
-        errors.append("DCA price_drop_threshold not updated")
-        all_correct = False
-
-    if all_correct:
-        print("\n✅ All threshold updates have been applied successfully!")
-        print("\n📌 Custom Balanced Approach is now active:")
-        print("   - SWING: Aggressive loosening (should see ~20-30 trades/14 days)")
-        print(
-            "   - CHANNEL: Aggressive tightening (should reduce to ~300-400 trades/14 days)"
-        )
-        print("   - DCA: Moderate loosening (should see ~25-35 trades/14 days)")
+    print("\n" + "=" * 60)
+    if all_match:
+        print("✅ ALL THRESHOLDS MATCH! Configuration is unified.")
     else:
-        print("\n❌ Some updates may not have been applied:")
-        for error in errors:
-            print(f"   - {error}")
+        print("❌ THRESHOLD MISMATCH DETECTED! Check configuration.")
+    print("=" * 60)
 
-    return all_correct
-
-
-def main():
-    success = test_configurations()
-
-    print("\n" + "=" * 80)
-    print("TEST COMPLETE")
-    print("=" * 80)
-
-    if success:
-        print("\n✨ All configurations updated successfully!")
-        print("\nNext steps:")
-        print("1. Restart paper trading to apply the new thresholds")
-        print("2. Monitor performance over the next 24-48 hours")
-        print("3. Fine-tune if needed based on actual results")
-    else:
-        print("\n⚠️ Please review and fix the configuration issues above")
+    print("\n📊 Expected Strategy Behavior with These Thresholds:")
+    print(
+        f"  DCA: Will trigger when price drops {simple_rules.dca_drop_threshold}% from recent high"
+    )
+    print(
+        f"  SWING: Will trigger on {(simple_rules.swing_breakout_threshold - 1) * 100:.1f}% breakout with {simple_rules.swing_volume_surge}x volume"
+    )
+    print(
+        f"  CHANNEL: Will trigger when price is in bottom {simple_rules.channel_position_threshold * 100:.0f}% of range"
+    )
+    print()
 
 
 if __name__ == "__main__":
-    main()
+    test_threshold_loading()

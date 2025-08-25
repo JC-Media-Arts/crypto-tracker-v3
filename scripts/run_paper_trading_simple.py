@@ -22,6 +22,9 @@ import signal as sig_handler  # noqa: E402
 # Add project root to path
 sys.path.append(str(Path(__file__).parent.parent))
 
+# Import configuration
+from configs.paper_trading_config import PAPER_TRADING_CONFIG  # noqa: E402
+
 from src.data.hybrid_fetcher import HybridDataFetcher  # noqa: E402
 from src.trading.simple_paper_trader_v2 import SimplePaperTraderV2  # noqa: E402
 from src.config.settings import Settings  # noqa: E402
@@ -70,18 +73,32 @@ class SimplifiedPaperTradingSystem:
         # Initialize database
         self.supabase = SupabaseClient()
 
-        # Simple rule-based configuration (NO ML)
+        # Load configuration from central source
+        # Build config from PAPER_TRADING_CONFIG with backward compatibility
         self.config = {
             "ml_enabled": False,  # ALWAYS FALSE
             "shadow_enabled": False,  # ALWAYS FALSE
             "base_position_usd": 50.0,
-            "max_open_positions": 30,
-            # Simplified thresholds (30% lower than original for more signals)
-            "dca_drop_threshold": -3.5,  # Was -5.0
-            "swing_breakout_threshold": 2.1,  # Was 3.0
-            "channel_position_threshold": 0.35,
+            "max_open_positions": PAPER_TRADING_CONFIG.get("max_positions", 30),
+            # Detection thresholds from central config
+            "dca_drop_threshold": PAPER_TRADING_CONFIG["strategies"]["DCA"].get(
+                "drop_threshold", -4.0
+            ),
+            "swing_breakout_threshold": PAPER_TRADING_CONFIG["strategies"]["SWING"].get(
+                "breakout_threshold", 1.015
+            ),
+            "channel_position_threshold": PAPER_TRADING_CONFIG["strategies"][
+                "CHANNEL"
+            ].get("buy_zone", 0.15),
+            # Volume and other thresholds
+            "swing_volume_surge": PAPER_TRADING_CONFIG["strategies"]["SWING"].get(
+                "volume_surge", 1.5
+            ),
+            "channel_touches": PAPER_TRADING_CONFIG["strategies"]["CHANNEL"].get(
+                "channel_touches", 3
+            ),
             # Basic risk management
-            "min_confidence": 0.45,  # Lower threshold for rule-based
+            "min_confidence": 0.45,  # Lower threshold for rule-based (no ML)
             "scan_interval": 60,  # Scan every minute
             "position_size": 50.0,
             "max_position_duration_hours": 72,
@@ -111,10 +128,14 @@ class SimplifiedPaperTradingSystem:
         logger.info(f"   Balance: ${self.paper_trader.balance:.2f}")
         logger.info(f"   Position Size: ${self.config['position_size']}")
         logger.info(f"   Max Positions: {self.paper_trader.max_positions}")
-        logger.info(f"   DCA Threshold: {self.config['dca_drop_threshold']}%")
-        logger.info(f"   Swing Threshold: {self.config['swing_breakout_threshold']}%")
+        logger.info(f"   DCA Drop: {self.config['dca_drop_threshold']}%")
         logger.info(
-            f"   Channel Threshold: {self.config['channel_position_threshold']}"
+            f"   Swing Breakout: {self.config['swing_breakout_threshold']} "
+            f"(volume: {self.config['swing_volume_surge']}x)"
+        )
+        logger.info(
+            f"   Channel Buy Zone: {self.config['channel_position_threshold']} "
+            f"(touches: {self.config['channel_touches']})"
         )
         logger.info("=" * 80)
 

@@ -4,7 +4,6 @@ No ML, just basic technical rules with lowered thresholds
 """
 
 from typing import Dict, List, Optional
-from datetime import datetime
 from loguru import logger
 
 
@@ -12,19 +11,27 @@ class SimpleRules:
     """Simple rule-based strategy detection without ML"""
 
     def __init__(self, config: Dict = None):
-        """Initialize with simplified thresholds"""
+        """Initialize with simplified thresholds from config"""
         self.config = config or {}
 
-        # Simplified thresholds (30% lower than original)
+        # Load thresholds from config with sensible defaults
         self.dca_drop_threshold = self.config.get(
-            "dca_drop_threshold", -1.0
-        )  # AGGRESSIVE TEST: Was -3.5
+            "dca_drop_threshold", -4.0
+        )  # Default: 4% drop from recent high
         self.swing_breakout_threshold = self.config.get(
-            "swing_breakout_threshold", 0.3
-        )  # AGGRESSIVE TEST: Was 2.1
+            "swing_breakout_threshold", 1.015
+        )  # Default: 1.5% breakout
         self.channel_position_threshold = self.config.get(
-            "channel_position_threshold", 0.35
-        )  # AGGRESSIVE TEST: Was 0.2
+            "channel_position_threshold", 0.15
+        )  # Default: Bottom/top 15% of range
+
+        # Additional thresholds for proper detection
+        self.swing_volume_surge = self.config.get(
+            "swing_volume_surge", 1.5
+        )  # Default: 1.5x average volume
+        self.channel_touches = self.config.get(
+            "channel_touches", 3
+        )  # Default: 3 touches to confirm channel
 
         # Fixed confidence for all signals (no ML)
         self.fixed_confidence = 0.5
@@ -102,7 +109,10 @@ class SimpleRules:
             volume_surge = current["volume"] / avg_volume if avg_volume > 0 else 0
 
             # Simple rules: Breakout + Volume
-            if price_breakout >= self.swing_breakout_threshold and volume_surge > 1.5:
+            if (
+                price_breakout >= self.swing_breakout_threshold
+                and volume_surge > self.swing_volume_surge
+            ):
                 return {
                     "strategy": "SWING",
                     "symbol": symbol,
