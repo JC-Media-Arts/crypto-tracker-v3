@@ -299,8 +299,8 @@ BASE_TEMPLATE = r"""
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title }} - Crypto Trading Dashboard</title>
     <style>
-        {{ base_css }}
-        {{ page_css }}
+        {{ base_css|safe }}
+        {{ page_css|safe }}
     </style>
 </head>
 <body>
@@ -326,7 +326,7 @@ BASE_TEMPLATE = r"""
 
     <!-- Page Content -->
     <div class="container">
-        {{ content }}
+        {{ content|safe }}
     </div>
 
     <!-- Refresh Indicator -->
@@ -355,7 +355,7 @@ BASE_TEMPLATE = r"""
 
         setInterval(updateCountdown, 1000);
     </script>
-    {{ page_scripts }}
+    {{ page_scripts|safe }}
 </body>
 </html>
 """
