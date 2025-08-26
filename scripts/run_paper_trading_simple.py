@@ -621,11 +621,17 @@ class SimplifiedPaperTradingSystem:
                     position_size *= 0.5
 
             # Execute trade (using async method)
+            logger.info(f"[BUILD:20250825-232500] Executing trade for {symbol}")
             result = await self.paper_trader.open_position(
                 symbol=symbol,
                 usd_amount=position_size,
                 market_price=trading_signal["current_price"],
                 strategy=strategy,
+            )
+
+            # Log what type result is to debug Railway cache issue
+            logger.info(
+                f"[BUILD:20250825-232500] Result type: {type(result)}, value: {result}"
             )
 
             if result.get("success"):
