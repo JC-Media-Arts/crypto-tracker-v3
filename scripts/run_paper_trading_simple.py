@@ -2,8 +2,8 @@
 """
 Market-Aware Paper Trading System with Intelligent Strategy Prioritization
 Prioritizes strategies based on market analysis and manages positions intelligently
-Version: 2.3.1 - Debug Railway open_position issue
-BUILD_ID: 20250826-194500
+Version: 2.3.2 - Reduce logging to avoid Railway 500 logs/sec limit
+BUILD_ID: 20250826-201500
 """
 
 import asyncio
@@ -129,8 +129,8 @@ class SimplifiedPaperTradingSystem:
         self.shutdown = False
 
         logger.info("=" * 80)
-        logger.info("🚀 MARKET-AWARE PAPER TRADING SYSTEM v2.3.1")
-        logger.info("   BUILD_ID: 20250826-194500 - Debug Railway open_position issue")
+        logger.info("🚀 MARKET-AWARE PAPER TRADING SYSTEM v2.3.2")
+        logger.info("   BUILD_ID: 20250826-201500 - Reduced logging for Railway")
         logger.info("   Mode: Rule-Based with Market Intelligence")
         logger.info(f"   Balance: ${self.paper_trader.balance:.2f}")
         logger.info(f"   Position Size: ${self.config['position_size']}")
@@ -473,7 +473,9 @@ class SimplifiedPaperTradingSystem:
             logger.info("All symbols have active positions")
             return
 
-        logger.info(f"Scanning {len(available_symbols)} symbols for opportunities...")
+        logger.info(
+            f"Scanning {len(available_symbols)} symbols for opportunities... (detailed logs suppressed for Railway)"
+        )
 
         # Get best strategy from market analysis
         best_strategy = self.get_market_best_strategy()
@@ -550,28 +552,17 @@ class SimplifiedPaperTradingSystem:
                                 "price", current_price
                             )
                         signals_by_strategy["DCA"].append(dca_signal)
-                        logger.debug(
-                            f"📊 DCA Signal: {symbol} - drop {dca_signal.get('drop_pct', 0):.1f}%"
-                        )
-                        # Log positive scan
-                        await self.log_scan(
-                            symbol,
-                            "DCA",
-                            "BUY",
-                            "Signal detected",
-                            confidence=dca_signal["confidence"],
-                            metadata={"drop_pct": dca_signal.get("drop_pct", 0)},
-                            market_data=data,
-                        )
+                        # Reduced logging to avoid Railway 500 logs/sec limit
+                        pass
+                        # logger.debug(f"📊 DCA Signal: {symbol} - drop {dca_signal.get('drop_pct', 0):.1f}%")
+                        # await self.log_scan(symbol, "DCA", "BUY", "Signal detected",
+                        #     confidence=dca_signal["confidence"],
+                        #     metadata={"drop_pct": dca_signal.get("drop_pct", 0)},
+                        #     market_data=data)
                     else:
-                        await self.log_scan(
-                            symbol,
-                            "DCA",
-                            "SKIP",
-                            "No signal",
-                            confidence=0.0,
-                            market_data=data,
-                        )
+                        # Skip logging for NO signal to reduce log volume
+                        pass
+                        # await self.log_scan(symbol, "DCA", "SKIP", "No signal", confidence=0.0, market_data=data)
 
                 # Swing - Check if disabled due to volatility
                 if not self.regime_detector.should_disable_strategy("SWING"):
@@ -584,29 +575,19 @@ class SimplifiedPaperTradingSystem:
                                 "price", current_price
                             )
                         signals_by_strategy["SWING"].append(swing_signal)
-                        logger.debug(
-                            f"📊 Swing Signal: {symbol} - breakout {swing_signal.get('breakout_pct', 0):.1f}%"
-                        )
-                        await self.log_scan(
-                            symbol,
-                            "SWING",
-                            "BUY",
-                            "Signal detected",
-                            confidence=swing_signal["confidence"],
-                            metadata={
-                                "breakout_pct": swing_signal.get("breakout_pct", 0)
-                            },
-                            market_data=data,
-                        )
+                        # Reduced logging to avoid Railway 500 logs/sec limit
+                        pass
+                        # logger.debug(
+                        #     f"📊 Swing Signal: {symbol} - breakout {swing_signal.get('breakout_pct', 0):.1f}%"
+                        # )
+                        # await self.log_scan(symbol, "SWING", "BUY", "Signal detected",
+                        #     confidence=swing_signal["confidence"],
+                        #     metadata={"breakout_pct": swing_signal.get("breakout_pct", 0)},
+                        #     market_data=data)
                     else:
-                        await self.log_scan(
-                            symbol,
-                            "SWING",
-                            "SKIP",
-                            "No signal",
-                            confidence=0.0,
-                            market_data=data,
-                        )
+                        # Skip logging for NO signal to reduce log volume
+                        pass
+                        # await self.log_scan(symbol, "SWING", "SKIP", "No signal", confidence=0.0, market_data=data)
 
                 # Channel - Check if disabled due to volatility
                 if not self.regime_detector.should_disable_strategy("CHANNEL"):
@@ -619,36 +600,26 @@ class SimplifiedPaperTradingSystem:
                                 "price", current_price
                             )
                         signals_by_strategy["CHANNEL"].append(channel_signal)
-                        logger.debug(
-                            f"📊 Channel Signal: {symbol} - position {channel_signal.get('position', 0):.2f}"
-                        )
-                        await self.log_scan(
-                            symbol,
-                            "CHANNEL",
-                            "BUY",
-                            "Signal detected",
-                            confidence=channel_signal["confidence"],
-                            metadata={"position": channel_signal.get("position", 0)},
-                            market_data=data,
-                        )
+                        # Reduced logging to avoid Railway 500 logs/sec limit
+                        pass
+                        # logger.debug(f"📊 Channel Signal: {symbol} - position {channel_signal.get('position', 0):.2f}")
+                        # await self.log_scan(symbol, "CHANNEL", "BUY", "Signal detected",
+                        #     confidence=channel_signal["confidence"],
+                        #     metadata={"position": channel_signal.get("position", 0)},
+                        #     market_data=data)
                     else:
-                        await self.log_scan(
-                            symbol,
-                            "CHANNEL",
-                            "SKIP",
-                            "No signal",
-                            confidence=0.0,
-                            market_data=data,
-                        )
+                        # Skip logging for NO signal to reduce log volume
+                        pass
+                        # await self.log_scan(symbol, "CHANNEL", "SKIP", "No signal", confidence=0.0, market_data=data)
 
             except Exception as e:
                 logger.error(f"Error evaluating {symbol}: {e}")
                 continue
 
-        # Log signal counts
+        # Log signal counts and scan completion
         total_signals = sum(len(s) for s in signals_by_strategy.values())
         logger.info(
-            f"Found {total_signals} signals: DCA={len(signals_by_strategy['DCA'])}, "
+            f"✅ Scan complete! Found {total_signals} signals: DCA={len(signals_by_strategy['DCA'])}, "
             f"SWING={len(signals_by_strategy['SWING'])}, CHANNEL={len(signals_by_strategy['CHANNEL'])}"
         )
 

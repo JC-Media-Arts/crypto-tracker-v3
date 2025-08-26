@@ -3,7 +3,7 @@ Hybrid data fetcher that uses materialized views for recent data.
 This provides massive performance improvements by avoiding the unindexed main table.
 """
 
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Optional
 from datetime import datetime, timedelta
 from loguru import logger
 
@@ -130,7 +130,8 @@ class HybridDataFetcher:
             cutoff = datetime.utcnow() - timedelta(hours=hours)
             table = self._select_table(cutoff)
 
-            logger.debug(f"Fetching {symbol} from {table} (last {hours} hours)")
+            # Commented to reduce Railway log spam (hits 500 logs/sec limit with 90 symbols)
+            # logger.debug(f"Fetching {symbol} from {table} (last {hours} hours)")
 
             result = (
                 self.db.client.table(table)
