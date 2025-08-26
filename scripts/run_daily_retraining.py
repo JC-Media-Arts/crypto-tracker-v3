@@ -89,26 +89,42 @@ def check_current_status():
         print(f"  - Minimum required: {retrainer.min_new_samples}")
         print(f"  - Ready to retrain: {'✅ Yes' if should_retrain else '❌ No'}")
 
-        # Check if model exists
+        # Check if model exists using the retrainer's method
         import os
+        import json
 
-        model_file = os.path.join(retrainer.model_dir, f"{strategy.lower()}_model.pkl")
-        if os.path.exists(model_file):
-            # Load metadata if available
+        # Use the retrainer's _load_current_model method to check both new and legacy models
+        current_model = retrainer._load_current_model(strategy)
+        if current_model:
+            print(f"  - Current model: ✅ Found")
+
+            # Try to load metadata from new location first
             metadata_file = os.path.join(
                 retrainer.model_dir, f"{strategy.lower()}_metadata.json"
             )
             if os.path.exists(metadata_file):
-                import json
-
                 with open(metadata_file, "r") as f:
                     metadata = json.load(f)
                     print(
                         f"  - Current model score: {metadata.get('score', 'N/A'):.3f}"
                     )
                     print(f"  - Last trained: {metadata.get('timestamp', 'Unknown')}")
-            else:
-                print(f"  - Current model: Exists (no metadata)")
+            # Check for legacy training results
+            elif strategy.lower() == "channel":
+                legacy_results = os.path.join(
+                    retrainer.model_dir, "channel", "training_results.json"
+                )
+                if os.path.exists(legacy_results):
+                    with open(legacy_results, "r") as f:
+                        results = json.load(f)
+                        # Calculate composite score as retrainer does
+                        score = (
+                            results.get("accuracy", 0) * 0.3
+                            + results.get("precision", 0) * 0.5
+                            + results.get("recall", 0) * 0.2
+                        )
+                        print(f"  - Current model score: {score:.3f} (legacy)")
+                        print(f"  - Model type: Legacy CHANNEL model")
         else:
             print(f"  - Current model: Not found")
 

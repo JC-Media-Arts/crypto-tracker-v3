@@ -95,6 +95,8 @@ Last Updated: January 2025
     - Runs daily at 2 AM PST
     - Uses `src/ml/simple_retrainer.py` internally
     - **FIXED 8/24**: Converts 'WIN'/'LOSS' strings to 1/0 for XGBoost
+    - **FIXED 8/26**: Recognizes legacy models (classifier.pkl) and protects against downgrades
+    - **FIXED 8/26**: Feature mismatch protection prevents replacing high-performing legacy models
 
 - **DEPRECATED** (moved to `_deprecated/` folder):
   - `scripts/run_ml_trainer.py` ❌ (Old trainer)
@@ -109,12 +111,16 @@ Last Updated: January 2025
   - `scripts/disable_ml_shadow.py` ❌ (Utility script)
 
 ### Trading Dashboard
-- **ACTIVE**: `live_dashboard.py` ✅
+- **ACTIVE**: `live_dashboard_v2.py` ✅
   - Deployed as separate Railway service
+  - Multi-page dashboard with Paper Trading, Strategies, Market, and R&D sections
+  - **NEW 8/26**: R&D page shows ML model scores, parameter recommendations, and insights
+  - **FIXED 8/26**: Shows composite scores (weighted accuracy/precision/recall) instead of raw accuracy
   - Reads from cache tables for performance
   - Auto-refreshes every 10 seconds
 
 - **DEPRECATED**:
+  - `live_dashboard.py` ❌ (Single-page version)
   - `scripts/shadow_dashboard.py` ❌ (Shadow testing dashboard)
   - `scripts/generate_trading_dashboard.py` ❌ (Static generator)
 
@@ -1336,6 +1342,8 @@ crypto-tracker-v3/
 | 8/26 | Market conditions determine strategy dominance - CHANNEL should dominate in sideways markets | Accepted that strategy imbalance can be correct for market conditions |
 | 8/26 | "Fallback" messages indicate system working correctly, not a bug | Market-aware prioritization falls back when preferred strategy has no signals |
 | 8/26 | Test scripts essential for threshold validation before deployment | Created test_strategy_thresholds.py to verify signal generation |
+| 8/26 | Legacy ML models may use different features than retraining system | Protected legacy models from downgrades with feature mismatch detection and 85% score threshold |
+| 8/26 | Composite ML scores (accuracy/precision/recall weighted) more meaningful than raw accuracy | Fixed R&D dashboard to show composite scores matching how retrainer evaluates models |
 | 8/26 | Balance must sync from database, not local state files | Modified paper trader to query paper_trades table on startup |
 | 8/26 | Railway has 500 logs/sec limit that can drop messages | Reduced debug logging and removed log_scan calls |
 | 8/25 | Strategy balance critical for system health - one dominant strategy creates concentration risk | Applied balanced thresholds to ensure all strategies can participate |

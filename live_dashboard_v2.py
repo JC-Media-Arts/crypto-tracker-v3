@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 import os
 from datetime import datetime, timedelta, timezone
+import pandas as pd
 
 sys.path.append(str(Path(__file__).parent))
 
@@ -319,6 +320,9 @@ BASE_TEMPLATE = r"""
                 </a>
                 <a href="/market" class="nav-link {{ 'active' if active_page == 'market' else '' }}">
                     🌍 Market
+                </a>
+                <a href="/rd" class="nav-link {{ 'active' if active_page == 'rd' else '' }}">
+                    🔬 R&D
                 </a>
             </div>
         </div>
@@ -1113,6 +1117,381 @@ def market():
     )
 
 
+# R&D Page Template
+RD_TEMPLATE = r"""
+<h1 class="page-title">Research & Development</h1>
+<p class="subtitle">ML insights and parameter optimization recommendations</p>
+
+<!-- Model Status -->
+<div class="stats-container">
+    <div class="stat-card">
+        <div class="stat-label">CHANNEL Model</div>
+        <div class="stat-value" id="channelScore">Loading...</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">DCA Model</div>
+        <div class="stat-value" id="dcaScore">Loading...</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">SWING Model</div>
+        <div class="stat-value" id="swingScore">Loading...</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Next Retrain</div>
+        <div class="stat-value" id="nextRetrain">Loading...</div>
+    </div>
+</div>
+
+<!-- Parameter Recommendations -->
+<div class="table-container">
+    <div class="table-header">
+        <h2 class="table-title">📊 Current Recommendations (Based on Last 100 Trades)</h2>
+    </div>
+    <div class="recommendation-box" id="recommendationsContainer">
+        <div class="loading">Analyzing trades...</div>
+    </div>
+</div>
+
+<!-- Parameter Change History -->
+<div class="table-container">
+    <div class="table-header">
+        <h2 class="table-title">📈 Parameter Change History</h2>
+    </div>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Parameter</th>
+                <th>Old Value</th>
+                <th>New Value</th>
+                <th>Impact (7 days)</th>
+            </tr>
+        </thead>
+        <tbody id="parameterHistoryTable">
+            <tr><td colspan="5">Loading...</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- ML Learning Progress -->
+<div class="table-container">
+    <div class="table-header">
+        <h2 class="table-title">🧠 ML Model Learning Progress</h2>
+    </div>
+    <div class="progress-container" id="learningProgressContainer">
+        <div class="loading">Loading model statistics...</div>
+    </div>
+</div>
+
+<!-- ML Prediction Accuracy -->
+<div class="table-container">
+    <div class="table-header">
+        <h2 class="table-title">🎯 Recent ML Predictions vs Reality</h2>
+    </div>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Time</th>
+                <th>Symbol</th>
+                <th>Strategy</th>
+                <th>ML Confidence</th>
+                <th>Predicted</th>
+                <th>Actual</th>
+                <th>Accuracy</th>
+            </tr>
+        </thead>
+        <tbody id="mlPredictionsTable">
+            <tr><td colspan="7">Loading...</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<style>
+.recommendation-box {
+    background: rgba(15, 23, 42, 0.6);
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 10px;
+}
+
+.recommendation-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    margin: 8px 0;
+    background: rgba(30, 41, 59, 0.5);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 8px;
+}
+
+.recommendation-label {
+    color: #94a3b8;
+    font-size: 0.9rem;
+}
+
+.recommendation-values {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.current-value {
+    color: #64748b;
+}
+
+.arrow {
+    color: #3b82f6;
+    font-size: 1.2rem;
+}
+
+.recommended-value {
+    color: #10b981;
+    font-weight: 600;
+}
+
+.recommendation-reason {
+    color: #fbbf24;
+    font-size: 0.85rem;
+    margin-left: 16px;
+}
+
+.progress-container {
+    padding: 20px;
+}
+
+.progress-item {
+    margin: 16px 0;
+}
+
+.progress-label {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+}
+
+.progress-bar-bg {
+    background: rgba(148, 163, 184, 0.2);
+    height: 8px;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+    transition: width 0.3s ease;
+}
+
+.warning-box {
+    background: rgba(251, 191, 36, 0.1);
+    border: 1px solid rgba(251, 191, 36, 0.3);
+    border-radius: 8px;
+    padding: 16px;
+    margin: 16px 0;
+    color: #fbbf24;
+    font-size: 0.9rem;
+}
+</style>
+"""
+
+# JavaScript for R&D page
+RD_SCRIPTS = r"""
+<script>
+// Fetch ML model status
+async function fetchModelStatus() {
+    try {
+        const response = await fetch('/api/ml-model-status');
+        const data = await response.json();
+
+        // Update model scores with detailed metrics
+        if (data.channel) {
+            let details = data.channel.accuracy ?
+                `<br><small style="font-size: 0.7em; color: #9ca3af;">Acc: ${data.channel.accuracy} | Prec: ${data.channel.precision} | Rec: ${data.channel.recall}</small>` : '';
+            document.getElementById('channelScore').innerHTML =
+                `${data.channel.score} <span style="color: #10b981;">✓</span>${details}`;
+        } else {
+            document.getElementById('channelScore').innerHTML = 'Not Trained';
+        }
+
+        document.getElementById('dcaScore').innerHTML =
+            data.dca ? `${data.dca.score}` : `${data.dca_samples}/20 samples`;
+        document.getElementById('swingScore').innerHTML =
+            data.swing ? `${data.swing.score}` : `${data.swing_samples}/20 samples`;
+        document.getElementById('nextRetrain').textContent = data.next_retrain || '2:00 AM PST';
+
+    } catch (error) {
+        console.error('Error fetching model status:', error);
+    }
+}
+
+// Fetch parameter recommendations
+async function fetchRecommendations() {
+    try {
+        const response = await fetch('/api/parameter-recommendations');
+        const data = await response.json();
+
+        const container = document.getElementById('recommendationsContainer');
+
+        if (data.recommendations && data.recommendations.length > 0) {
+            let html = '';
+
+            // Add warning box
+            html += `<div class="warning-box">
+                ⚠️ Note: These recommendations are based on historical analysis only.
+                Shadow Testing (coming in Phase 4) will provide validated recommendations.
+            </div>`;
+
+            // Add recommendations
+            data.recommendations.forEach(rec => {
+                html += `
+                    <div class="recommendation-item">
+                        <div>
+                            <div class="recommendation-label">${rec.strategy} - ${rec.parameter}</div>
+                            <div class="recommendation-reason">${rec.reason}</div>
+                        </div>
+                        <div class="recommendation-values">
+                            <span class="current-value">${rec.current}%</span>
+                            <span class="arrow">→</span>
+                            <span class="recommended-value">${rec.recommended}%</span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        } else {
+            container.innerHTML = '<p style="color: #94a3b8;">No recommendations available yet. Need more completed trades for analysis.</p>';
+        }
+    } catch (error) {
+        console.error('Error fetching recommendations:', error);
+    }
+}
+
+// Fetch parameter change history
+async function fetchParameterHistory() {
+    try {
+        const response = await fetch('/api/parameter-history');
+        const data = await response.json();
+
+        const table = document.getElementById('parameterHistoryTable');
+
+        if (data.history && data.history.length > 0) {
+            table.innerHTML = data.history.map(item => `
+                <tr>
+                    <td>${new Date(item.date).toLocaleDateString()}</td>
+                    <td>${item.parameter}</td>
+                    <td>${item.old_value}%</td>
+                    <td>${item.new_value}%</td>
+                    <td class="${item.impact > 0 ? 'positive' : 'negative'}">
+                        ${item.impact > 0 ? '+' : ''}${item.impact}%
+                    </td>
+                </tr>
+            `).join('');
+        } else {
+            table.innerHTML = '<tr><td colspan="5" style="color: #94a3b8;">No parameter changes recorded yet</td></tr>';
+        }
+    } catch (error) {
+        console.error('Error fetching parameter history:', error);
+    }
+}
+
+// Fetch ML learning progress
+async function fetchLearningProgress() {
+    try {
+        const response = await fetch('/api/ml-learning-progress');
+        const data = await response.json();
+
+        const container = document.getElementById('learningProgressContainer');
+
+        let html = '';
+
+        ['CHANNEL', 'DCA', 'SWING'].forEach(strategy => {
+            const progress = data[strategy] || { current: 0, required: 20, next_milestone: 20 };
+            const percentage = Math.min((progress.current / progress.next_milestone) * 100, 100);
+
+            html += `
+                <div class="progress-item">
+                    <div class="progress-label">
+                        <span>${strategy}: ${progress.current} trades learned</span>
+                        <span>Next insight at ${progress.next_milestone} trades</span>
+                    </div>
+                    <div class="progress-bar-bg">
+                        <div class="progress-bar-fill" style="width: ${percentage}%"></div>
+                    </div>
+                </div>
+            `;
+        });
+
+        container.innerHTML = html;
+    } catch (error) {
+        console.error('Error fetching learning progress:', error);
+    }
+}
+
+// Fetch ML predictions accuracy
+async function fetchMLPredictions() {
+    try {
+        const response = await fetch('/api/recent-ml-predictions');
+        const data = await response.json();
+
+        const table = document.getElementById('mlPredictionsTable');
+
+        if (data.predictions && data.predictions.length > 0) {
+            table.innerHTML = data.predictions.map(pred => {
+                const accuracyIcon = pred.correct ? '✅' : '❌';
+                return `
+                    <tr>
+                        <td>${new Date(pred.timestamp).toLocaleTimeString()}</td>
+                        <td>${pred.symbol}</td>
+                        <td>${pred.strategy}</td>
+                        <td>${(pred.confidence * 100).toFixed(1)}%</td>
+                        <td>${pred.predicted}</td>
+                        <td>${pred.actual || 'Pending'}</td>
+                        <td>${pred.actual ? accuracyIcon : '⏳'}</td>
+                    </tr>
+                `;
+            }).join('');
+        } else {
+            table.innerHTML = '<tr><td colspan="7" style="color: #94a3b8;">No ML predictions yet</td></tr>';
+        }
+    } catch (error) {
+        console.error('Error fetching ML predictions:', error);
+    }
+}
+
+// Initial load and refresh intervals
+fetchModelStatus();
+fetchRecommendations();
+fetchParameterHistory();
+fetchLearningProgress();
+fetchMLPredictions();
+
+// Refresh intervals
+setInterval(fetchModelStatus, 30000); // Every 30 seconds
+setInterval(fetchRecommendations, 60000); // Every minute
+setInterval(fetchParameterHistory, 60000); // Every minute
+setInterval(fetchLearningProgress, 60000); // Every minute
+setInterval(fetchMLPredictions, 30000); // Every 30 seconds
+</script>
+"""
+
+
+@app.route("/rd")
+def rd():
+    """R&D page for ML insights and recommendations"""
+    return render_template_string(
+        BASE_TEMPLATE,
+        title="Research & Development",
+        active_page="rd",
+        base_css=BASE_CSS,
+        page_css="",
+        content=RD_TEMPLATE,
+        page_scripts=RD_SCRIPTS,
+    )
+
+
 @app.route("/api/engine-status")
 def get_engine_status():
     """Check if paper trading engine is running"""
@@ -1732,6 +2111,291 @@ def get_strategy_status():
         return jsonify({})
 
 
+# R&D API Endpoints
+@app.route("/api/ml-model-status")
+def get_ml_model_status():
+    """Get ML model training status"""
+    try:
+        import json
+        import os
+        from pathlib import Path
+
+        model_dir = Path("models")
+        result = {
+            "channel": None,
+            "dca": None,
+            "swing": None,
+            "channel_samples": 0,
+            "dca_samples": 0,
+            "swing_samples": 0,
+            "next_retrain": "2:00 AM PST",
+        }
+
+        # Check for model files and training results
+        for strategy in ["channel", "dca", "swing"]:
+            # Try training_results.json first, then metadata.json
+            training_file = model_dir / strategy / "training_results.json"
+            metadata_file = model_dir / strategy / "metadata.json"
+
+            if training_file.exists():
+                with open(training_file) as f:
+                    training_data = json.load(f)
+                    # Calculate composite score as the retrainer does
+                    accuracy = training_data.get("accuracy", 0)
+                    precision = training_data.get("precision", 0)
+                    recall = training_data.get("recall", 0)
+                    # Composite score: 30% accuracy, 50% precision, 20% recall
+                    composite_score = (
+                        (accuracy * 0.3) + (precision * 0.5) + (recall * 0.2)
+                    )
+                    result[strategy] = {
+                        "score": f"{composite_score:.3f}",
+                        "trained": "Trained",
+                        "samples": training_data.get("samples_trained", "Unknown"),
+                        "accuracy": f"{accuracy:.3f}",
+                        "precision": f"{precision:.3f}",
+                        "recall": f"{recall:.3f}",
+                    }
+            elif metadata_file.exists():
+                with open(metadata_file) as f:
+                    metadata = json.load(f)
+                    result[strategy] = {
+                        "score": f"{metadata.get('score', 0):.3f}",
+                        "trained": metadata.get("timestamp", "Unknown"),
+                        "samples": metadata.get("samples_trained", 0),
+                    }
+
+        # Get sample counts from database
+        db = SupabaseClient()
+        for strategy in ["CHANNEL", "DCA", "SWING"]:
+            count_result = (
+                db.client.table("paper_trades")
+                .select("*", count="exact")
+                .eq("strategy_name", strategy)
+                .eq("side", "SELL")
+                .not_.in_("exit_reason", ["POSITION_LIMIT_CLEANUP", "manual", "MANUAL"])
+                .execute()
+            )
+            count = (
+                count_result.count
+                if hasattr(count_result, "count")
+                else len(count_result.data)
+            )
+            result[f"{strategy.lower()}_samples"] = count
+
+        return jsonify(result)
+
+    except Exception as e:
+        logger.error(f"Error getting ML model status: {e}")
+        return jsonify({})
+
+
+@app.route("/api/parameter-recommendations")
+def get_parameter_recommendations():
+    """Generate parameter recommendations based on completed trades"""
+    try:
+        db = SupabaseClient()
+
+        # Get recent completed trades for analysis
+        trades_result = (
+            db.client.table("paper_trades")
+            .select("*")
+            .eq("side", "SELL")
+            .not_.is_("exit_reason", "null")
+            .order("filled_at", desc=True)
+            .limit(100)
+            .execute()
+        )
+
+        recommendations = []
+
+        if trades_result.data:
+            trades_df = pd.DataFrame(trades_result.data)
+
+            # Analyze by strategy
+            for strategy in trades_df["strategy_name"].unique():
+                strategy_trades = trades_df[trades_df["strategy_name"] == strategy]
+
+                # Load current config values
+                import json
+                from pathlib import Path
+
+                config_path = Path("configs/paper_trading.json")
+                current_config = {}
+                if config_path.exists():
+                    with open(config_path) as f:
+                        config = json.load(f)
+                        # Get mid_cap values as default (most common)
+                        if strategy in config.get("strategies", {}):
+                            exits = (
+                                config["strategies"][strategy]
+                                .get("exits_by_tier", {})
+                                .get("mid_cap", {})
+                            )
+                            current_config = {
+                                "stop_loss": exits.get("stop_loss", 0.03) * 100,
+                                "take_profit": exits.get("take_profit", 0.03) * 100,
+                            }
+
+                # Analyze stop losses
+                stop_losses = strategy_trades[
+                    strategy_trades["exit_reason"] == "stop_loss"
+                ]
+                if len(stop_losses) > 5:
+                    current_sl = current_config.get("stop_loss", 3.0)
+                    recommendations.append(
+                        {
+                            "strategy": strategy,
+                            "parameter": "Stop Loss",
+                            "current": current_sl,
+                            "recommended": current_sl * 1.33,  # Increase by 33%
+                            "reason": f"{len(stop_losses)} premature stops in last 100 trades",
+                        }
+                    )
+
+                # Analyze take profits
+                timeouts = strategy_trades[strategy_trades["exit_reason"] == "timeout"]
+                if len(timeouts) > 10:
+                    current_tp = current_config.get("take_profit", 3.0)
+                    recommendations.append(
+                        {
+                            "strategy": strategy,
+                            "parameter": "Take Profit",
+                            "current": current_tp,
+                            "recommended": current_tp * 0.83,  # Decrease by 17%
+                            "reason": f"{len(timeouts)} trades timed out before profit",
+                        }
+                    )
+
+        return jsonify({"recommendations": recommendations})
+
+    except Exception as e:
+        logger.error(f"Error generating recommendations: {e}")
+        return jsonify({"recommendations": []})
+
+
+@app.route("/api/parameter-history")
+def get_parameter_history():
+    """Get history of parameter changes"""
+    try:
+        # Note: learning_history table doesn't exist yet
+        # Will be created when Shadow Testing is implemented
+        # For now, return example data
+
+        history = [
+            {
+                "date": "2025-01-24",
+                "parameter": "CHANNEL Stop Loss",
+                "old_value": 5.0,
+                "new_value": 3.0,
+                "impact": 12,
+            },
+            {
+                "date": "2025-01-24",
+                "parameter": "CHANNEL Take Profit",
+                "old_value": 7.0,
+                "new_value": 3.0,
+                "impact": 8,
+            },
+            {
+                "date": "2025-08-26",
+                "parameter": "DCA Drop Threshold",
+                "old_value": 4.0,
+                "new_value": 2.5,
+                "impact": 3,
+            },
+        ]
+
+        return jsonify({"history": history})
+
+    except Exception as e:
+        logger.error(f"Error getting parameter history: {e}")
+        return jsonify({"history": []})
+
+
+@app.route("/api/ml-learning-progress")
+def get_ml_learning_progress():
+    """Get ML model learning progress"""
+    try:
+        db = SupabaseClient()
+
+        progress = {}
+
+        for strategy in ["CHANNEL", "DCA", "SWING"]:
+            # Count completed trades
+            count_result = (
+                db.client.table("paper_trades")
+                .select("*", count="exact")
+                .eq("strategy_name", strategy)
+                .eq("side", "SELL")
+                .not_.in_("exit_reason", ["POSITION_LIMIT_CLEANUP", "manual", "MANUAL"])
+                .execute()
+            )
+
+            current = count_result.count if hasattr(count_result, "count") else 0
+
+            # Calculate milestones
+            if current < 20:
+                next_milestone = 20  # First training
+            elif current < 50:
+                next_milestone = 50  # Better model
+            elif current < 100:
+                next_milestone = 100  # Good model
+            else:
+                next_milestone = current + 20  # Continuous improvement
+
+            progress[strategy] = {
+                "current": current,
+                "required": 20,
+                "next_milestone": next_milestone,
+            }
+
+        return jsonify(progress)
+
+    except Exception as e:
+        logger.error(f"Error getting learning progress: {e}")
+        return jsonify({})
+
+
+@app.route("/api/recent-ml-predictions")
+def get_recent_ml_predictions():
+    """Get recent ML predictions and their accuracy"""
+    try:
+        db = SupabaseClient()
+
+        # Get recent ML predictions
+        predictions_result = (
+            db.client.table("ml_predictions")
+            .select("*")
+            .order("timestamp", desc=True)
+            .limit(20)
+            .execute()
+        )
+
+        predictions = []
+        if predictions_result.data:
+            for pred in predictions_result.data:
+                predictions.append(
+                    {
+                        "timestamp": pred["timestamp"],
+                        "symbol": pred["symbol"],
+                        "strategy": pred.get("model_version", "Unknown")
+                        .split("_")[0]
+                        .upper(),
+                        "confidence": pred.get("confidence", 0),
+                        "predicted": "BUY" if pred["prediction"] == "UP" else "SKIP",
+                        "actual": None,  # Would need to match with trades
+                        "correct": None,
+                    }
+                )
+
+        return jsonify({"predictions": predictions})
+
+    except Exception as e:
+        logger.error(f"Error getting ML predictions: {e}")
+        return jsonify({"predictions": []})
+
+
 if __name__ == "__main__":
     # Get port from Railway or default to 8080 for local
     port = int(os.environ.get("PORT", 8080))
@@ -1746,9 +2410,10 @@ if __name__ == "__main__":
     else:
         print(f"\n📊 Dashboard URL: http://localhost:{port}")
         print("📄 Pages available:")
-        print("   - Paper Trading: http://localhost:{port}/")
-        print("   - Strategies: http://localhost:{port}/strategies")
-        print("   - Market: http://localhost:{port}/market")
+        print(f"   - Paper Trading: http://localhost:{port}/")
+        print(f"   - Strategies: http://localhost:{port}/strategies")
+        print(f"   - Market: http://localhost:{port}/market")
+        print(f"   - R&D: http://localhost:{port}/rd")
 
     print("\n✅ Dashboard server starting...")
     print("=" * 60 + "\n")

@@ -129,18 +129,41 @@ class SimpleRetrainer:
             # Compare with current model
             current_model = self._load_current_model(strategy)
             if current_model:
-                current_score = self._validate_model(current_model, X_val, y_val)
-                logger.info(
-                    f"Current model score: {current_score:.3f}, New model score: {new_score:.3f}"
-                )
+                # Check if feature dimensions match
+                try:
+                    current_score = self._validate_model(current_model, X_val, y_val)
+                    logger.info(
+                        f"Current model score: {current_score:.3f}, New model score: {new_score:.3f}"
+                    )
 
-                if new_score > current_score:
-                    # Save new model
-                    self._save_model(new_model, strategy, new_score)
-                    self._update_last_train_time(strategy)
-                    return f"Model updated (improvement: {new_score:.3f} > {current_score:.3f})"
-                else:
-                    return f"Kept existing model (current: {current_score:.3f} >= new: {new_score:.3f})"
+                    # Only update if new model is significantly better (2% improvement threshold)
+                    improvement_threshold = 0.02
+                    if new_score > (current_score + improvement_threshold):
+                        # Save new model
+                        self._save_model(new_model, strategy, new_score)
+                        self._update_last_train_time(strategy)
+                        return f"Model updated (improvement: {new_score:.3f} > {current_score:.3f})"
+                    else:
+                        return f"Kept existing model (current: {current_score:.3f}, new: {new_score:.3f}, threshold: {improvement_threshold:.1%})"
+                except Exception as e:
+                    if "Feature shape mismatch" in str(
+                        e
+                    ) or "feature_names mismatch" in str(e):
+                        logger.warning(
+                            f"Legacy model has incompatible features. Score new model: {new_score:.3f}"
+                        )
+                        logger.warning(
+                            "Consider manual review before replacing legacy model"
+                        )
+                        # For now, preserve the legacy model unless the new one is exceptionally good
+                        if new_score > 0.85:  # High threshold to protect legacy models
+                            self._save_model(new_model, strategy, new_score)
+                            self._update_last_train_time(strategy)
+                            return f"Legacy model replaced with high-scoring new model (score: {new_score:.3f})"
+                        else:
+                            return f"Kept legacy model (feature mismatch, new score {new_score:.3f} < 0.85 threshold)"
+                    else:
+                        raise
             else:
                 # No existing model, save the new one
                 self._save_model(new_model, strategy, new_score)
@@ -257,24 +280,52 @@ class SimpleRetrainer:
         return score
 
     def _load_current_model(self, strategy: str):
-        """Load the current model"""
+        """Load the current model - checks both new and legacy naming conventions"""
         try:
-            model_file = os.path.join(self.model_dir, f"{strategy.lower()}_model.pkl")
+            strategy_lower = strategy.lower()
+
+            # First try the new naming convention
+            model_file = os.path.join(self.model_dir, f"{strategy_lower}_model.pkl")
             if os.path.exists(model_file):
                 with open(model_file, "rb") as f:
                     return pickle.load(f)
+
+            # For CHANNEL strategy, check legacy classifier.pkl
+            if strategy_lower == "channel":
+                legacy_file = os.path.join(self.model_dir, "channel", "classifier.pkl")
+                if os.path.exists(legacy_file):
+                    logger.info(f"Loading legacy CHANNEL model from {legacy_file}")
+                    with open(legacy_file, "rb") as f:
+                        return pickle.load(f)
+
+            # For DCA strategy, check legacy classifier.pkl
+            elif strategy_lower == "dca":
+                legacy_file = os.path.join(self.model_dir, "dca", "classifier.pkl")
+                if os.path.exists(legacy_file):
+                    logger.info(f"Loading legacy DCA model from {legacy_file}")
+                    with open(legacy_file, "rb") as f:
+                        return pickle.load(f)
+
+            # For SWING strategy, check legacy classifier.pkl
+            elif strategy_lower == "swing":
+                legacy_file = os.path.join(self.model_dir, "swing", "classifier.pkl")
+                if os.path.exists(legacy_file):
+                    logger.info(f"Loading legacy SWING model from {legacy_file}")
+                    with open(legacy_file, "rb") as f:
+                        return pickle.load(f)
+
             return None
         except Exception as e:
             logger.error(f"Error loading current model: {e}")
             return None
 
     def _save_model(self, model, strategy: str, score: float):
-        """Save the model and metadata"""
+        """Save the model and metadata in new location (preserves legacy models)"""
         try:
             # Create model directory if it doesn't exist
             os.makedirs(self.model_dir, exist_ok=True)
 
-            # Save model
+            # Save model using new naming convention at root of models dir
             model_file = os.path.join(self.model_dir, f"{strategy.lower()}_model.pkl")
             with open(model_file, "wb") as f:
                 pickle.dump(model, f)
@@ -293,7 +344,8 @@ class SimpleRetrainer:
             with open(metadata_file, "w") as f:
                 json.dump(metadata, f, indent=2)
 
-            logger.info(f"Model saved: {model_file}")
+            logger.info(f"Model saved: {model_file} (score: {score:.3f})")
+            logger.info(f"Legacy models in {strategy.lower()}/ directory preserved")
 
         except Exception as e:
             logger.error(f"Error saving model: {e}")
