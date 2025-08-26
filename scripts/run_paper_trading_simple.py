@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """
-Simplified Paper Trading System - NO ML, NO Shadow Testing
-Pure rule-based trading for complete independence
-Designed to run 24/7 on Railway without any ML dependencies
-Version: 2.2 - FORCE REBUILD - Fixed trade execution bug
-BUILD_ID: 20250825-232500
+Market-Aware Paper Trading System with Intelligent Strategy Prioritization
+Prioritizes strategies based on market analysis and manages positions intelligently
+Version: 2.3 - Market-aware selection and position management
+BUILD_ID: 20250825-235000
 """
 
 import asyncio
@@ -16,7 +15,7 @@ os.environ["SHADOW_ENABLED"] = "false"
 
 import sys  # noqa: E402
 from pathlib import Path  # noqa: E402
-from datetime import datetime  # noqa: E402
+from datetime import datetime, timedelta  # noqa: E402
 from typing import Dict, List  # noqa: E402
 from loguru import logger  # noqa: E402
 import signal as sig_handler  # noqa: E402
@@ -121,16 +120,23 @@ class SimplifiedPaperTradingSystem:
         # Track active positions
         self.active_positions = self.paper_trader.positions
 
+        # Track market strategy changes
+        self.last_best_strategy = None
+        self.strategy_change_time = None
+        self.position_timestamps = {}  # Track when each position was opened
+
         # Shutdown flag
         self.shutdown = False
 
         logger.info("=" * 80)
-        logger.info("🚀 SIMPLIFIED PAPER TRADING SYSTEM v2.2")
-        logger.info("   BUILD_ID: 20250825-232500 - Fixed trade execution bug")
-        logger.info("   Mode: Rule-Based Only (NO ML, NO Shadow)")
+        logger.info("🚀 MARKET-AWARE PAPER TRADING SYSTEM v2.3")
+        logger.info("   BUILD_ID: 20250825-235000 - Market intelligence prioritization")
+        logger.info("   Mode: Rule-Based with Market Intelligence")
         logger.info(f"   Balance: ${self.paper_trader.balance:.2f}")
         logger.info(f"   Position Size: ${self.config['position_size']}")
-        logger.info(f"   Max Positions: {self.paper_trader.max_positions}")
+        logger.info(
+            f"   Max Positions: {self.paper_trader.max_positions} (50 per strategy)"
+        )
         logger.info(f"   DCA Drop: {self.config['dca_drop_threshold']}%")
         logger.info(
             f"   Swing Breakout: {self.config['swing_breakout_threshold']} "
@@ -140,6 +146,7 @@ class SimplifiedPaperTradingSystem:
             f"   Channel Buy Zone: {self.config['channel_position_threshold']} "
             f"(touches: {self.config['channel_touches']})"
         )
+        logger.info("   📈 Market analysis guides strategy prioritization")
         logger.info("=" * 80)
 
     def get_symbols(self) -> List[str]:
@@ -242,10 +249,219 @@ class SimplifiedPaperTradingSystem:
             "ALT",
         ]
 
+    def get_market_best_strategy(self) -> str:
+        """Get the current best strategy from market analysis cache"""
+        try:
+            # Query market summary cache for best strategy
+            result = (
+                self.supabase.client.table("market_summary_cache")
+                .select("best_strategy")
+                .order("calculated_at", desc=True)
+                .limit(1)
+                .execute()
+            )
+
+            if result.data and len(result.data) > 0:
+                best_strategy = result.data[0].get("best_strategy", "").upper()
+                if best_strategy in ["DCA", "SWING", "CHANNEL"]:
+                    return best_strategy
+        except Exception as e:
+            logger.debug(f"Could not fetch best strategy from cache: {e}")
+
+        # Default to no preference (equal allocation)
+        return None
+
+    def assess_market_sentiment(self, signals: list) -> str:
+        """Assess overall market sentiment from signals"""
+        if not signals:
+            return "NEUTRAL"
+
+        # Count bullish (buy) vs bearish indicators
+        bullish = 0
+        bearish = 0
+
+        for signal in signals:
+            strategy = signal.get("strategy", "")
+            if strategy == "DCA":
+                # DCA signals indicate oversold/bearish recently but potential bounce
+                bullish += 0.5  # Mildly bullish (buying dip)
+            elif strategy == "SWING":
+                # SWING signals indicate breakout/momentum
+                bullish += 1  # Strongly bullish
+            elif strategy == "CHANNEL":
+                # CHANNEL at bottom is bullish, at top is bearish
+                position = signal.get("position", 0.5)
+                if position <= 0.15:  # Near bottom
+                    bullish += 1
+                elif position >= 0.85:  # Near top
+                    bearish += 1
+
+        # Determine overall sentiment
+        if bullish > bearish * 1.5:
+            return "BULLISH"
+        elif bearish > bullish * 1.5:
+            return "BEARISH"
+        else:
+            return "NEUTRAL"
+
+    async def handle_market_transition(self, new_best_strategy: str):
+        """Handle market strategy transitions by closing stale positions"""
+        if not new_best_strategy or new_best_strategy == self.last_best_strategy:
+            return  # No change
+
+        # First time or actual strategy change
+        if self.last_best_strategy is None:
+            self.last_best_strategy = new_best_strategy
+            self.strategy_change_time = datetime.now()
+            return
+
+        logger.info(
+            f"📊 Market shift detected: {self.last_best_strategy} → {new_best_strategy}"
+        )
+
+        # Check how long since strategy changed
+        time_since_change = (
+            datetime.now() - self.strategy_change_time
+        ).total_seconds() / 3600  # hours
+
+        # Get current prices for all positions
+        current_prices = {}
+        for symbol in list(self.active_positions.keys()):
+            try:
+                data = await self.data_fetcher.get_recent_data(
+                    symbol=symbol, timeframe="1m", hours=1
+                )
+                if data:
+                    current_prices[symbol] = data[-1]["close"]
+            except Exception:
+                pass
+
+        # Evaluate positions from old best strategy
+        positions_to_close = []
+        for symbol, position in self.active_positions.items():
+            if position.strategy != self.last_best_strategy:
+                continue  # Only check old best strategy positions
+
+            if symbol not in current_prices:
+                continue
+
+            current_price = current_prices[symbol]
+            pnl_pct = (
+                (current_price - position.entry_price) / position.entry_price
+            ) * 100
+            position_age = (
+                datetime.now() - self.position_timestamps.get(symbol, datetime.now())
+            ).total_seconds() / 3600
+
+            # Scenario 5 logic: tiered closing based on performance and age
+            close_position = False
+            reason = ""
+
+            if pnl_pct <= -5:  # Immediate: Close big losers
+                close_position = True
+                reason = "STRATEGY_SHIFT_BIG_LOSS"
+            elif (
+                pnl_pct <= -2 and time_since_change >= 2
+            ):  # 2-4 hours: Close moderate losers
+                close_position = True
+                reason = "STRATEGY_SHIFT_MODERATE_LOSS"
+            elif (
+                abs(pnl_pct) < 2 and time_since_change >= 4
+            ):  # 4 hours: Close flat positions
+                close_position = True
+                reason = "STRATEGY_SHIFT_FLAT"
+            elif pnl_pct > 0 and position_age >= 12:  # 12 hours: Close stale winners
+                close_position = True
+                reason = "STRATEGY_SHIFT_STALE_WIN"
+
+            if close_position:
+                positions_to_close.append((symbol, position, pnl_pct, reason))
+
+        # Close identified positions
+        for symbol, position, pnl_pct, reason in positions_to_close:
+            logger.info(
+                f"Closing {position.strategy} position {symbol} (P&L: {pnl_pct:.2f}%) - {reason}"
+            )
+            try:
+                await self.paper_trader.close_position(
+                    symbol=symbol, market_price=current_prices[symbol], reason=reason
+                )
+            except Exception as e:
+                logger.error(f"Failed to close {symbol}: {e}")
+
+        # Update tracking
+        if positions_to_close:
+            logger.info(
+                f"Closed {len(positions_to_close)} positions due to strategy shift"
+            )
+
+        self.last_best_strategy = new_best_strategy
+        self.strategy_change_time = datetime.now()
+
+    async def close_worst_positions(self, strategy: str, count: int) -> int:
+        """Close worst performing positions of a strategy to make room"""
+        closed = 0
+        try:
+            # Get current positions for this strategy
+            strategy_positions = [
+                (symbol, pos)
+                for symbol, pos in self.active_positions.items()
+                if pos.strategy == strategy
+            ]
+
+            if not strategy_positions:
+                return 0
+
+            # Get current prices for all positions
+            current_prices = {}
+            for symbol, _ in strategy_positions:
+                try:
+                    data = await self.data_fetcher.get_recent_data(
+                        symbol=symbol, timeframe="1m", hours=1
+                    )
+                    if data:
+                        current_prices[symbol] = data[-1]["close"]
+                except Exception:
+                    pass
+
+            # Calculate P&L for each position
+            positions_with_pnl = []
+            for symbol, position in strategy_positions:
+                if symbol in current_prices:
+                    current_price = current_prices[symbol]
+                    pnl_pct = (
+                        (current_price - position.entry_price) / position.entry_price
+                    ) * 100
+                    positions_with_pnl.append((symbol, position, pnl_pct))
+
+            # Sort by P&L (worst first)
+            positions_with_pnl.sort(key=lambda x: x[2])
+
+            # Close worst positions
+            for symbol, position, pnl_pct in positions_with_pnl[:count]:
+                logger.info(
+                    f"Closing worst {strategy} position: {symbol} (P&L: {pnl_pct:.2f}%)"
+                )
+
+                result = await self.paper_trader.close_position(
+                    symbol=symbol,
+                    market_price=current_prices[symbol],
+                    reason="POSITION_LIMIT_CLEANUP",
+                )
+
+                if result.get("success"):
+                    closed += 1
+                    if closed >= count:
+                        break
+
+        except Exception as e:
+            logger.error(f"Error closing worst positions: {e}")
+
+        return closed
+
     async def scan_for_opportunities(self):
         """
-        Scan for trading opportunities using ONLY rule-based strategies
-        NO ML predictions, NO shadow logging
+        Market-aware scanning that prioritizes based on market analysis
         """
         symbols = self.get_symbols()
 
@@ -258,6 +474,16 @@ class SimplifiedPaperTradingSystem:
             return
 
         logger.info(f"Scanning {len(available_symbols)} symbols for opportunities...")
+
+        # Get best strategy from market analysis
+        best_strategy = self.get_market_best_strategy()
+        if best_strategy:
+            logger.info(f"📈 Market Analysis: {best_strategy} is best strategy")
+        else:
+            logger.info("📊 Market Analysis: No clear best strategy (equal allocation)")
+
+        # Handle market transitions (Scenario 5)
+        await self.handle_market_transition(best_strategy)
 
         # Fetch market data
         market_data = {}
@@ -304,8 +530,8 @@ class SimplifiedPaperTradingSystem:
         else:
             self._btc_price = 0.0
 
-        # Scan each strategy with SIMPLE RULES ONLY
-        signals = []
+        # Collect signals by strategy
+        signals_by_strategy = {"DCA": [], "SWING": [], "CHANNEL": []}
 
         for symbol, data in market_data.items():
             try:
@@ -323,10 +549,9 @@ class SimplifiedPaperTradingSystem:
                             dca_signal["current_price"] = dca_signal.get(
                                 "price", current_price
                             )
-                        signals.append(dca_signal)
-                        logger.info(
-                            f"📊 DCA Signal: {symbol} - drop {dca_signal.get('drop_pct', 0):.1f}% "
-                            f"(confidence: {dca_signal['confidence']:.2f})"
+                        signals_by_strategy["DCA"].append(dca_signal)
+                        logger.debug(
+                            f"📊 DCA Signal: {symbol} - drop {dca_signal.get('drop_pct', 0):.1f}%"
                         )
                         # Log positive scan
                         await self.log_scan(
@@ -339,7 +564,6 @@ class SimplifiedPaperTradingSystem:
                             market_data=data,
                         )
                     else:
-                        # Log negative scan
                         await self.log_scan(
                             symbol,
                             "DCA",
@@ -355,17 +579,14 @@ class SimplifiedPaperTradingSystem:
                     if swing_signal and swing_signal.get("signal"):
                         swing_signal["should_trade"] = True
                         swing_signal["strategy"] = "SWING"
-                        # Ensure we have current_price
                         if "current_price" not in swing_signal:
                             swing_signal["current_price"] = swing_signal.get(
                                 "price", current_price
                             )
-                        signals.append(swing_signal)
-                        logger.info(
-                            f"📊 Swing Signal: {symbol} - breakout {swing_signal.get('breakout_pct', 0):.1f}% "
-                            f"(confidence: {swing_signal['confidence']:.2f})"
+                        signals_by_strategy["SWING"].append(swing_signal)
+                        logger.debug(
+                            f"📊 Swing Signal: {symbol} - breakout {swing_signal.get('breakout_pct', 0):.1f}%"
                         )
-                        # Log positive scan
                         await self.log_scan(
                             symbol,
                             "SWING",
@@ -378,7 +599,6 @@ class SimplifiedPaperTradingSystem:
                             market_data=data,
                         )
                     else:
-                        # Log negative scan
                         await self.log_scan(
                             symbol,
                             "SWING",
@@ -394,17 +614,14 @@ class SimplifiedPaperTradingSystem:
                     if channel_signal and channel_signal.get("signal"):
                         channel_signal["should_trade"] = True
                         channel_signal["strategy"] = "CHANNEL"
-                        # Ensure we have current_price
                         if "current_price" not in channel_signal:
                             channel_signal["current_price"] = channel_signal.get(
                                 "price", current_price
                             )
-                        signals.append(channel_signal)
-                        logger.info(
-                            f"📊 Channel Signal: {symbol} - position {channel_signal.get('position', 0):.2f} "
-                            f"(confidence: {channel_signal['confidence']:.2f})"
+                        signals_by_strategy["CHANNEL"].append(channel_signal)
+                        logger.debug(
+                            f"📊 Channel Signal: {symbol} - position {channel_signal.get('position', 0):.2f}"
                         )
-                        # Log positive scan
                         await self.log_scan(
                             symbol,
                             "CHANNEL",
@@ -415,7 +632,6 @@ class SimplifiedPaperTradingSystem:
                             market_data=data,
                         )
                     else:
-                        # Log negative scan
                         await self.log_scan(
                             symbol,
                             "CHANNEL",
@@ -429,22 +645,136 @@ class SimplifiedPaperTradingSystem:
                 logger.error(f"Error evaluating {symbol}: {e}")
                 continue
 
-        # Sort by confidence and take best signals
-        signals.sort(key=lambda x: x.get("confidence", 0), reverse=True)
+        # Log signal counts
+        total_signals = sum(len(s) for s in signals_by_strategy.values())
+        logger.info(
+            f"Found {total_signals} signals: DCA={len(signals_by_strategy['DCA'])}, "
+            f"SWING={len(signals_by_strategy['SWING'])}, CHANNEL={len(signals_by_strategy['CHANNEL'])}"
+        )
 
-        # Execute top signals (respecting position limits)
+        # Build prioritized signal list based on market analysis
+        prioritized_signals = []
+
+        if best_strategy:
+            # Scenario 1-4: Market has a best strategy
+            # First, add all signals from best strategy
+            prioritized_signals.extend(signals_by_strategy[best_strategy])
+
+            # Then add others if best strategy has no/few signals (Scenario 1C)
+            if len(prioritized_signals) < 3:  # If best strategy has few signals
+                # Check market sentiment alignment
+                all_signals = []
+                for strategy_signals in signals_by_strategy.values():
+                    all_signals.extend(strategy_signals)
+
+                sentiment = self.assess_market_sentiment(all_signals)
+                logger.info(f"Market sentiment: {sentiment}")
+
+                # Add aligned signals from other strategies
+                for strategy in ["DCA", "SWING", "CHANNEL"]:
+                    if strategy != best_strategy:
+                        for signal in signals_by_strategy[strategy]:
+                            # Check if signal aligns with market sentiment
+                            signal_sentiment = (
+                                "BULLISH"  # Most signals are bullish by nature
+                            )
+                            if strategy == "DCA":
+                                signal_sentiment = "BULLISH"  # Buying dips
+                            elif strategy == "SWING":
+                                signal_sentiment = "BULLISH"  # Breakout
+                            elif strategy == "CHANNEL":
+                                position = signal.get("position", 0.5)
+                                signal_sentiment = (
+                                    "BULLISH" if position <= 0.5 else "BEARISH"
+                                )
+
+                            # Add if aligned or neutral
+                            if sentiment == "NEUTRAL" or signal_sentiment == sentiment:
+                                prioritized_signals.append(signal)
+        else:
+            # Scenario 6: No clear best - equal allocation
+            # Interleave signals from each strategy for balance
+            max_signals = max(len(s) for s in signals_by_strategy.values())
+            for i in range(max_signals):
+                for strategy in ["DCA", "SWING", "CHANNEL"]:
+                    if i < len(signals_by_strategy[strategy]):
+                        prioritized_signals.append(signals_by_strategy[strategy][i])
+
+        # Sort by confidence as secondary factor (Scenario 3B)
+        prioritized_signals.sort(key=lambda x: x.get("confidence", 0), reverse=True)
+
+        # Check strategy position limits and handle overflow
+        strategy_positions_count = {}
+        for strategy in ["DCA", "SWING", "CHANNEL"]:
+            count = sum(
+                1 for p in self.active_positions.values() if p.strategy == strategy
+            )
+            strategy_positions_count[strategy] = count
+            if count > 0:
+                logger.info(f"{strategy} positions: {count}/50")
+
+        # Execute signals with smart position management
+        executed = 0
         available_slots = self.paper_trader.max_positions - len(self.active_positions)
-        signals_to_take = signals[:available_slots]
 
-        for trading_signal in signals_to_take:
+        for trading_signal in prioritized_signals:
+            if available_slots <= 0:
+                break
+
             if trading_signal["confidence"] >= self.config["min_confidence"]:
-                # Check trade limiter before executing
+                strategy = trading_signal["strategy"]
                 symbol = trading_signal["symbol"]
+
+                # Check if strategy is at limit (Scenario 2)
+                if (
+                    strategy_positions_count.get(strategy, 0)
+                    >= self.paper_trader.max_positions_per_strategy
+                ):
+                    # Close worst performer to make room (Scenario 2C)
+                    logger.info(
+                        f"{strategy} at limit - closing worst position to make room"
+                    )
+                    closed = await self.close_worst_positions(strategy, 1)
+                    if closed > 0:
+                        strategy_positions_count[strategy] -= closed
+                    else:
+                        logger.warning(
+                            f"Could not close positions for {strategy}, skipping signal"
+                        )
+                        continue
+
+                # Check trade limiter
                 can_trade, reason = self.trade_limiter.can_trade_symbol(symbol)
                 if not can_trade:
                     logger.warning(f"⛔ Skipping {symbol}: {reason}")
                     continue
-                await self.execute_trade(trading_signal)
+
+                # Execute trade
+                result = await self.execute_trade(trading_signal)
+                if result:
+                    executed += 1
+                    available_slots -= 1
+                    strategy_positions_count[strategy] = (
+                        strategy_positions_count.get(strategy, 0) + 1
+                    )
+
+                    # Log successful execution with market context
+                    if best_strategy:
+                        if strategy == best_strategy:
+                            logger.info(
+                                f"✅ Executed {strategy} trade (market recommended)"
+                            )
+                        else:
+                            logger.info(
+                                f"✅ Executed {strategy} trade (fallback from {best_strategy})"
+                            )
+
+        if executed > 0:
+            logger.info(f"Executed {executed} trades this scan")
+        elif total_signals > 0:
+            logger.info("No trades executed despite signals (confidence/limits)")
+        else:
+            logger.info("No trading opportunities found")
 
     def _calculate_features(self, symbol: str, market_data: list) -> dict:
         """Calculate technical features from market data"""
@@ -605,7 +935,7 @@ class SimplifiedPaperTradingSystem:
             logger.error(f"Could not log scan for {symbol}: {e}")
             logger.debug(f"Full scan data: {scan_data}")
 
-    async def execute_trade(self, trading_signal: Dict):
+    async def execute_trade(self, trading_signal: Dict) -> bool:
         """Execute a trade based on signal"""
         try:
             symbol = trading_signal["symbol"]
@@ -621,7 +951,7 @@ class SimplifiedPaperTradingSystem:
                     position_size *= 0.5
 
             # Execute trade (using async method)
-            logger.info(f"[BUILD:20250825-232500] Executing trade for {symbol}")
+            logger.info(f"[BUILD:20250825-235000] Executing trade for {symbol}")
             result = await self.paper_trader.open_position(
                 symbol=symbol,
                 usd_amount=position_size,
@@ -631,13 +961,16 @@ class SimplifiedPaperTradingSystem:
 
             # Log what type result is to debug Railway cache issue
             logger.info(
-                f"[BUILD:20250825-232500] Result type: {type(result)}, value: {result}"
+                f"[BUILD:20250825-235000] Result type: {type(result)}, value: {result}"
             )
 
             if result.get("success"):
                 logger.info(
                     f"✅ Opened {strategy} position: {symbol} @ ${trading_signal['current_price']:.4f}"
                 )
+
+                # Track position timestamp for market transitions
+                self.position_timestamps[symbol] = datetime.now()
 
                 # Send Slack notification
                 if self.notifier:
@@ -651,8 +984,13 @@ class SimplifiedPaperTradingSystem:
                     except Exception as e:
                         logger.debug(f"Could not send notification: {e}")
 
+                return True
+
+            return False
+
         except Exception as e:
             logger.error(f"Error executing trade for {trading_signal['symbol']}: {e}")
+            return False
 
     async def check_exits(self):
         """Check if any positions should be closed"""
@@ -683,6 +1021,10 @@ class SimplifiedPaperTradingSystem:
                     f"📊 Closed {trade.symbol}: {trade.exit_reason} "
                     f"P&L: ${trade.pnl:.2f}"
                 )
+
+                # Clean up position timestamp
+                if trade.symbol in self.position_timestamps:
+                    del self.position_timestamps[trade.symbol]
 
                 # Update trade limiter based on exit
                 if trade.exit_reason == "stop_loss":
