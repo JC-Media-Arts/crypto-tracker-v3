@@ -2,8 +2,8 @@
 """
 Market-Aware Paper Trading System with Intelligent Strategy Prioritization
 Prioritizes strategies based on market analysis and manages positions intelligently
-Version: 2.3 - Market-aware selection and position management
-BUILD_ID: 20250825-235000
+Version: 2.3.1 - Debug Railway open_position issue
+BUILD_ID: 20250826-194500
 """
 
 import asyncio
@@ -15,7 +15,7 @@ os.environ["SHADOW_ENABLED"] = "false"
 
 import sys  # noqa: E402
 from pathlib import Path  # noqa: E402
-from datetime import datetime, timedelta  # noqa: E402
+from datetime import datetime  # noqa: E402
 from typing import Dict, List  # noqa: E402
 from loguru import logger  # noqa: E402
 import signal as sig_handler  # noqa: E402
@@ -129,8 +129,8 @@ class SimplifiedPaperTradingSystem:
         self.shutdown = False
 
         logger.info("=" * 80)
-        logger.info("🚀 MARKET-AWARE PAPER TRADING SYSTEM v2.3")
-        logger.info("   BUILD_ID: 20250825-235000 - Market intelligence prioritization")
+        logger.info("🚀 MARKET-AWARE PAPER TRADING SYSTEM v2.3.1")
+        logger.info("   BUILD_ID: 20250826-194500 - Debug Railway open_position issue")
         logger.info("   Mode: Rule-Based with Market Intelligence")
         logger.info(f"   Balance: ${self.paper_trader.balance:.2f}")
         logger.info(f"   Position Size: ${self.config['position_size']}")
@@ -951,7 +951,7 @@ class SimplifiedPaperTradingSystem:
                     position_size *= 0.5
 
             # Execute trade (using async method)
-            logger.info(f"[BUILD:20250825-235000] Executing trade for {symbol}")
+            logger.info(f"[BUILD:20250826-194500] Executing trade for {symbol}")
             result = await self.paper_trader.open_position(
                 symbol=symbol,
                 usd_amount=position_size,
@@ -961,8 +961,17 @@ class SimplifiedPaperTradingSystem:
 
             # Log what type result is to debug Railway cache issue
             logger.info(
-                f"[BUILD:20250825-235000] Result type: {type(result)}, value: {result}"
+                f"[BUILD:20250826-194500] Result type: {type(result)}, value: {result}"
             )
+
+            # Extra defensive check for Railway environment
+            if not isinstance(result, dict):
+                logger.error(
+                    f"CRITICAL: open_position returned {type(result)} instead of dict!"
+                )
+                logger.error(f"Result value: {result}")
+                logger.error(f"Paper trader class: {type(self.paper_trader)}")
+                return False
 
             if result.get("success"):
                 logger.info(
@@ -989,7 +998,22 @@ class SimplifiedPaperTradingSystem:
             return False
 
         except Exception as e:
-            logger.error(f"Error executing trade for {trading_signal['symbol']}: {e}")
+            # Better error handling - check if trading_signal is valid
+            symbol = "UNKNOWN"
+            try:
+                if isinstance(trading_signal, dict) and "symbol" in trading_signal:
+                    symbol = trading_signal["symbol"]
+                else:
+                    logger.error(
+                        f"Invalid trading_signal type: {type(trading_signal)}, value: {trading_signal}"
+                    )
+            except Exception:
+                pass
+
+            logger.error(f"Error executing trade for {symbol}: {e}")
+            import traceback
+
+            logger.error(f"Full traceback: {traceback.format_exc()}")
             return False
 
     async def check_exits(self):
