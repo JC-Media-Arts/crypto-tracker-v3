@@ -955,11 +955,32 @@ class SimplifiedPaperTradingSystem:
                 # Send Slack notification
                 if self.notifier:
                     try:
+                        # Calculate exit prices for notification
+                        config = self.paper_trader.config
+                        tier = self.paper_trader.get_market_cap_tier(symbol)
+                        exits = (
+                            config.get("exits", {})
+                            .get(strategy.lower(), {})
+                            .get(tier, {})
+                        )
+
+                        stop_loss_pct = exits.get("stop_loss", 0.05)
+                        take_profit_pct = exits.get("take_profit", 0.10)
+                        trailing_stop_pct = exits.get("trailing_stop", 0.01)
+
+                        entry_price = trading_signal["current_price"]
+                        stop_loss = entry_price * (1 - stop_loss_pct)
+                        take_profit = entry_price * (1 + take_profit_pct)
+
                         await self.notifier.notify_position_opened(
                             symbol=symbol,
                             strategy=strategy,
-                            entry_price=trading_signal["current_price"],
+                            entry_price=entry_price,
                             position_size=position_size,
+                            stop_loss=stop_loss,
+                            take_profit=take_profit,
+                            trailing_stop_pct=trailing_stop_pct,
+                            market_cap_tier=tier,
                         )
                     except Exception as e:
                         logger.debug(f"Could not send notification: {e}")
@@ -1014,7 +1035,7 @@ class SimplifiedPaperTradingSystem:
             for trade in closed_trades:
                 logger.info(
                     f"📊 Closed {trade.symbol}: {trade.exit_reason} "
-                    f"P&L: ${trade.pnl:.2f}"
+                    f"P&L: ${trade.pnl_usd:.2f}"
                 )
 
                 # Clean up position timestamp

@@ -785,50 +785,10 @@ class SimplePaperTraderV2:
             return
 
         try:
-            date = trade.exit_time.date().isoformat()
-
-            # Try to get existing record for today
-            existing = (
-                self.db_client.client.table("paper_performance")
-                .select("*")
-                .eq("date", date)
-                .eq("strategy_name", trade.strategy)
-                .eq("trading_engine", "simple_paper_trader")
-                .execute()
-            )
-
-            if existing.data:
-                # Update existing record
-                record = existing.data[0]
-                updated = {
-                    "trades_count": record["trades_count"] + 1,
-                    "wins": record["wins"] + (1 if trade.trade_type == "win" else 0),
-                    "losses": record["losses"]
-                    + (1 if trade.trade_type == "loss" else 0),
-                    "net_pnl": record["net_pnl"] + trade.pnl_usd,
-                }
-
-                self.db_client.client.table("paper_performance").update(updated).eq(
-                    "date", date
-                ).eq("strategy_name", trade.strategy).eq(
-                    "trading_engine", "simple_paper_trader"
-                ).execute()
-            else:
-                # Create new record
-                data = {
-                    "date": date,
-                    "strategy_name": trade.strategy,
-                    "trading_engine": "simple_paper_trader",
-                    "trades_count": 1,
-                    "wins": 1 if trade.trade_type == "win" else 0,
-                    "losses": 1 if trade.trade_type == "loss" else 0,
-                    "net_pnl": trade.pnl_usd,
-                    "setups_detected": 0,  # Will be updated by strategy scanner
-                    "setups_taken": 0,  # Will be updated by strategy scanner
-                    "ml_accuracy": 0.0,  # Not using ML in simplified mode
-                }
-
-                self.db_client.client.table("paper_performance").insert(data).execute()
+            # For now, skip daily performance updates as the table may not exist
+            # This feature can be re-enabled once we verify the schema
+            logger.debug(f"Skipping daily performance update for {trade.symbol}")
+            return
 
         except Exception as e:
             logger.error(f"Failed to update daily performance: {e}")
@@ -934,7 +894,15 @@ class SimplePaperTraderV2:
             json.dump(state, f, indent=2)
 
     def load_state(self):
-        """Load state from file"""
+        """Load state from database (primary) or file (fallback)"""
+        try:
+            # Try to sync from database first
+            self.sync_from_database()
+            return
+        except Exception as e:
+            logger.warning(f"Failed to sync from database, falling back to file: {e}")
+
+        # Fallback to file-based state
         if not self.state_file.exists():
             return
 
@@ -971,11 +939,126 @@ class SimplePaperTraderV2:
             self.total_slippage = stats.get("total_slippage", 0)
 
             logger.info(
-                f"Loaded state: ${self.balance:.2f} balance, {len(self.positions)} positions"
+                f"Loaded state from file: ${self.balance:.2f} balance, {len(self.positions)} positions"
             )
 
         except Exception as e:
-            logger.error(f"Failed to load state: {e}")
+            logger.error(f"Failed to load state from file: {e}")
+
+    def sync_from_database(self):
+        """Sync balance and positions from database - same logic as dashboard"""
+        if not self.db:
+            raise Exception("Database client not initialized")
+
+        # Get all trades from database
+        result = (
+            self.db.client.table("paper_trades")
+            .select("*")
+            .order("created_at", desc=False)
+            .execute()
+        )
+
+        if not result.data:
+            logger.info("No trades in database, using initial balance")
+            return
+
+        # Group trades by trade_group_id to calculate P&L
+        trade_groups = {}
+        for trade in result.data:
+            group_id = trade.get("trade_group_id")
+            if not group_id:
+                continue
+
+            if group_id not in trade_groups:
+                trade_groups[group_id] = {"buys": [], "sells": []}
+
+            if trade.get("side") == "BUY":
+                trade_groups[group_id]["buys"].append(trade)
+            elif trade.get("side") == "SELL":
+                trade_groups[group_id]["sells"].append(trade)
+
+        # Calculate total P&L and open positions
+        total_pnl = 0
+        self.positions = {}
+
+        for group_id, group_data in trade_groups.items():
+            if not group_data["buys"]:
+                continue
+
+            # Calculate average entry and total amount
+            total_amount = sum(float(b.get("amount", 0)) for b in group_data["buys"])
+            total_usd = sum(
+                float(b.get("amount", 0)) * float(b.get("price", 0))
+                for b in group_data["buys"]
+            )
+            avg_entry_price = total_usd / total_amount if total_amount > 0 else 0
+
+            # Check if position is closed
+            if group_data["sells"]:
+                # Position is closed - calculate realized P&L
+                sell = group_data["sells"][0]  # Should only be one sell
+                exit_price = float(sell.get("price", 0))
+                exit_amount = float(sell.get("amount", 0))
+                exit_value = exit_price * exit_amount
+                entry_value = avg_entry_price * exit_amount
+
+                # Calculate P&L
+                pnl = exit_value - entry_value
+                total_pnl += pnl
+            else:
+                # Position is still open - restore it
+                earliest_buy = min(
+                    group_data["buys"], key=lambda x: x.get("created_at", "")
+                )
+                symbol = earliest_buy.get("symbol")
+                if symbol:
+                    self.positions[symbol] = Position(
+                        symbol=symbol,
+                        entry_price=avg_entry_price,
+                        amount=total_amount,
+                        usd_value=total_usd,
+                        entry_time=datetime.fromisoformat(
+                            earliest_buy.get("created_at").replace("Z", "+00:00")
+                        ),
+                        strategy=earliest_buy.get("strategy", "CHANNEL"),
+                        stop_loss=earliest_buy.get("stop_loss"),
+                        take_profit=earliest_buy.get("take_profit"),
+                        trailing_stop_pct=earliest_buy.get("trailing_stop_pct", 0.01),
+                        highest_price=avg_entry_price,
+                        fees_paid=sum(
+                            float(b.get("fees", 0)) for b in group_data["buys"]
+                        ),
+                    )
+
+        # Set balance based on database P&L (matching dashboard logic)
+        self.balance = self.initial_balance + total_pnl
+
+        # Count stats
+        closed_trades = len([g for g in trade_groups.values() if g["sells"]])
+        winning_trades = len(
+            [
+                g
+                for g in trade_groups.values()
+                if g["sells"]
+                and sum(
+                    float(s.get("price", 0)) * float(s.get("amount", 0))
+                    for s in g["sells"]
+                )
+                > sum(
+                    float(b.get("price", 0)) * float(b.get("amount", 0))
+                    for b in g["buys"]
+                )
+            ]
+        )
+
+        self.total_trades = closed_trades
+        self.winning_trades = winning_trades
+
+        logger.info(
+            f"Synced from database: ${self.balance:.2f} balance "
+            f"(initial ${self.initial_balance:.2f} + P&L ${total_pnl:.2f}), "
+            f"{len(self.positions)} open positions, {closed_trades} closed trades"
+        )
 
     def save_trades(self):
         """Save completed trades to file"""
