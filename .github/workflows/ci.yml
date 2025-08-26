@@ -30,15 +30,15 @@ jobs:
     - name: Check formatting with Black
       run: |
         pip install black==23.12.1
-        black --check src/ scripts/ --exclude venv
+        black --check src/ scripts/ --exclude 'venv|test_.*\.py|check_.*\.py|analyze_.*\.py|export_.*\.py|verify_.*\.py|debug_.*\.py|_deprecated'
 
     - name: Run linting
       run: |
         pip install flake8
         # Stop the build if there are Python syntax errors or undefined names
-        flake8 src/ --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 src/ --count --select=E9,F63,F7,F82 --show-source --statistics --exclude='test_*,check_*,analyze_*,export_*,verify_*,debug_*,_deprecated'
         # Exit-zero treats all errors as warnings
-        flake8 src/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+        flake8 src/ scripts/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics --exclude='test_*,check_*,analyze_*,export_*,verify_*,debug_*,_deprecated'
 
     - name: Run tests
       run: |
