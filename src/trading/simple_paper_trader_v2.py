@@ -761,7 +761,7 @@ class SimplePaperTraderV2:
                 "price": trade.exit_price,
                 "amount": trade.amount,
                 "status": "CLOSED",
-                "created_at": trade.entry_time.isoformat(),
+                "created_at": trade.exit_time.isoformat(),  # Fixed: use exit_time for when the SELL was created
                 "filled_at": trade.exit_time.isoformat(),
                 "strategy_name": trade.strategy,
                 "fees": trade.fees_paid,
