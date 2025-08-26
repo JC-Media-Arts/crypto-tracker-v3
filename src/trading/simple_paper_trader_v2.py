@@ -315,9 +315,11 @@ class SimplePaperTraderV2:
         )
 
         # Get tier-specific max cap
-        max_caps = market_protection.get("stop_widening", {}).get("max_caps", {})
+        max_caps = market_protection.get("stop_widening", {}).get(
+            "max_stop_loss_by_tier", {}
+        )
         if is_memecoin:
-            max_cap = 0.15  # 15% for memecoins
+            max_cap = max_caps.get("memecoin", 0.15)  # 15% for memecoins
         elif tier == "large_cap":
             max_cap = max_caps.get("large_cap", 0.10)
         elif tier == "mid_cap":
