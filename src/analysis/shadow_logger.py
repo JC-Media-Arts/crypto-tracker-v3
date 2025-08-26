@@ -116,30 +116,68 @@ class ShadowLogger:
 
         try:
             for variation in self.active_variations:
-                # Calculate what this variation would do
-                decision = await self._evaluate_variation(
-                    variation=variation,
-                    symbol=symbol,
-                    strategy_name=strategy_name,
-                    features=features,
-                    ml_predictions=ml_predictions,
-                    ml_confidence=ml_confidence,
-                    current_price=current_price,
-                    base_parameters=base_parameters,
-                )
+                var_config = variation.get("variation_config", {})
+                var_type = var_config.get("type", "scenario")
 
-                if decision:
-                    decisions.append(decision)
-
-                    # Prepare database record
-                    record = self._prepare_shadow_record(
-                        scan_id=scan_id,
-                        decision=decision,
-                        strategy_name=strategy_name,
-                        current_price=current_price,
+                # Handle isolated variations specially - they create multiple decisions
+                if var_type == "isolated":
+                    test_parameter = var_config.get("parameters", {}).get(
+                        "test_parameter"
+                    )
+                    test_values = var_config.get("parameters", {}).get(
+                        "test_values", []
                     )
 
-                    self.batch.append(record)
+                    # Create a decision for each test value
+                    for test_value in test_values:
+                        decision = self._evaluate_isolated_single(
+                            variation_name=variation["variation_name"],
+                            test_parameter=test_parameter,
+                            test_value=test_value,
+                            ml_predictions=ml_predictions,
+                            ml_confidence=ml_confidence,
+                            current_price=current_price,
+                            base_parameters=base_parameters,
+                            strategy_name=strategy_name,
+                        )
+
+                        if decision:
+                            decisions.append(decision)
+
+                            # Prepare database record
+                            record = self._prepare_shadow_record(
+                                scan_id=scan_id,
+                                decision=decision,
+                                strategy_name=strategy_name,
+                                current_price=current_price,
+                            )
+
+                            self.batch.append(record)
+                else:
+                    # Calculate what this variation would do
+                    decision = await self._evaluate_variation(
+                        variation=variation,
+                        symbol=symbol,
+                        strategy_name=strategy_name,
+                        features=features,
+                        ml_predictions=ml_predictions,
+                        ml_confidence=ml_confidence,
+                        current_price=current_price,
+                        base_parameters=base_parameters,
+                    )
+
+                    if decision:
+                        decisions.append(decision)
+
+                        # Prepare database record
+                        record = self._prepare_shadow_record(
+                            scan_id=scan_id,
+                            decision=decision,
+                            strategy_name=strategy_name,
+                            current_price=current_price,
+                        )
+
+                        self.batch.append(record)
 
             # Insert if batch is full
             if len(self.batch) >= self.batch_size:
@@ -198,7 +236,7 @@ class ShadowLogger:
 
             elif var_type == "isolated":
                 # Isolated variations test specific parameter values
-                return await self._evaluate_isolated(
+                return self._evaluate_isolated(
                     variation_name=variation["variation_name"],
                     test_parameter=var_config.get("parameters", {}).get(
                         "test_parameter"
@@ -350,11 +388,11 @@ class ShadowLogger:
             parameters_used=params,
         )
 
-    async def _evaluate_isolated(
+    def _evaluate_isolated_single(
         self,
         variation_name: str,
         test_parameter: str,
-        test_values: List,
+        test_value: float,
         ml_predictions: Dict,
         ml_confidence: float,
         current_price: float,
@@ -362,18 +400,8 @@ class ShadowLogger:
         strategy_name: str,
     ) -> Optional[ShadowDecision]:
         """
-        Evaluate isolated parameter variations
-        Creates multiple sub-variations for each test value
+        Evaluate a single test value for an isolated parameter variation
         """
-        # For isolated tests, we'll create the primary variation
-        # Additional test values will be handled separately
-
-        if not test_values:
-            return None
-
-        # Use the first test value for this variation
-        test_value = test_values[0]
-
         params = base_parameters.copy()
 
         # Apply the test parameter
@@ -383,7 +411,8 @@ class ShadowLogger:
 
         elif test_parameter == "dca_drop_threshold":
             params["dca_drop_threshold"] = test_value
-            # This would need actual price drop calculation
+            # For DCA drops, we'd need the actual price drop calculation
+            # For now, using standard confidence check
             would_take = ml_confidence >= base_parameters.get("min_confidence", 0.60)
 
         else:
@@ -400,6 +429,38 @@ class ShadowLogger:
             shadow_stop_loss=ml_predictions.get("stop_loss_pct", 5.0),
             shadow_hold_hours=ml_predictions.get("hold_hours", 24),
             parameters_used=params,
+        )
+
+    def _evaluate_isolated(
+        self,
+        variation_name: str,
+        test_parameter: str,
+        test_values: List,
+        ml_predictions: Dict,
+        ml_confidence: float,
+        current_price: float,
+        base_parameters: Dict,
+        strategy_name: str,
+    ) -> Optional[ShadowDecision]:
+        """
+        Legacy method for isolated variations - now handled in main loop
+        This method is kept for backward compatibility but not used
+        """
+        if not test_values:
+            return None
+
+        # Use the first test value for this variation
+        test_value = test_values[0]
+
+        return self._evaluate_isolated_single(
+            variation_name=variation_name,
+            test_parameter=test_parameter,
+            test_value=test_value,
+            ml_predictions=ml_predictions,
+            ml_confidence=ml_confidence,
+            current_price=current_price,
+            base_parameters=base_parameters,
+            strategy_name=strategy_name,
         )
 
     def _prepare_shadow_record(
