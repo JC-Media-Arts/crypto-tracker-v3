@@ -8,11 +8,12 @@ import json
 import asyncio
 from pathlib import Path
 
+
 def test_config():
     """Test the configuration settings."""
     config_path = Path("configs/paper_trading.json")
 
-    with open(config_path, 'r') as f:
+    with open(config_path, "r") as f:
         config = json.load(f)
 
     print("=" * 60)
@@ -31,18 +32,20 @@ def test_config():
     # Verify settings
     print("\n✅ Verification:")
 
-    if not notifications.get('individual_trades', True):
+    if not notifications.get("individual_trades", True):
         print("  ✓ Individual trade notifications are DISABLED")
     else:
         print("  ⚠️ Individual trade notifications are still ENABLED")
 
-    if notifications.get('summary_reports', False):
+    if notifications.get("summary_reports", False):
         print("  ✓ Summary reports are ENABLED")
     else:
         print("  ⚠️ Summary reports are DISABLED")
 
-    if notifications.get('report_times'):
-        print(f"  ✓ Reports scheduled for: {', '.join(notifications['report_times'])} PST")
+    if notifications.get("report_times"):
+        print(
+            f"  ✓ Reports scheduled for: {', '.join(notifications['report_times'])} PST"
+        )
     else:
         print("  ⚠️ No report times configured")
 
@@ -53,6 +56,7 @@ def test_config():
 
     # Import the trader to test configuration loading
     import sys
+
     sys.path.append(str(Path(__file__).parent.parent))
 
     try:
