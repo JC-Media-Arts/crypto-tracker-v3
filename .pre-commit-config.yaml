@@ -16,6 +16,7 @@ repos:
               scripts/verify_.*\.py$|     # Verification scripts
               scripts/debug_.*\.py$|      # Debug scripts
               scripts/_deprecated/.*$|    # Deprecated scripts
+              scripts/_tests/.*$|         # Test scripts directory
               docs/.*$|                   # Documentation directory
               migrations/.*\.sql$|        # SQL migration files
               data/.*$|                   # Data files
@@ -38,6 +39,7 @@ repos:
               scripts/verify_.*\.py$|     # Verification scripts
               scripts/debug_.*\.py$|      # Debug scripts
               scripts/_deprecated/.*$|    # Deprecated scripts
+              scripts/_tests/.*$|         # Test scripts directory
               docs/.*$|                   # Documentation directory
               migrations/.*\.sql$|        # SQL migration files
               data/.*$|                   # Data files

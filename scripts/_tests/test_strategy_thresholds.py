@@ -34,20 +34,41 @@ async def test_thresholds():
 
     # Load actual config from paper_trading_config
     from configs.paper_trading_config import PAPER_TRADING_CONFIG
+
     config = {
-        "dca_drop_threshold": PAPER_TRADING_CONFIG["strategies"]["DCA"].get("drop_threshold", -2.5),
-        "swing_breakout_threshold": PAPER_TRADING_CONFIG["strategies"]["SWING"].get("breakout_threshold", 1.010),
-        "channel_position_threshold": PAPER_TRADING_CONFIG["strategies"]["CHANNEL"].get("buy_zone", 0.10),
-        "swing_volume_surge": PAPER_TRADING_CONFIG["strategies"]["SWING"].get("volume_surge", 1.3),
-        "channel_touches": PAPER_TRADING_CONFIG["strategies"]["CHANNEL"].get("channel_touches", 3),
+        "dca_drop_threshold": PAPER_TRADING_CONFIG["strategies"]["DCA"].get(
+            "drop_threshold", -2.5
+        ),
+        "swing_breakout_threshold": PAPER_TRADING_CONFIG["strategies"]["SWING"].get(
+            "breakout_threshold", 1.010
+        ),
+        "channel_position_threshold": PAPER_TRADING_CONFIG["strategies"]["CHANNEL"].get(
+            "buy_zone", 0.10
+        ),
+        "swing_volume_surge": PAPER_TRADING_CONFIG["strategies"]["SWING"].get(
+            "volume_surge", 1.3
+        ),
+        "channel_touches": PAPER_TRADING_CONFIG["strategies"]["CHANNEL"].get(
+            "channel_touches", 3
+        ),
     }
     simple_rules = SimpleRules(config)
 
     # Test symbols - mix of different types
     test_symbols = [
-        "BTC", "ETH", "SOL", "XRP", "ADA",  # Large caps
-        "PEPE", "WIF", "BONK", "NEIRO",     # Memecoins
-        "ARB", "OP", "INJ", "FET",          # Mid caps
+        "BTC",
+        "ETH",
+        "SOL",
+        "XRP",
+        "ADA",  # Large caps
+        "PEPE",
+        "WIF",
+        "BONK",
+        "NEIRO",  # Memecoins
+        "ARB",
+        "OP",
+        "INJ",
+        "FET",  # Mid caps
     ]
 
     logger.info("=" * 80)
@@ -55,17 +76,29 @@ async def test_thresholds():
     logger.info(f"Testing at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     logger.info(f"Current thresholds:")
     logger.info(f"  DCA: {config['dca_drop_threshold']}% drop from recent high")
-    logger.info(f"  SWING: {config['swing_breakout_threshold']}x breakout + {config['swing_volume_surge']}x volume")
-    logger.info(f"  CHANNEL: Top/Bottom {config['channel_position_threshold']*100}% of range")
+    logger.info(
+        f"  SWING: {config['swing_breakout_threshold']}x breakout + {config['swing_volume_surge']}x volume"
+    )
+    logger.info(
+        f"  CHANNEL: Top/Bottom {config['channel_position_threshold']*100}% of range"
+    )
     logger.info("=" * 80)
 
     # Check market summary cache
     try:
-        result = supabase_client.table("market_summary_cache").select("*").order("calculated_at", desc=True).limit(1).execute()
+        result = (
+            supabase_client.table("market_summary_cache")
+            .select("*")
+            .order("calculated_at", desc=True)
+            .limit(1)
+            .execute()
+        )
         if result.data:
             market_data = result.data[0]
             logger.info(f"\n📊 Market Analyzer Says:")
-            logger.info(f"  Best Strategy: {market_data.get('best_strategy', 'Unknown')}")
+            logger.info(
+                f"  Best Strategy: {market_data.get('best_strategy', 'Unknown')}"
+            )
             logger.info(f"  Condition: {market_data.get('condition', 'Unknown')}")
             logger.info(f"  Notes: {market_data.get('notes', 'None')}")
             logger.info(f"  Updated: {market_data.get('calculated_at', 'Unknown')}")
@@ -83,9 +116,7 @@ async def test_thresholds():
         try:
             # Get recent 1-minute data (last 4 hours for DCA, last hour for others)
             data = await data_fetcher.get_recent_data(
-                symbol=symbol,
-                timeframe="1m",
-                hours=4
+                symbol=symbol, timeframe="1m", hours=4
             )
 
             if not data or len(data) < 50:
@@ -97,23 +128,37 @@ async def test_thresholds():
             # Test DCA
             dca_signal = simple_rules.check_dca_setup(symbol, data)
             if dca_signal and dca_signal.get("signal"):
-                signals_found["DCA"].append(f"{symbol} (drop: {dca_signal.get('drop_pct', 0):.2f}%)")
-                logger.success(f"✅ {symbol} - DCA SIGNAL! Drop: {dca_signal.get('drop_pct', 0):.2f}%")
+                signals_found["DCA"].append(
+                    f"{symbol} (drop: {dca_signal.get('drop_pct', 0):.2f}%)"
+                )
+                logger.success(
+                    f"✅ {symbol} - DCA SIGNAL! Drop: {dca_signal.get('drop_pct', 0):.2f}%"
+                )
             else:
                 # Check how close we are to DCA threshold
                 recent_high = max([d["high"] for d in data[-240:]])  # 4 hours
                 drop_pct = ((current_price - recent_high) / recent_high) * 100
                 if drop_pct < 0:  # Only if it's actually down
-                    distance_from_threshold = abs(drop_pct - config['dca_drop_threshold'])
+                    distance_from_threshold = abs(
+                        drop_pct - config["dca_drop_threshold"]
+                    )
                     if distance_from_threshold < 2.0:  # Within 2% of threshold
-                        near_misses["DCA"].append(f"{symbol} (drop: {drop_pct:.2f}%, need: {config['dca_drop_threshold']}%)")
-                        logger.info(f"📉 {symbol} - DCA near miss: {drop_pct:.2f}% (need {config['dca_drop_threshold']}%)")
+                        near_misses["DCA"].append(
+                            f"{symbol} (drop: {drop_pct:.2f}%, need: {config['dca_drop_threshold']}%)"
+                        )
+                        logger.info(
+                            f"📉 {symbol} - DCA near miss: {drop_pct:.2f}% (need {config['dca_drop_threshold']}%)"
+                        )
 
             # Test SWING
             swing_signal = simple_rules.check_swing_setup(symbol, data)
             if swing_signal and swing_signal.get("signal"):
-                signals_found["SWING"].append(f"{symbol} (breakout: {swing_signal.get('breakout_pct', 0):.2f}x)")
-                logger.success(f"✅ {symbol} - SWING SIGNAL! Breakout: {swing_signal.get('breakout_pct', 0):.2f}x")
+                signals_found["SWING"].append(
+                    f"{symbol} (breakout: {swing_signal.get('breakout_pct', 0):.2f}x)"
+                )
+                logger.success(
+                    f"✅ {symbol} - SWING SIGNAL! Breakout: {swing_signal.get('breakout_pct', 0):.2f}x"
+                )
             else:
                 # Check how close we are to SWING threshold
                 if len(data) >= 20:
@@ -121,23 +166,31 @@ async def test_thresholds():
                     breakout = current_price / resistance
 
                     # Calculate volume surge
-                    recent_volumes = [d["volume"] for d in data[-20:] if d.get("volume")]
+                    recent_volumes = [
+                        d["volume"] for d in data[-20:] if d.get("volume")
+                    ]
                     if recent_volumes:
                         avg_volume = sum(recent_volumes) / len(recent_volumes)
                         current_volume = data[-1].get("volume", 0)
-                        volume_surge = current_volume / avg_volume if avg_volume > 0 else 0
+                        volume_surge = (
+                            current_volume / avg_volume if avg_volume > 0 else 0
+                        )
 
-                        if breakout > 1.0 and volume_surge > 1.0:  # Positive breakout with some volume
+                        if (
+                            breakout > 1.0 and volume_surge > 1.0
+                        ):  # Positive breakout with some volume
                             if breakout > 1.005:  # At least 0.5% breakout
                                 near_misses["SWING"].append(
                                     f"{symbol} (breakout: {breakout:.3f}x, vol: {volume_surge:.1f}x)"
                                 )
-                                logger.info(f"📈 {symbol} - SWING near miss: breakout {breakout:.3f}x, volume {volume_surge:.1f}x")
+                                logger.info(
+                                    f"📈 {symbol} - SWING near miss: breakout {breakout:.3f}x, volume {volume_surge:.1f}x"
+                                )
 
             # Test CHANNEL
             channel_signal = simple_rules.check_channel_setup(symbol, data)
             if channel_signal and channel_signal.get("signal"):
-                position = channel_signal.get('position', 0)
+                position = channel_signal.get("position", 0)
                 signals_found["CHANNEL"].append(f"{symbol} (pos: {position:.1%})")
                 logger.success(f"✅ {symbol} - CHANNEL SIGNAL! Position: {position:.1%}")
 
@@ -193,21 +246,35 @@ async def test_thresholds():
 
     if total_channel > (total_dca + total_swing) * 3:
         logger.warning("\n⚠️  CHANNEL is still too dominant!")
-        logger.warning(f"   CHANNEL: {total_channel} vs DCA+SWING: {total_dca + total_swing}")
+        logger.warning(
+            f"   CHANNEL: {total_channel} vs DCA+SWING: {total_dca + total_swing}"
+        )
         logger.info("   Consider tightening CHANNEL threshold to 0.10 (10%)")
 
     # Check if market analyzer is misleading
     try:
-        result = supabase_client.table("market_summary_cache").select("best_strategy").order("calculated_at", desc=True).limit(1).execute()
+        result = (
+            supabase_client.table("market_summary_cache")
+            .select("best_strategy")
+            .order("calculated_at", desc=True)
+            .limit(1)
+            .execute()
+        )
         if result.data:
             best_strategy = result.data[0].get("best_strategy", "").upper()
             if best_strategy == "DCA" and total_dca == 0:
                 logger.error("\n🚨 Market Analyzer Issue Detected!")
-                logger.error(f"   Recommends {best_strategy} but no {best_strategy} signals possible")
-                logger.error("   Either thresholds need adjustment or analyzer logic is flawed")
+                logger.error(
+                    f"   Recommends {best_strategy} but no {best_strategy} signals possible"
+                )
+                logger.error(
+                    "   Either thresholds need adjustment or analyzer logic is flawed"
+                )
             elif best_strategy == "SWING" and total_swing == 0:
                 logger.error("\n🚨 Market Analyzer Issue Detected!")
-                logger.error(f"   Recommends {best_strategy} but no {best_strategy} signals possible")
+                logger.error(
+                    f"   Recommends {best_strategy} but no {best_strategy} signals possible"
+                )
     except:
         pass
 
