@@ -145,6 +145,11 @@ class ShadowLogger:
             if len(self.batch) >= self.batch_size:
                 await self.flush()
 
+            # Always flush after processing a scan to ensure data is saved
+            # (since we only generate 3-8 variations per scan, batch may never fill)
+            if self.batch:
+                await self.flush()
+
         except Exception as e:
             logger.error(f"Error logging shadow decisions: {e}")
 
