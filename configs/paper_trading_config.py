@@ -20,7 +20,7 @@ PAPER_TRADING_CONFIG = {
             "grid_spacing": 0.02,
             "max_grids_per_symbol": 3,
             "volume_threshold": 100000,
-            "drop_threshold": -4.0,  # Changed from -5.0 (moderate adjustment)
+            "drop_threshold": -2.5,  # Changed from -4.0 to capture more opportunities
             "volume_requirement": 0.85,  # Changed from 1.0 (moderate adjustment)
         },
         "SWING": {
@@ -29,8 +29,8 @@ PAPER_TRADING_CONFIG = {
             "take_profit": 0.05,
             "stop_loss": 0.02,
             "breakout_confirmation": 0.015,
-            "volume_surge": 1.5,
-            "breakout_threshold": 1.015,  # Changed from 1.02 (aggressive adjustment)
+            "volume_surge": 1.3,  # Changed from 1.5 to capture more signals
+            "breakout_threshold": 1.010,  # Changed from 1.015 (1% breakout)
             "rsi_min": 45,  # Changed from 50 (aggressive adjustment)
             "rsi_max": 75,  # Changed from 70 (aggressive adjustment)
             "min_score": 40,  # Changed from 50 (aggressive adjustment)
@@ -42,9 +42,9 @@ PAPER_TRADING_CONFIG = {
             "exit_threshold": 0.1,
             "channel_width_min": 0.02,
             "channel_touches": 3,  # Changed from 2 (aggressive adjustment)
-            "buy_zone": 0.15,  # Changed from 0.25 (aggressive adjustment)
-            "sell_zone": 0.85,  # Changed from 0.75 (aggressive adjustment)
-            "channel_strength_min": 0.70,  # Changed from 0.60 (aggressive adjustment)
+            "buy_zone": 0.10,  # Changed from 0.15 to reduce CHANNEL dominance
+            "sell_zone": 0.90,  # Changed from 0.85 to be more selective
+            "channel_strength_min": 0.75,  # Changed from 0.70 for higher quality signals
         },
     },
     "timeframes": {"primary": "15m", "confirmation": "1h", "trend": "4h"},
@@ -55,5 +55,5 @@ PAPER_TRADING_CONFIG = {
         "avoid_news_hours": False,
         "trade_weekends": True,
     },
-    "updated_at": "2025-08-25T14:05:00.000000",  # Custom balanced approach applied
+    "updated_at": "2025-08-26T03:50:00.000000",  # Rebalanced: DCA -2.5%, SWING 1%, CHANNEL 10%
 }

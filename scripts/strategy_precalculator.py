@@ -23,7 +23,27 @@ class StrategyPreCalculator:
 
     def __init__(self):
         self.db = SupabaseClient()
-        self.simple_rules = SimpleRules()
+        # Load proper config from paper_trading_config
+        from configs.paper_trading_config import PAPER_TRADING_CONFIG
+
+        config = {
+            "dca_drop_threshold": PAPER_TRADING_CONFIG["strategies"]["DCA"].get(
+                "drop_threshold", -2.5
+            ),
+            "swing_breakout_threshold": PAPER_TRADING_CONFIG["strategies"]["SWING"].get(
+                "breakout_threshold", 1.010
+            ),
+            "channel_position_threshold": PAPER_TRADING_CONFIG["strategies"][
+                "CHANNEL"
+            ].get("buy_zone", 0.10),
+            "swing_volume_surge": PAPER_TRADING_CONFIG["strategies"]["SWING"].get(
+                "volume_surge", 1.3
+            ),
+            "channel_touches": PAPER_TRADING_CONFIG["strategies"]["CHANNEL"].get(
+                "channel_touches", 3
+            ),
+        }
+        self.simple_rules = SimpleRules(config)
 
         # ALL monitored symbols from the system
         self.symbols = [
