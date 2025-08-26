@@ -174,5 +174,11 @@
     "large": 0.0015,
     "mid": 0.0025,
     "small": 0.0050
+  },
+  "notifications": {
+    "individual_trades": false,
+    "summary_reports": true,
+    "report_times": ["07:00", "12:00", "19:00"],
+    "report_channel": "#trades"
   }
 }

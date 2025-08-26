@@ -95,6 +95,9 @@ class SimplePaperTraderV2:
 
         # Initialize Slack notifier
         self.notifier = None
+        self.send_individual_notifications = self.config.get("notifications", {}).get(
+            "individual_trades", True
+        )
         try:
             self.notifier = PaperTradingNotifier()
         except Exception as e:
@@ -536,7 +539,7 @@ class SimplePaperTraderV2:
         logger.info(f"   Fees: ${fees:.2f}, Slippage: ${slippage_cost:.2f}")
 
         # Send Slack notification
-        if self.notifier:
+        if self.notifier and self.send_individual_notifications:
             try:
                 await self.notifier.notify_position_opened(
                     symbol=symbol,
@@ -691,7 +694,7 @@ class SimplePaperTraderV2:
         )
 
         # Send Slack notification
-        if self.notifier:
+        if self.notifier and self.send_individual_notifications:
             try:
                 await self.notifier.notify_position_closed(
                     symbol=symbol,

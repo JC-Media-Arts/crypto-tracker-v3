@@ -45,7 +45,7 @@
 **⚠️ CRITICAL: Always check this section first when working on the codebase!**
 
 This section lists the currently active production files and their deprecated versions.
-Last Updated: January 2025
+Last Updated: August 26, 2025
 
 ### Paper Trading System
 - **ACTIVE**: `scripts/run_paper_trading_simple.py` ✅
@@ -204,6 +204,58 @@ Last Updated: January 2025
 ---
 
 ## Daily Check-in & Progress Tracking
+
+### Daily Check-in - August 26, 2025
+
+📅 **Date**: August 26, 2025
+**Time**: 11:45 AM PST
+
+### ✅ Completed Today
+- [x] Created R&D dashboard page with ML insights and parameter recommendations
+- [x] Fixed ML model recognition issue (classifier.pkl vs {strategy}_model.pkl)
+- [x] Implemented composite score display (accuracy/precision/recall weighted)
+- [x] Protected legacy CHANNEL model (0.876 score) from being replaced
+- [x] Added 5 new API endpoints for ML model status and recommendations
+- [x] Validated CHANNEL model's actual 0.876 composite score (not 0.288)
+- [x] Committed and deployed all changes to production
+
+### 🔄 In Progress
+- [ ] Monitor ML retrainer at 2 AM PST to ensure proper model recognition
+- [ ] Gather feedback on R&D dashboard usefulness
+- [ ] Consider implementing Shadow Testing now that ML foundation is solid
+
+### 🚧 Blockers
+- None
+
+### 📊 System Metrics
+- ML Models Trained: 1/3 (CHANNEL only)
+- CHANNEL Model Score: 0.876 composite (92.2% accuracy, 100% precision, 50% recall)
+- DCA Model: 7/20 samples collected
+- SWING Model: 0/20 samples collected
+- Dashboard Status: ✅ R&D page live and functional
+- Railway Services: All operational
+
+### 🧪 Testing Results
+- CHANNEL model validation: Confirmed 0.876 composite score is accurate
+- Model protection: Legacy models now protected from inferior replacements
+- Dashboard performance: R&D page loads instantly with cached data
+
+### 💡 Key Insights
+- CHANNEL model is extremely conservative but never wrong (100% precision!)
+- The 0.288 score in Slack was from a failed retraining attempt, not actual model
+- Legacy models may use different file names and feature sets - must handle both
+- Composite scores more meaningful than raw accuracy for comparing models
+
+### 🎯 Tomorrow's Priority
+- Monitor ML retrainer execution at 2 AM PST
+- Review parameter recommendations from R&D dashboard
+- Consider implementing suggested threshold adjustments
+
+### ❓ Questions/Decisions Needed
+- Should we proceed with Shadow Testing implementation now that ML is stable?
+- Are the parameter recommendations from R&D dashboard actionable enough?
+
+---
 
 ### Daily Check-in Template
 
@@ -1552,6 +1604,45 @@ else:
 ## Implementation Progress
 
 ### Recent Updates (August 26, 2025)
+
+#### R&D Dashboard & ML Model Recognition Fixes - COMPLETED
+
+**Issue Resolved**: ML retrainer couldn't recognize legacy models (classifier.pkl) and dashboard wasn't showing meaningful ML insights
+
+**Root Causes Identified**:
+1. SimpleRetrainer only looked for {strategy}_model.pkl but CHANNEL model was named classifier.pkl
+2. Dashboard showed raw accuracy (92.2%) instead of composite score (87.6%)
+3. ML retraining reported 0.288 score to Slack when actual model had 0.876 composite score
+4. No visibility into ML model performance or parameter recommendations
+
+**Solutions Implemented**:
+
+1. **R&D Dashboard Page Created** ✅
+   - New multi-page dashboard with dedicated R&D section
+   - Shows ML model composite scores with breakdown (accuracy, precision, recall)
+   - Displays parameter recommendations based on completed trades
+   - ML learning progress visualization
+   - Recent ML predictions vs reality tracking
+   - 5 new API endpoints for ML insights
+
+2. **ML Model Recognition Fixed** ✅
+   - SimpleRetrainer now checks both {strategy}_model.pkl and legacy names (classifier.pkl)
+   - Loads features from training_results.json when available
+   - Feature mismatch protection prevents incompatible model replacements
+   - 85% score threshold protects high-performing legacy models from downgrades
+   - CHANNEL model with 0.876 composite score now properly protected
+
+3. **Composite Score Display** ✅
+   - Dashboard calculates weighted composite: (accuracy × 0.3) + (precision × 0.5) + (recall × 0.2)
+   - CHANNEL shows correct 0.876 score (not raw 92.2% accuracy)
+   - Matches how SimpleRetrainer evaluates models for consistency
+   - All model scores now comparable across strategies
+
+**Benefits**:
+- ✅ ML models properly recognized and protected from downgrades
+- ✅ Clear visibility into ML performance and recommendations
+- ✅ Consistent scoring methodology across system
+- ✅ Legacy models preserved and working correctly
 
 #### Market-Aware Strategy Prioritization & Threshold Rebalancing - COMPLETED
 
