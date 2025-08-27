@@ -255,8 +255,8 @@ class SimplifiedPaperTradingSystem:
             f"(volume: {self.config['swing_volume_surge']}x)"
         )
         logger.info(
-            f"   Channel Buy Zone: {self.config['channel_position_threshold']} "
-            f"(touches: {self.config['channel_touches']})"
+            f"   Channel Buy Zone: {self.config.get('buy_zone', 0.05)} "
+            f"(touches: {self.config.get('channel_touches', 3)})"
         )
         logger.info("   📈 Market analysis guides strategy prioritization")
         logger.info("=" * 80)
