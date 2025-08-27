@@ -420,7 +420,7 @@ PAPER_TRADING_TEMPLATE = r"""
 </div>
 
 <!-- Open Positions Table -->
-<div class="table-container">
+<div class="table-container" id="openPositionsContainer">
     <div class="table-header">
         <h2 class="table-title">Open Positions</h2>
     </div>
@@ -716,7 +716,7 @@ async function checkEngineStatus() {
 
 // Pagination state
 let currentPage = 1;
-let currentFilter = 'open'; // Default to open positions
+// currentFilter already declared above
 let isNavigating = false;
 let autoRefreshTimer = null;
 
@@ -800,6 +800,8 @@ function updateFilteredView() {
     const openTable = document.getElementById('openPositionsTable');
     const closedTable = document.getElementById('closedTradesTable');
 
+    console.log('updateFilteredView called, currentFilter:', currentFilter, 'data:', data);
+
     // Calculate stats based on filter
     let filteredPnl = 0;
     let winCount = 0;
@@ -808,6 +810,7 @@ function updateFilteredView() {
 
     if (currentFilter === 'open' || currentFilter === 'all') {
         // Show open positions
+        console.log('Checking open trades:', data.open_trades ? data.open_trades.length : 'none');
         if (data.open_trades && data.open_trades.length > 0) {
             openTable.innerHTML = data.open_trades.map(trade => `
                 <tr>
@@ -836,11 +839,12 @@ function updateFilteredView() {
                 filteredPnl += trade.unrealized_pnl || 0;
             });
         } else {
+            console.log('No open trades found, showing empty message');
             openTable.innerHTML = '<tr><td colspan="13" style="text-align: center;">No open positions</td></tr>';
         }
-        document.getElementById('openPositionsTable').parentElement.style.display = 'block';
+        document.getElementById('openPositionsContainer').style.display = 'block';
     } else {
-        document.getElementById('openPositionsTable').parentElement.style.display = 'none';
+        document.getElementById('openPositionsContainer').style.display = 'none';
     }
 
     if (currentFilter === 'closed' || currentFilter === 'all') {
