@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 """
-Enhanced multi-page trading dashboard with Market Protection
+Enhanced multi-page trading dashboard with proper UI pagination
 """
 
-from flask import Flask, render_template_string, jsonify
+from flask import Flask, render_template_string, jsonify, request
 import sys
 from pathlib import Path
 import os
 from datetime import datetime, timedelta, timezone
-import pandas as pd
 
 sys.path.append(str(Path(__file__).parent))
 
@@ -152,30 +151,72 @@ BASE_CSS = r"""
         color: #ef4444;
     }
 
-    .neutral {
+    /* Pagination Controls */
+    .pagination-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin: 20px 0;
+        padding: 15px;
+        background: rgba(30, 41, 59, 0.6);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        border-radius: 12px;
+    }
+
+    .pagination-info {
+        color: #94a3b8;
+        font-size: 0.9rem;
+    }
+
+    .pagination-controls {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .pagination-btn {
+        padding: 8px 16px;
+        background: rgba(59, 130, 246, 0.2);
         color: #60a5fa;
+        border: 1px solid rgba(59, 130, 246, 0.3);
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 0.9rem;
+    }
+
+    .pagination-btn:hover:not(:disabled) {
+        background: rgba(59, 130, 246, 0.3);
+        transform: translateY(-1px);
+    }
+
+    .pagination-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        color: #64748b;
+    }
+
+    .page-input {
+        width: 60px;
+        padding: 6px;
+        background: rgba(30, 41, 59, 0.6);
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        border-radius: 4px;
+        color: #e2e8f0;
+        text-align: center;
+        font-size: 0.9rem;
     }
 
     /* Tables */
     .table-container {
-        background: rgba(30, 41, 59, 0.4);
+        background: rgba(30, 41, 59, 0.6);
         backdrop-filter: blur(10px);
-        border: 1px solid rgba(148, 163, 184, 0.1);
+        border: 1px solid rgba(148, 163, 184, 0.2);
         border-radius: 12px;
-        overflow: hidden;
+        padding: 20px;
         margin-bottom: 30px;
-    }
-
-    .table-header {
-        background: rgba(30, 41, 59, 0.8);
-        padding: 15px 20px;
-        border-bottom: 1px solid rgba(148, 163, 184, 0.1);
-    }
-
-    .table-title {
-        font-size: 1.25rem;
-        font-weight: 600;
-        color: #e2e8f0;
+        overflow-x: auto;
     }
 
     table {
@@ -183,63 +224,29 @@ BASE_CSS = r"""
         border-collapse: collapse;
     }
 
-    thead th {
+    th {
         text-align: left;
-        padding: 12px 20px;
+        padding: 12px;
         font-weight: 600;
         color: #94a3b8;
-        font-size: 0.875rem;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        background: rgba(30, 41, 59, 0.5);
+        border-bottom: 1px solid rgba(148, 163, 184, 0.2);
     }
 
-    tbody td {
-        padding: 12px 20px;
-        border-top: 1px solid rgba(148, 163, 184, 0.05);
-        font-size: 0.9rem;
+    td {
+        padding: 12px;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.1);
     }
 
-    tbody tr:hover {
+    tr:hover {
         background: rgba(59, 130, 246, 0.05);
-    }
-
-    /* Alert Boxes */
-    .alert {
-        padding: 15px 20px;
-        border-radius: 8px;
-        margin-bottom: 20px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    .alert-panic {
-        background: rgba(239, 68, 68, 0.1);
-        border: 1px solid rgba(239, 68, 68, 0.3);
-        color: #fca5a5;
-    }
-
-    .alert-caution {
-        background: rgba(245, 158, 11, 0.1);
-        border: 1px solid rgba(245, 158, 11, 0.3);
-        color: #fcd34d;
-    }
-
-    .alert-normal {
-        background: rgba(16, 185, 129, 0.1);
-        border: 1px solid rgba(16, 185, 129, 0.3);
-        color: #6ee7b7;
     }
 
     /* Badges */
     .badge {
-        display: inline-block;
-        padding: 4px 10px;
-        border-radius: 6px;
+        padding: 4px 8px;
+        border-radius: 4px;
         font-size: 0.75rem;
         font-weight: 600;
-        text-transform: uppercase;
     }
 
     .badge-strategy {
@@ -247,183 +254,125 @@ BASE_CSS = r"""
         color: #a78bfa;
     }
 
-    .badge-disabled {
-        background: rgba(239, 68, 68, 0.2);
-        color: #fca5a5;
-    }
-
-    .badge-cooldown {
-        background: rgba(245, 158, 11, 0.2);
-        color: #fcd34d;
-    }
-
-    /* Loading states */
-    .loading {
-        display: inline-block;
-        width: 20px;
-        height: 20px;
-        border: 3px solid rgba(59, 130, 246, 0.2);
-        border-radius: 50%;
-        border-top-color: #3b82f6;
-        animation: spin 1s ease-in-out infinite;
-    }
-
-    @keyframes spin {
-        to { transform: rotate(360deg); }
-    }
-
-    /* Refresh indicator */
-    .refresh-indicator {
-        position: fixed;
-        top: 80px;
-        right: 20px;
-        background: rgba(30, 41, 59, 0.9);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(148, 163, 184, 0.2);
+    /* Engine Status */
+    .engine-status {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 15px;
+        background: rgba(30, 41, 59, 0.6);
         border-radius: 8px;
-        padding: 10px 16px;
-        font-size: 0.875rem;
-        color: #94a3b8;
+        border: 1px solid rgba(148, 163, 184, 0.2);
     }
 
-    .refresh-indicator.updating {
-        border-color: #3b82f6;
-        color: #60a5fa;
+    .status-light {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #fbbf24;
+    }
+
+    /* Filter Controls */
+    .filter-container {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+
+    .filter-option {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .filter-option input[type="radio"] {
+        width: 18px;
+        height: 18px;
+        accent-color: #3b82f6;
+    }
+
+    .filter-option label {
+        cursor: pointer;
+        color: #cbd5e1;
+        transition: color 0.3s ease;
+    }
+
+    .filter-option input[type="radio"]:checked + label {
+        color: #3b82f6;
+        font-weight: 600;
     }
 """
 
-BASE_TEMPLATE = r"""
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ title }} - Crypto Trading Dashboard</title>
-    <style>
-        {{ base_css|safe }}
-        {{ page_css|safe }}
-    </style>
-</head>
-<body>
-    <!-- Navigation -->
-    <nav class="nav-container">
-        <div class="nav-wrapper">
-            <div class="nav-brand">
-                🚀 Crypto Tracker v3
-            </div>
-            <div class="nav-links">
-                <a href="/" class="nav-link {{ 'active' if active_page == 'paper_trading' else '' }}">
-                    📊 Paper Trading
-                </a>
-                <a href="/strategies" class="nav-link {{ 'active' if active_page == 'strategies' else '' }}">
-                    🎯 Strategies
-                </a>
-                <a href="/market" class="nav-link {{ 'active' if active_page == 'market' else '' }}">
-                    🌍 Market
-                </a>
-                <a href="/rd" class="nav-link {{ 'active' if active_page == 'rd' else '' }}">
-                    🔬 R&D
-                </a>
-            </div>
-        </div>
-    </nav>
-
-    <!-- Page Content -->
-    <div class="container">
-        {{ content|safe }}
-    </div>
-
-    <!-- Refresh Indicator -->
-    <div class="refresh-indicator" id="refreshIndicator">
-        <span id="refreshText">Auto-refresh: ON</span>
-        <span id="refreshCountdown"></span>
-    </div>
-
-    <!-- Scripts -->
-    <script>
-        // Global refresh management
-        let refreshInterval = 10000; // 10 seconds
-        let countdown = refreshInterval / 1000;
-
-        function updateCountdown() {
-            countdown--;
-            if (countdown <= 0) {
-                countdown = refreshInterval / 1000;
-                document.getElementById('refreshIndicator').classList.add('updating');
-                setTimeout(() => {
-                    document.getElementById('refreshIndicator').classList.remove('updating');
-                }, 1000);
-            }
-            document.getElementById('refreshCountdown').innerText = `(${countdown}s)`;
-        }
-
-        setInterval(updateCountdown, 1000);
-    </script>
-    {{ page_scripts|safe }}
-</body>
-</html>
-"""
-
-# Paper Trading Page Template
-PAPER_TRADING_TEMPLATE = r"""
+# HTML template for Paper Trading page with pagination
+PAPER_TRADING_HTML = r"""
 <h1 class="page-title">Paper Trading Dashboard</h1>
-<p class="subtitle">Live paper trading performance and positions</p>
+<div class="subtitle">Live paper trading performance with proper pagination</div>
 
-<!-- Engine Status Indicator -->
-<div id="engineStatus" style="position: fixed; top: 80px; right: 200px; display: flex; align-items: center; gap: 8px; background: rgba(30, 41, 59, 0.9); padding: 8px 16px; border-radius: 8px; border: 1px solid rgba(148, 163, 184, 0.2);">  # noqa: E501
-    <div id="statusLight" style="width: 12px; height: 12px; border-radius: 50%; background: #fbbf24;"></div>
-    <span id="statusText" style="font-size: 0.875rem; color: #94a3b8;">Checking...</span>
+<!-- Engine Status -->
+<div class="engine-status">
+    <div class="status-light" id="statusLight"></div>
+    <span id="statusText">Checking status...</span>
 </div>
 
-<!-- Trade Filter -->
-<div style="display: flex; justify-content: center; gap: 20px; margin-bottom: 25px; padding: 15px; background: rgba(30, 41, 59, 0.5); backdrop-filter: blur(10px); border: 1px solid rgba(148, 163, 184, 0.1); border-radius: 12px;">
-    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-        <input type="radio" name="tradeFilter" value="open" id="filterOpen" checked>
-        <span style="color: #e2e8f0;">Open Trades Only</span>
-    </label>
-    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-        <input type="radio" name="tradeFilter" value="all" id="filterAll">
-        <span style="color: #e2e8f0;">Open & Closed Trades</span>
-    </label>
-    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-        <input type="radio" name="tradeFilter" value="closed" id="filterClosed">
-        <span style="color: #e2e8f0;">Closed Trades Only</span>
-    </label>
-</div>
-
-<!-- Portfolio Stats -->
-<div class="stats-container" id="portfolioStats">
+<!-- Stats Cards -->
+<div class="stats-container">
     <div class="stat-card">
         <div class="stat-label">Current Balance</div>
-        <div class="stat-value neutral" id="currentBalance">Loading...</div>
+        <div class="stat-value" id="currentBalance">Loading...</div>
     </div>
     <div class="stat-card">
-        <div class="stat-label">Total Investment</div>
-        <div class="stat-value neutral" id="totalInvestment">Loading...</div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-label">Total P&L $</div>
+        <div class="stat-label">Total P&L</div>
         <div class="stat-value" id="totalPnl">Loading...</div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-label">Total P&L %</div>
-        <div class="stat-value" id="totalPnlPct">Loading...</div>
+        <div class="stat-value" id="totalPnlPct" style="font-size: 1rem; margin-top: 5px;">-</div>
     </div>
     <div class="stat-card">
         <div class="stat-label">Win Rate</div>
         <div class="stat-value" id="winRate">Loading...</div>
     </div>
     <div class="stat-card">
+        <div class="stat-label">Total Investment</div>
+        <div class="stat-value" id="totalInvestment">Loading...</div>
+    </div>
+    <div class="stat-card">
         <div class="stat-label">Open Positions</div>
-        <div class="stat-value neutral" id="openPositions">Loading...</div>
+        <div class="stat-value" id="openPositions">Loading...</div>
+    </div>
+</div>
+
+<!-- Filter Controls -->
+<div class="filter-container">
+    <div class="filter-option">
+        <input type="radio" id="filterOpen" name="tradeFilter" value="open" checked>
+        <label for="filterOpen">Open Positions</label>
+    </div>
+    <div class="filter-option">
+        <input type="radio" id="filterClosed" name="tradeFilter" value="closed">
+        <label for="filterClosed">Closed Trades</label>
+    </div>
+    <div class="filter-option">
+        <input type="radio" id="filterAll" name="tradeFilter" value="all">
+        <label for="filterAll">All Trades</label>
+    </div>
+</div>
+
+<!-- Pagination Controls (Top) -->
+<div class="pagination-container" id="paginationTop">
+    <div class="pagination-info">
+        <span id="pageInfo">Page 1 of 1</span> |
+        <span id="tradeInfo">Showing 0 trades</span>
+    </div>
+    <div class="pagination-controls">
+        <button class="pagination-btn" id="prevBtn" onclick="changePage(-1)">← Previous</button>
+        <span>Page </span>
+        <input type="number" class="page-input" id="pageInput" value="1" min="1" onchange="goToPage()">
+        <span> of <span id="totalPages">1</span></span>
+        <button class="pagination-btn" id="nextBtn" onclick="changePage(1)">Next →</button>
     </div>
 </div>
 
 <!-- Open Positions Table -->
-<div class="table-container">
-    <div class="table-header">
-        <h2 class="table-title">Open Positions</h2>
-    </div>
+<div class="table-container" id="openPositionsTable">
+    <h3 style="margin-bottom: 15px;">Open Positions</h3>
     <table>
         <thead>
             <tr>
@@ -435,230 +384,60 @@ PAPER_TRADING_TEMPLATE = r"""
                 <th>Current Price</th>
                 <th>P&L %</th>
                 <th>P&L $</th>
-                <th>Duration</th>
+                <th>Hold Time</th>
                 <th>SL</th>
                 <th>TP</th>
                 <th>TS</th>
                 <th>Exit Reason</th>
             </tr>
         </thead>
-        <tbody id="openPositionsTable">
-            <tr><td colspan="13" style="text-align: center;">Loading positions...</td></tr>
+        <tbody id="openPositionsTableBody">
+            <tr><td colspan="13" style="text-align: center;">Loading...</td></tr>
         </tbody>
     </table>
 </div>
 
-<!-- Closed Trades Table (Hidden by default, shown based on filter) -->
+<!-- Closed Trades Table -->
 <div class="table-container" id="closedTradesContainer" style="display: none;">
-    <div class="table-header">
-        <h2 class="table-title">Closed Trades</h2>
-    </div>
+    <h3 style="margin-bottom: 15px;">Closed Trades</h3>
     <table>
         <thead>
             <tr>
                 <th>Symbol</th>
                 <th>Strategy</th>
-                <th>Entry</th>
-                <th>Exit</th>
+                <th>Entry Price</th>
+                <th>Exit Price</th>
                 <th>P&L %</th>
                 <th>P&L $</th>
                 <th>Exit Reason</th>
-                <th>Duration</th>
+                <th>Hold Time</th>
             </tr>
         </thead>
         <tbody id="closedTradesTable">
-            <tr><td colspan="8" style="text-align: center;">Loading trades...</td></tr>
-        </tbody>
-    </table>
-</div>
-"""
-
-# Strategies Page Template
-STRATEGIES_TEMPLATE = r"""
-<h1 class="page-title">Trading Strategies</h1>
-<p class="subtitle">Active strategies and current market signals</p>
-
-<!-- Strategy Status Grid -->
-<div class="stats-container" id="strategyStats">
-    <div class="stat-card">
-        <div class="stat-label">DCA Strategy</div>
-        <div class="stat-value" id="dcaStatus">
-            <span class="badge badge-strategy">ACTIVE</span>
-        </div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-label">SWING Strategy</div>
-        <div class="stat-value" id="swingStatus">
-            <span class="badge badge-strategy">ACTIVE</span>
-        </div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-label">CHANNEL Strategy</div>
-        <div class="stat-value" id="channelStatus">
-            <span class="badge badge-strategy">ACTIVE</span>
-        </div>
-    </div>
-</div>
-
-<!-- Current Signals -->
-<div class="table-container">
-    <div class="table-header">
-        <h2 class="table-title">Current Strategy Signals</h2>
-    </div>
-    <table>
-        <thead>
-            <tr>
-                <th>Strategy</th>
-                <th>Symbol</th>
-                <th>Readiness</th>
-                <th>Confidence</th>
-                <th>Current Price</th>
-                <th>Status</th>
-                <th>Details</th>
-            </tr>
-        </thead>
-        <tbody id="strategySignalsTable">
-            <tr><td colspan="7" style="text-align: center;">Loading signals...</td></tr>
+            <tr><td colspan="8" style="text-align: center;">Loading...</td></tr>
         </tbody>
     </table>
 </div>
 
-<!-- Strategy Guide -->
-<div class="table-container">
-    <div class="table-header">
-        <h2 class="table-title">Strategy Guide</h2>
+<!-- Pagination Controls (Bottom) -->
+<div class="pagination-container" id="paginationBottom">
+    <div class="pagination-info">
+        <span id="pageInfoBottom">Page 1 of 1</span>
     </div>
-    <div style="padding: 20px;">
-        <h3 style="color: #60a5fa; margin-bottom: 15px;">DCA (Dollar Cost Averaging)</h3>
-        <p style="margin-bottom: 20px; color: #94a3b8;">
-            Buys on significant dips to capture oversold conditions.
-            Triggers when price drops 5%+ from recent highs with RSI < 30.
-        </p>
-
-        <h3 style="color: #60a5fa; margin-bottom: 15px;">SWING Trading</h3>
-        <p style="margin-bottom: 20px; color: #94a3b8;">
-            Captures momentum breakouts. Enters when price breaks above resistance
-            with strong volume confirmation and RSI between 50-70.
-        </p>
-
-        <h3 style="color: #60a5fa; margin-bottom: 15px;">CHANNEL Trading</h3>
-        <p style="margin-bottom: 20px; color: #94a3b8;">
-            Trades within established price channels. Buys near support levels
-            when price is in lower 30% of channel range. Most sensitive to volatility.
-        </p>
+    <div class="pagination-controls">
+        <button class="pagination-btn" onclick="changePage(-1)">← Previous</button>
+        <button class="pagination-btn" onclick="changePage(1)">Next →</button>
     </div>
 </div>
 """
 
-# Market Page Template
-MARKET_TEMPLATE = r"""
-<h1 class="page-title">Market Analysis & Protection</h1>
-<p class="subtitle">Real-time market conditions and protection status</p>
-
-<!-- Market Protection Alert -->
-<div id="regimeAlert"></div>
-
-<!-- Market Protection Stats -->
-<div class="stats-container">
-    <div class="stat-card">
-        <div class="stat-label">Protection Level</div>
-        <div class="stat-value" id="marketRegime">Loading...</div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-label">Market Volatility</div>
-        <div class="stat-value" id="volatility24h">Loading...</div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-label">BTC Movement</div>
-        <div class="stat-value" id="btc24hChange">Loading...</div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-label">Symbols on Cooldown</div>
-        <div class="stat-value" id="protectedSymbols">Loading...</div>
-    </div>
-</div>
-
-<!-- Disabled Strategies -->
-<div class="table-container" id="disabledStrategiesContainer" style="display: none;">
-    <div class="table-header">
-        <h2 class="table-title">⚠️ Disabled Strategies</h2>
-    </div>
-    <table>
-        <thead>
-            <tr>
-                <th>Strategy</th>
-                <th>Reason</th>
-                <th>Disabled At</th>
-                <th>Re-enable At</th>
-                <th>Time Remaining</th>
-            </tr>
-        </thead>
-        <tbody id="disabledStrategiesTable">
-        </tbody>
-    </table>
-</div>
-
-<!-- Symbols on Cooldown -->
-<div class="table-container" id="cooldownContainer" style="display: none;">
-    <div class="table-header">
-        <h2 class="table-title">🔒 Symbols on Cooldown</h2>
-    </div>
-    <table>
-        <thead>
-            <tr>
-                <th>Symbol</th>
-                <th>Reason</th>
-                <th>Consecutive Stops</th>
-                <th>Cooldown Until</th>
-                <th>Time Remaining</th>
-                <th>Status</th>
-            </tr>
-        </thead>
-        <tbody id="cooldownTable">
-        </tbody>
-    </table>
-</div>
-
-<!-- Trading Sentiment -->
-<div class="table-container">
-    <div class="table-header">
-        <h2 class="table-title">Trading Sentiment</h2>
-    </div>
-    <div style="padding: 20px;">
-        <div id="marketSummaryContent">
-            <p style="color: #94a3b8;">Loading market analysis...</p>
-        </div>
-    </div>
-</div>
-
-<!-- Top Movers -->
-<div class="table-container">
-    <div class="table-header">
-        <h2 class="table-title">Top Market Movers (24h)</h2>
-    </div>
-    <table>
-        <thead>
-            <tr>
-                <th>Symbol</th>
-                <th>Price</th>
-                <th>Readiness</th>
-                <th>Volume</th>
-                <th>Type</th>
-                <th>Signal</th>
-            </tr>
-        </thead>
-        <tbody id="topMoversTable">
-            <tr><td colspan="6" style="text-align: center;">Loading market data...</td></tr>
-        </tbody>
-    </table>
-</div>
-"""
-
-# JavaScript for Paper Trading page
+# JavaScript for Paper Trading page with pagination
 PAPER_TRADING_SCRIPTS = r"""
 <script>
-let allTradesData = { open_trades: [], trades: [], stats: {} };
+let currentPage = 1;
+let totalPages = 1;
 let currentFilter = 'open';
+let allStats = {};
 
 async function checkEngineStatus() {
     try {
@@ -669,55 +448,100 @@ async function checkEngineStatus() {
         const statusText = document.getElementById('statusText');
 
         if (data.running) {
-            statusLight.style.background = '#10b981'; // green
+            statusLight.style.background = '#10b981';
             statusText.textContent = 'Paper Trading Active';
             statusText.style.color = '#10b981';
         } else {
-            statusLight.style.background = '#ef4444'; // red
+            statusLight.style.background = '#ef4444';
             statusText.textContent = 'Paper Trading Stopped';
             statusText.style.color = '#ef4444';
         }
     } catch (error) {
         const statusLight = document.getElementById('statusLight');
         const statusText = document.getElementById('statusText');
-        statusLight.style.background = '#fbbf24'; // yellow
+        statusLight.style.background = '#fbbf24';
         statusText.textContent = 'Status Unknown';
         statusText.style.color = '#fbbf24';
     }
 }
 
-async function fetchTrades() {
+async function fetchTrades(page = 1) {
     try {
-        const response = await fetch('/api/trades');
+        const response = await fetch(`/api/trades?page=${page}&per_page=100`);
         const data = await response.json();
-        allTradesData = data;
 
-        // Always update constant stats
-        document.getElementById('currentBalance').textContent =
-            `$${(data.stats.starting_capital + data.stats.total_pnl_dollar).toFixed(2)}`;
+        // Update stats (always show total stats regardless of pagination)
+        allStats = data.stats;
+        updateStats(data.stats);
 
-        document.getElementById('totalInvestment').textContent =
-            `$${data.stats.starting_capital.toFixed(2)}`;
+        // Update pagination info
+        if (data.pagination) {
+            currentPage = data.pagination.current_page;
+            totalPages = data.pagination.total_pages;
 
-        document.getElementById('openPositions').textContent = data.stats.open_count;
+            // Update page info
+            document.getElementById('pageInfo').textContent = `Page ${currentPage} of ${totalPages}`;
+            document.getElementById('pageInfoBottom').textContent = `Page ${currentPage} of ${totalPages}`;
+            document.getElementById('totalPages').textContent = totalPages;
+            document.getElementById('pageInput').value = currentPage;
+            document.getElementById('pageInput').max = totalPages;
 
-        // Update filtered view
-        updateFilteredView();
+            // Update trade count info
+            const startTrade = (currentPage - 1) * 100 + 1;
+            const endTrade = Math.min(currentPage * 100, data.pagination.total_trades);
+            document.getElementById('tradeInfo').textContent =
+                `Showing trades ${startTrade}-${endTrade} of ${data.pagination.total_trades} total`;
+
+            // Enable/disable navigation buttons
+            document.getElementById('prevBtn').disabled = !data.pagination.has_prev;
+            document.getElementById('nextBtn').disabled = !data.pagination.has_next;
+            document.querySelectorAll('.pagination-btn').forEach(btn => {
+                if (btn.textContent.includes('Previous')) {
+                    btn.disabled = !data.pagination.has_prev;
+                } else if (btn.textContent.includes('Next')) {
+                    btn.disabled = !data.pagination.has_next;
+                }
+            });
+        }
+
+        // Update tables based on filter
+        updateTables(data);
+
     } catch (error) {
         console.error('Error fetching trades:', error);
     }
 }
 
-function updateFilteredView() {
-    const data = allTradesData;
-    const openTable = document.getElementById('openPositionsTable');
-    const closedTable = document.getElementById('closedTradesTable');
+function updateStats(stats) {
+    // Update all stats displays
+    document.getElementById('currentBalance').textContent =
+        `$${(stats.starting_capital + stats.total_pnl_dollar).toFixed(2)}`;
 
-    // Calculate stats based on filter
-    let filteredPnl = 0;
-    let winCount = 0;
-    let lossCount = 0;
-    let totalTrades = 0;
+    document.getElementById('totalInvestment').textContent =
+        `$${stats.starting_capital.toFixed(2)}`;
+
+    document.getElementById('openPositions').textContent = stats.open_count;
+
+    // Update P&L
+    const pnlElement = document.getElementById('totalPnl');
+    pnlElement.textContent = `$${stats.total_pnl_dollar.toFixed(2)}`;
+    pnlElement.className = `stat-value ${stats.total_pnl_dollar >= 0 ? 'positive' : 'negative'}`;
+
+    // Update P&L %
+    const pnlPctElement = document.getElementById('totalPnlPct');
+    const pnlPct = stats.total_pnl || 0;
+    pnlPctElement.textContent = `${pnlPct.toFixed(2)}%`;
+    pnlPctElement.className = `stat-value ${pnlPct >= 0 ? 'positive' : 'negative'}`;
+
+    // Update win rate
+    const winRateElement = document.getElementById('winRate');
+    winRateElement.textContent = `${stats.win_rate.toFixed(1)}%`;
+    winRateElement.className = `stat-value ${stats.win_rate >= 50 ? 'positive' : ''}`;
+}
+
+function updateTables(data) {
+    const openTable = document.getElementById('openPositionsTableBody');
+    const closedTable = document.getElementById('closedTradesTable');
 
     if (currentFilter === 'open' || currentFilter === 'all') {
         // Show open positions
@@ -743,17 +567,12 @@ function updateFilteredView() {
                     <td>${trade.exit_reason || '—'}</td>
                 </tr>
             `).join('');
-
-            // Add unrealized P&L to stats if showing open
-            data.open_trades.forEach(trade => {
-                filteredPnl += trade.unrealized_pnl || 0;
-            });
         } else {
             openTable.innerHTML = '<tr><td colspan="13" style="text-align: center;">No open positions</td></tr>';
         }
-        document.getElementById('openPositionsTable').parentElement.style.display = 'block';
+        document.getElementById('openPositionsTable').style.display = 'block';
     } else {
-        document.getElementById('openPositionsTable').parentElement.style.display = 'none';
+        document.getElementById('openPositionsTable').style.display = 'none';
     }
 
     if (currentFilter === 'closed' || currentFilter === 'all') {
@@ -777,48 +596,31 @@ function updateFilteredView() {
                     <td>${trade.hold_time}</td>
                 </tr>
             `).join('');
-
-            // Calculate stats for closed trades
-            closedTrades.forEach(trade => {
-                filteredPnl += trade.pnl || 0;
-                totalTrades++;
-                if (trade.pnl > 0) winCount++;
-                else lossCount++;
-            });
         } else {
-            closedTable.innerHTML = '<tr><td colspan="8" style="text-align: center;">No closed trades yet</td></tr>';
+            closedTable.innerHTML =
+                '<tr><td colspan="8" style="text-align: center;">No closed trades on this page</td></tr>';
         }
         document.getElementById('closedTradesContainer').style.display = 'block';
     } else {
         document.getElementById('closedTradesContainer').style.display = 'none';
     }
+}
 
-    // Update dynamic stats based on filter
-    const pnlElement = document.getElementById('totalPnl');
-    const pnlToShow = currentFilter === 'open' ? filteredPnl :
-                      currentFilter === 'closed' ? filteredPnl :
-                      data.stats.total_pnl_dollar + (filteredPnl || 0);
-    pnlElement.textContent = `$${pnlToShow.toFixed(2)}`;
-    pnlElement.className = `stat-value ${pnlToShow >= 0 ? 'positive' : 'negative'}`;
-
-    // Calculate P&L %
-    const pnlPctElement = document.getElementById('totalPnlPct');
-    const pnlPct = (pnlToShow / data.stats.starting_capital) * 100;
-    pnlPctElement.textContent = `${pnlPct.toFixed(2)}%`;
-    pnlPctElement.className = `stat-value ${pnlPct >= 0 ? 'positive' : 'negative'}`;
-
-    // Update win rate based on filter
-    const winRateElement = document.getElementById('winRate');
-    let winRate = 0;
-    if (currentFilter === 'closed' && totalTrades > 0) {
-        winRate = (winCount / totalTrades) * 100;
-    } else if (currentFilter === 'all') {
-        winRate = data.stats.win_rate || 0;
-    } else if (currentFilter === 'open') {
-        winRate = 0; // No win rate for open positions
+function changePage(direction) {
+    const newPage = currentPage + direction;
+    if (newPage >= 1 && newPage <= totalPages) {
+        fetchTrades(newPage);
     }
-    winRateElement.textContent = `${winRate.toFixed(1)}%`;
-    winRateElement.className = `stat-value ${winRate >= 50 ? 'positive' : winRate > 0 ? 'neutral' : ''}`;
+}
+
+function goToPage() {
+    const pageInput = document.getElementById('pageInput');
+    const page = parseInt(pageInput.value);
+    if (page >= 1 && page <= totalPages) {
+        fetchTrades(page);
+    } else {
+        pageInput.value = currentPage;
+    }
 }
 
 // Add event listeners for filters
@@ -826,711 +628,408 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('input[name="tradeFilter"]').forEach(radio => {
         radio.addEventListener('change', function() {
             currentFilter = this.value;
-            updateFilteredView();
+            currentPage = 1; // Reset to first page when changing filter
+            fetchTrades(1);
         });
     });
 
     // Initial load
-    fetchTrades();
+    fetchTrades(1);
     checkEngineStatus();
 
     // Set up refresh intervals
-    setInterval(fetchTrades, 10000); // Refresh trades every 10 seconds
+    setInterval(() => fetchTrades(currentPage), 10000); // Refresh current page every 10 seconds
     setInterval(checkEngineStatus, 30000); // Check engine status every 30 seconds
 });
 </script>
 """
 
-# JavaScript for Strategies page
-STRATEGIES_SCRIPTS = r"""
-<script>
-async function fetchStrategyStatus() {
-    try {
-        const response = await fetch('/api/strategy-status');
-        const data = await response.json();
 
-        // Update strategy signals table
-        const signalsTable = document.getElementById('strategySignalsTable');
-        const allSignals = [];
-
-        // Process each strategy
-        ['dca', 'swing', 'channel'].forEach(strategy => {
-            if (data[strategy] && data[strategy].candidates) {
-                data[strategy].candidates.forEach(candidate => {
-                    // Parse readiness percentage
-                    const readinessValue = parseFloat(candidate.readiness) || 0;
-
-                    allSignals.push({
-                        strategy: strategy.toUpperCase(),
-                        symbol: candidate.symbol,
-                        strength: readinessValue,  // Use readiness as strength
-                        confidence: readinessValue / 100,  // Convert to 0-1 scale
-                        price: candidate.price || 0,
-                        status: candidate.status || '',
-                        notes: candidate.details || ''
-                    });
-                });
-            }
-        });
-
-        if (allSignals.length > 0) {
-            // Sort by readiness/strength
-            allSignals.sort((a, b) => b.strength - a.strength);
-
-            signalsTable.innerHTML = allSignals.slice(0, 20).map(signal => `
-                <tr>
-                    <td><span class="badge badge-strategy">${signal.strategy}</span></td>
-                    <td style="font-weight: 600;">${signal.symbol}</td>
-                    <td>${signal.strength.toFixed(1)}%</td>
-                    <td class="${signal.confidence >= 0.7 ? 'positive' : signal.confidence >= 0.5 ? 'neutral' : 'negative'}">
-                        ${(signal.confidence * 100).toFixed(1)}%
-                    </td>
-                    <td>$${signal.price ? signal.price.toFixed(4) : 'N/A'}</td>
-                    <td>${signal.status}</td>
-                    <td style="font-size: 0.85rem; color: #94a3b8;">${signal.notes}</td>
-                </tr>
-            `).join('');
-        } else {
-            signalsTable.innerHTML = '<tr><td colspan="7" style="text-align: center;">No active signals</td></tr>';
-        }
-
-        // Check if strategies are disabled (from market protection)
-        checkStrategyStatus();
-
-    } catch (error) {
-        console.error('Error fetching strategy status:', error);
-    }
-}
-
-async function checkStrategyStatus() {
-    try {
-        const response = await fetch('/api/market-protection');
-        const data = await response.json();
-
-        // Update strategy status badges
-        ['dca', 'swing', 'channel'].forEach(strategy => {
-            const statusElement = document.getElementById(`${strategy}Status`);
-            const isDisabled = data.disabled_strategies.includes(strategy.toUpperCase());
-
-            if (isDisabled) {
-                statusElement.innerHTML = '<span class="badge badge-disabled">DISABLED</span>';
-            } else {
-                statusElement.innerHTML = '<span class="badge badge-strategy">ACTIVE</span>';
-            }
-        });
-
-    } catch (error) {
-        console.error('Error checking strategy status:', error);
-    }
-}
-
-// Initial load and refresh
-fetchStrategyStatus();
-setInterval(fetchStrategyStatus, 30000); // Refresh every 30 seconds
-</script>
-"""
-
-# JavaScript for Market page
-MARKET_SCRIPTS = r"""
-<script>
-async function fetchMarketProtection() {
-    try {
-        const response = await fetch('/api/market-protection');
-        const data = await response.json();
-
-        // Update regime alert
-        const alertDiv = document.getElementById('regimeAlert');
-        if (data.regime === 'PANIC') {
-            alertDiv.innerHTML = `
-                <div class="alert alert-panic">
-                    🚨 <strong>PANIC MODE ACTIVE</strong> - All trading suspended due to extreme market conditions
-                </div>
-            `;
-        } else if (data.regime === 'CAUTION') {
-            alertDiv.innerHTML = `
-                <div class="alert alert-caution">
-                    ⚠️ <strong>CAUTION MODE</strong> - Trading restricted due to high volatility
-                </div>
-            `;
-        } else {
-            alertDiv.innerHTML = `
-                <div class="alert alert-normal">
-                    ✅ <strong>NORMAL MARKET</strong> - All systems operational
-                </div>
-            `;
-        }
-
-        // Update stats
-        document.getElementById('marketRegime').innerHTML =
-            `<span class="badge ${data.regime === 'PANIC' ? 'badge-disabled' : data.regime === 'CAUTION' ? 'badge-cooldown' : 'badge-strategy'}">${data.regime}</span>`;
-
-        const volatilityElement = document.getElementById('volatility24h');
-        volatilityElement.textContent = `${data.volatility_24h.toFixed(2)}%`;
-        volatilityElement.className = `stat-value ${data.volatility_24h > 10 ? 'negative' : data.volatility_24h > 7 ? 'neutral' : 'positive'}`;
-
-        const btcElement = document.getElementById('btc24hChange');
-        btcElement.textContent = `${data.btc_24h_change.toFixed(2)}%`;
-        btcElement.className = `stat-value ${data.btc_24h_change >= 0 ? 'positive' : 'negative'}`;
-
-        const protectedCount = data.symbols_on_cooldown.length + data.symbols_banned.length;
-        document.getElementById('protectedSymbols').textContent = protectedCount;
-
-        // Update disabled strategies table
-        if (data.disabled_strategies && data.disabled_strategies.length > 0) {
-            document.getElementById('disabledStrategiesContainer').style.display = 'block';
-            const disabledTable = document.getElementById('disabledStrategiesTable');
-            disabledTable.innerHTML = data.disabled_strategies.map(strategy => {
-                const info = data.strategy_info[strategy] || {};
-                return `
-                    <tr>
-                        <td><span class="badge badge-disabled">${strategy}</span></td>
-                        <td>${info.reason || 'High volatility'}</td>
-                        <td>${info.disabled_at || 'N/A'}</td>
-                        <td>${info.reenable_at || 'When volatility < 6%'}</td>
-                        <td>${info.time_remaining || 'N/A'}</td>
-                    </tr>
-                `;
-            }).join('');
-        } else {
-            document.getElementById('disabledStrategiesContainer').style.display = 'none';
-        }
-
-        // Update cooldown table
-        const cooldownSymbols = [...data.symbols_on_cooldown, ...data.symbols_banned];
-        if (cooldownSymbols.length > 0) {
-            document.getElementById('cooldownContainer').style.display = 'block';
-            const cooldownTable = document.getElementById('cooldownTable');
-            cooldownTable.innerHTML = cooldownSymbols.map(item => `
-                <tr>
-                    <td style="font-weight: 600;">${item.symbol}</td>
-                    <td>${item.reason}</td>
-                    <td>${item.consecutive_stops || 0}</td>
-                    <td>${item.cooldown_until}</td>
-                    <td>${item.time_remaining}</td>
-                    <td><span class="badge ${item.status === 'BANNED' ? 'badge-disabled' : 'badge-cooldown'}">${item.status}</span></td>
-                </tr>
-            `).join('');
-        } else {
-            document.getElementById('cooldownContainer').style.display = 'none';
-        }
-
-    } catch (error) {
-        console.error('Error fetching market protection:', error);
-    }
-}
-
-async function fetchMarketData() {
-    try {
-        const response = await fetch('/api/market-summary');
-        const data = await response.json();
-
-        // Update trading sentiment
-        const summaryDiv = document.getElementById('marketSummaryContent');
-        let conditionColor = '#60a5fa';
-        let conditionIcon = '📊';
-        if (data.condition === 'BULLISH') {
-            conditionColor = '#10b981';
-            conditionIcon = '📈';
-        } else if (data.condition === 'BEARISH') {
-            conditionColor = '#ef4444';
-            conditionIcon = '📉';
-        }
-
-        summaryDiv.innerHTML = `
-            <h3 style="color: ${conditionColor}; margin-bottom: 10px;">${conditionIcon} Trading Condition: ${data.condition}</h3>
-            <p style="color: #94a3b8; margin-bottom: 10px;">Recommended Strategy: <strong style="color: #60a5fa;">${data.best_strategy}</strong></p>
-            <p style="color: #94a3b8; font-size: 0.9rem;">${data.notes}</p>
-        `;
-
-        // Update top movers table
-        if (data.top_movers && data.top_movers.length > 0) {
-            const moversTable = document.getElementById('topMoversTable');
-            moversTable.innerHTML = data.top_movers.map(mover => `
-                <tr>
-                    <td style="font-weight: 600;">${mover.symbol}</td>
-                    <td>$${mover.price ? mover.price.toFixed(4) : 'N/A'}</td>
-                    <td class="positive">
-                        ${mover.change_24h}%
-                    </td>
-                    <td>${mover.volume}</td>
-                    <td>${mover.market_cap}</td>
-                    <td>${mover.status}</td>
-                </tr>
-            `).join('');
-        } else {
-            document.getElementById('topMoversTable').innerHTML = '<tr><td colspan="6" style="text-align: center;">No active market movers</td></tr>';
-        }
-
-    } catch (error) {
-        console.error('Error fetching market data:', error);
-    }
-}
-
-// Initial load and refresh
-fetchMarketProtection();
-fetchMarketData();
-setInterval(fetchMarketProtection, 10000); // Refresh every 10 seconds
-setInterval(fetchMarketData, 60000); // Refresh every minute
-</script>
-"""
-
-
+# Copy the API routes from the original dashboard
 @app.route("/")
+def index():
+    """Redirect to Paper Trading page"""
+    return paper_trading()
+
+
+@app.route("/paper-trading")
 def paper_trading():
-    """Paper Trading page (default homepage)"""
+    """Paper Trading page"""
     return render_template_string(
-        BASE_TEMPLATE,
-        title="Paper Trading",
-        active_page="paper_trading",
-        base_css=BASE_CSS,
-        page_css="",
-        content=PAPER_TRADING_TEMPLATE,
-        page_scripts=PAPER_TRADING_SCRIPTS,
-    )
-
-
-@app.route("/strategies")
-def strategies():
-    """Strategies page"""
-    return render_template_string(
-        BASE_TEMPLATE,
-        title="Strategies",
-        active_page="strategies",
-        base_css=BASE_CSS,
-        page_css="",
-        content=STRATEGIES_TEMPLATE,
-        page_scripts=STRATEGIES_SCRIPTS,
-    )
-
-
-@app.route("/market")
-def market():
-    """Market analysis and protection page"""
-    return render_template_string(
-        BASE_TEMPLATE,
-        title="Market Analysis",
-        active_page="market",
-        base_css=BASE_CSS,
-        page_css="",
-        content=MARKET_TEMPLATE,
-        page_scripts=MARKET_SCRIPTS,
-    )
-
-
-# R&D Page Template
-RD_TEMPLATE = r"""
-<h1 class="page-title">Research & Development</h1>
-<p class="subtitle">ML insights and parameter optimization recommendations</p>
-
-<!-- Model Status -->
-<div class="stats-container">
-    <div class="stat-card">
-        <div class="stat-label">CHANNEL Model</div>
-        <div class="stat-value" id="channelScore">Loading...</div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-label">DCA Model</div>
-        <div class="stat-value" id="dcaScore">Loading...</div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-label">SWING Model</div>
-        <div class="stat-value" id="swingScore">Loading...</div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-label">Next Retrain</div>
-        <div class="stat-value" id="nextRetrain">Loading...</div>
-    </div>
-</div>
-
-<!-- Parameter Recommendations -->
-<div class="table-container">
-    <div class="table-header">
-        <h2 class="table-title">📊 Current Recommendations (Based on Last 100 Trades)</h2>
-    </div>
-    <div class="recommendation-box" id="recommendationsContainer">
-        <div class="loading">Analyzing trades...</div>
-    </div>
-</div>
-
-<!-- Parameter Change History -->
-<div class="table-container">
-    <div class="table-header">
-        <h2 class="table-title">📈 Parameter Change History</h2>
-    </div>
-    <table class="data-table">
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th>Parameter</th>
-                <th>Old Value</th>
-                <th>New Value</th>
-                <th>Impact (7 days)</th>
-            </tr>
-        </thead>
-        <tbody id="parameterHistoryTable">
-            <tr><td colspan="5">Loading...</td></tr>
-        </tbody>
-    </table>
-</div>
-
-<!-- ML Learning Progress -->
-<div class="table-container">
-    <div class="table-header">
-        <h2 class="table-title">🧠 ML Model Learning Progress</h2>
-    </div>
-    <div class="progress-container" id="learningProgressContainer">
-        <div class="loading">Loading model statistics...</div>
-    </div>
-</div>
-
-<!-- ML Prediction Accuracy -->
-<div class="table-container">
-    <div class="table-header">
-        <h2 class="table-title">🎯 Recent ML Predictions vs Reality</h2>
-    </div>
-    <table class="data-table">
-        <thead>
-            <tr>
-                <th>Time</th>
-                <th>Symbol</th>
-                <th>Strategy</th>
-                <th>ML Confidence</th>
-                <th>Predicted</th>
-                <th>Actual</th>
-                <th>Accuracy</th>
-            </tr>
-        </thead>
-        <tbody id="mlPredictionsTable">
-            <tr><td colspan="7">Loading...</td></tr>
-        </tbody>
-    </table>
-</div>
-
-<style>
-.recommendation-box {
-    background: rgba(15, 23, 42, 0.6);
-    border-radius: 8px;
-    padding: 20px;
-    margin-top: 10px;
-}
-
-.recommendation-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 16px;
-    margin: 8px 0;
-    background: rgba(30, 41, 59, 0.5);
-    border: 1px solid rgba(148, 163, 184, 0.2);
-    border-radius: 8px;
-}
-
-.recommendation-label {
-    color: #94a3b8;
-    font-size: 0.9rem;
-}
-
-.recommendation-values {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-}
-
-.current-value {
-    color: #64748b;
-}
-
-.arrow {
-    color: #3b82f6;
-    font-size: 1.2rem;
-}
-
-.recommended-value {
-    color: #10b981;
-    font-weight: 600;
-}
-
-.recommendation-reason {
-    color: #fbbf24;
-    font-size: 0.85rem;
-    margin-left: 16px;
-}
-
-.progress-container {
-    padding: 20px;
-}
-
-.progress-item {
-    margin: 16px 0;
-}
-
-.progress-label {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 8px;
-    font-size: 0.9rem;
-}
-
-.progress-bar-bg {
-    background: rgba(148, 163, 184, 0.2);
-    height: 8px;
-    border-radius: 4px;
-    overflow: hidden;
-}
-
-.progress-bar-fill {
-    height: 100%;
-    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-    transition: width 0.3s ease;
-}
-
-.warning-box {
-    background: rgba(251, 191, 36, 0.1);
-    border: 1px solid rgba(251, 191, 36, 0.3);
-    border-radius: 8px;
-    padding: 16px;
-    margin: 16px 0;
-    color: #fbbf24;
-    font-size: 0.9rem;
-}
-</style>
-"""
-
-# JavaScript for R&D page
-RD_SCRIPTS = r"""
-<script>
-// Fetch ML model status
-async function fetchModelStatus() {
-    try {
-        const response = await fetch('/api/ml-model-status');
-        const data = await response.json();
-
-        // Update model scores with detailed metrics
-        if (data.channel) {
-            let details = data.channel.accuracy ?
-                `<br><small style="font-size: 0.7em; color: #9ca3af;">Acc: ${data.channel.accuracy} | Prec: ${data.channel.precision} | Rec: ${data.channel.recall}</small>` : '';
-            document.getElementById('channelScore').innerHTML =
-                `${data.channel.score} <span style="color: #10b981;">✓</span>${details}`;
-        } else {
-            document.getElementById('channelScore').innerHTML = 'Not Trained';
-        }
-
-        document.getElementById('dcaScore').innerHTML =
-            data.dca ? `${data.dca.score}` : `${data.dca_samples}/20 samples`;
-        document.getElementById('swingScore').innerHTML =
-            data.swing ? `${data.swing.score}` : `${data.swing_samples}/20 samples`;
-        document.getElementById('nextRetrain').textContent = data.next_retrain || '2:00 AM PST';
-
-    } catch (error) {
-        console.error('Error fetching model status:', error);
-    }
-}
-
-// Fetch parameter recommendations
-async function fetchRecommendations() {
-    try {
-        const response = await fetch('/api/parameter-recommendations');
-        const data = await response.json();
-
-        const container = document.getElementById('recommendationsContainer');
-
-        if (data.recommendations && data.recommendations.length > 0) {
-            let html = '';
-
-            // Add warning box
-            html += `<div class="warning-box">
-                ⚠️ Note: These recommendations are based on historical analysis only.
-                Shadow Testing (coming in Phase 4) will provide validated recommendations.
-            </div>`;
-
-            // Add recommendations
-            data.recommendations.forEach(rec => {
-                html += `
-                    <div class="recommendation-item">
-                        <div>
-                            <div class="recommendation-label">${rec.strategy} - ${rec.parameter}</div>
-                            <div class="recommendation-reason">${rec.reason}</div>
-                        </div>
-                        <div class="recommendation-values">
-                            <span class="current-value">${rec.current}%</span>
-                            <span class="arrow">→</span>
-                            <span class="recommended-value">${rec.recommended}%</span>
-                        </div>
-                    </div>
-                `;
-            });
-
-            container.innerHTML = html;
-        } else {
-            container.innerHTML = '<p style="color: #94a3b8;">No recommendations available yet. Need more completed trades for analysis.</p>';
-        }
-    } catch (error) {
-        console.error('Error fetching recommendations:', error);
-    }
-}
-
-// Fetch parameter change history
-async function fetchParameterHistory() {
-    try {
-        const response = await fetch('/api/parameter-history');
-        const data = await response.json();
-
-        const table = document.getElementById('parameterHistoryTable');
-
-        if (data.history && data.history.length > 0) {
-            table.innerHTML = data.history.map(item => `
-                <tr>
-                    <td>${new Date(item.date).toLocaleDateString()}</td>
-                    <td>${item.parameter}</td>
-                    <td>${item.old_value}%</td>
-                    <td>${item.new_value}%</td>
-                    <td class="${item.impact > 0 ? 'positive' : 'negative'}">
-                        ${item.impact > 0 ? '+' : ''}${item.impact}%
-                    </td>
-                </tr>
-            `).join('');
-        } else {
-            table.innerHTML = '<tr><td colspan="5" style="color: #94a3b8;">No parameter changes recorded yet</td></tr>';
-        }
-    } catch (error) {
-        console.error('Error fetching parameter history:', error);
-    }
-}
-
-// Fetch ML learning progress
-async function fetchLearningProgress() {
-    try {
-        const response = await fetch('/api/ml-learning-progress');
-        const data = await response.json();
-
-        const container = document.getElementById('learningProgressContainer');
-
-        let html = '';
-
-        ['CHANNEL', 'DCA', 'SWING'].forEach(strategy => {
-            const progress = data[strategy] || { current: 0, required: 20, next_milestone: 20 };
-            const percentage = Math.min((progress.current / progress.next_milestone) * 100, 100);
-
-            html += `
-                <div class="progress-item">
-                    <div class="progress-label">
-                        <span>${strategy}: ${progress.current} trades learned</span>
-                        <span>Next insight at ${progress.next_milestone} trades</span>
-                    </div>
-                    <div class="progress-bar-bg">
-                        <div class="progress-bar-fill" style="width: ${percentage}%"></div>
+        f"""
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Paper Trading Dashboard</title>
+            <style>{BASE_CSS}</style>
+        </head>
+        <body>
+            <nav class="nav-container">
+                <div class="nav-wrapper">
+                    <div class="nav-brand">📈 Crypto Trader</div>
+                    <div class="nav-links">
+                        <a href="/paper-trading" class="nav-link active">Paper Trading</a>
+                        <a href="/strategies" class="nav-link">Strategies</a>
+                        <a href="/market" class="nav-link">Market</a>
+                        <a href="/rd" class="nav-link">R&D</a>
                     </div>
                 </div>
-            `;
-        });
-
-        container.innerHTML = html;
-    } catch (error) {
-        console.error('Error fetching learning progress:', error);
-    }
-}
-
-// Fetch ML predictions accuracy
-async function fetchMLPredictions() {
-    try {
-        const response = await fetch('/api/recent-ml-predictions');
-        const data = await response.json();
-
-        const table = document.getElementById('mlPredictionsTable');
-
-        if (data.predictions && data.predictions.length > 0) {
-            table.innerHTML = data.predictions.map(pred => {
-                const accuracyIcon = pred.correct ? '✅' : '❌';
-                return `
-                    <tr>
-                        <td>${new Date(pred.timestamp).toLocaleTimeString()}</td>
-                        <td>${pred.symbol}</td>
-                        <td>${pred.strategy}</td>
-                        <td>${(pred.confidence * 100).toFixed(1)}%</td>
-                        <td>${pred.predicted}</td>
-                        <td>${pred.actual || 'Pending'}</td>
-                        <td>${pred.actual ? accuracyIcon : '⏳'}</td>
-                    </tr>
-                `;
-            }).join('');
-        } else {
-            table.innerHTML = '<tr><td colspan="7" style="color: #94a3b8;">No ML predictions yet</td></tr>';
-        }
-    } catch (error) {
-        console.error('Error fetching ML predictions:', error);
-    }
-}
-
-// Initial load and refresh intervals
-fetchModelStatus();
-fetchRecommendations();
-fetchParameterHistory();
-fetchLearningProgress();
-fetchMLPredictions();
-
-// Refresh intervals
-setInterval(fetchModelStatus, 30000); // Every 30 seconds
-setInterval(fetchRecommendations, 60000); // Every minute
-setInterval(fetchParameterHistory, 60000); // Every minute
-setInterval(fetchLearningProgress, 60000); // Every minute
-setInterval(fetchMLPredictions, 30000); // Every 30 seconds
-</script>
-"""
-
-
-@app.route("/rd")
-def rd():
-    """R&D page for ML insights and recommendations"""
-    return render_template_string(
-        BASE_TEMPLATE,
-        title="Research & Development",
-        active_page="rd",
-        base_css=BASE_CSS,
-        page_css="",
-        content=RD_TEMPLATE,
-        page_scripts=RD_SCRIPTS,
+            </nav>
+            <div class="container">
+                {PAPER_TRADING_HTML}
+            </div>
+            {PAPER_TRADING_SCRIPTS}
+        </body>
+        </html>
+        """
     )
+
+
+@app.route("/api/trades")
+def get_trades():
+    """API endpoint with proper pagination for trades"""
+
+    try:
+        db = SupabaseClient()
+
+        # Get pagination parameters
+        page = int(request.args.get("page", 1))
+        per_page = int(request.args.get("per_page", 100))
+        offset = (page - 1) * per_page
+
+        # Get total count of trades for pagination
+        count_result = (
+            db.client.table("paper_trades").select("*", count="exact").execute()
+        )
+        total_trades = count_result.count if count_result else 0
+        total_pages = (
+            (total_trades + per_page - 1) // per_page if total_trades > 0 else 1
+        )
+
+        # Get trades for current page only
+        page_result = (
+            db.client.table("paper_trades")
+            .select("*")
+            .order("created_at", desc=True)
+            .range(offset, offset + per_page - 1)
+            .execute()
+        )
+
+        # For stats, we need ALL trades (not paginated)
+        # This is a separate query to calculate overall portfolio stats
+        all_trades = []
+        stats_limit = 1000
+        stats_offset = 0
+
+        while True:
+            stats_batch = (
+                db.client.table("paper_trades")
+                .select("*")
+                .order("created_at", desc=True)
+                .range(stats_offset, stats_offset + stats_limit - 1)
+                .execute()
+            )
+
+            if not stats_batch.data:
+                break
+
+            all_trades.extend(stats_batch.data)
+
+            if len(stats_batch.data) < stats_limit:
+                break
+            stats_offset += stats_limit
+
+        # Initialize stats
+        STARTING_CAPITAL = 10000.0
+        stats = {
+            "starting_capital": STARTING_CAPITAL,
+            "open_count": 0,
+            "closed_count": 0,
+            "win_count": 0,
+            "loss_count": 0,
+            "win_rate": 0,
+            "total_pnl": 0,
+            "total_pnl_dollar": 0,
+        }
+
+        # Get current prices for open positions
+        current_prices = {}
+        trades_by_symbol = {}
+
+        for trade in page_result.data:
+            symbol = trade.get("symbol")
+            if symbol and symbol not in trades_by_symbol:
+                trades_by_symbol[symbol] = []
+            if symbol:
+                trades_by_symbol[symbol].append(trade)
+
+        # Fetch current prices for symbols on this page
+        for symbol in trades_by_symbol.keys():
+            try:
+                price_result = (
+                    db.client.table("ohlc_data")
+                    .select("close")
+                    .eq("symbol", symbol)
+                    .order("timestamp", desc=True)
+                    .limit(1)
+                    .execute()
+                )
+
+                if price_result.data:
+                    current_prices[symbol] = float(price_result.data[0]["close"])
+            except Exception as e:
+                logger.error(f"Error fetching price for {symbol}: {e}")
+
+        # Process trades for current page display
+        open_trades = []
+        closed_trades = []
+        trades_by_group = {}
+
+        # Group trades by trade_group_id for page display
+        for trade in page_result.data:
+            group_id = trade.get("trade_group_id") or f"legacy_{trade.get('id')}"
+
+            if group_id not in trades_by_group:
+                trades_by_group[group_id] = {
+                    "buys": [],
+                    "sells": [],
+                    "symbol": trade["symbol"],
+                    "strategy": trade.get("strategy_name", "N/A"),
+                }
+
+            if trade["side"] == "BUY":
+                trades_by_group[group_id]["buys"].append(trade)
+            else:
+                trades_by_group[group_id]["sells"].append(trade)
+
+        # Process grouped trades for display
+        for group_id, group_data in trades_by_group.items():
+            symbol = group_data["symbol"]
+            strategy = group_data["strategy"]
+            current_price = current_prices.get(symbol)
+
+            # Sort trades
+            group_data["buys"].sort(key=lambda x: x["created_at"])
+            group_data["sells"].sort(key=lambda x: x["created_at"])
+
+            if group_data["buys"]:
+                total_cost = 0
+                total_amount = 0
+                earliest_buy = None
+
+                for buy in group_data["buys"]:
+                    price = float(buy.get("price", 0))
+                    amount = float(buy.get("amount", 0))
+                    cost = price * amount
+                    total_cost += cost
+                    total_amount += amount
+                    if not earliest_buy:
+                        earliest_buy = buy
+
+                avg_entry_price = total_cost / total_amount if total_amount > 0 else 0
+                is_closed = len(group_data["sells"]) > 0
+
+                if is_closed and group_data["sells"]:
+                    # Closed position
+                    exit_trade = group_data["sells"][-1]
+                    exit_price = float(exit_trade["price"])
+                    pnl = (exit_price - avg_entry_price) * total_amount
+                    pnl_pct = (
+                        ((exit_price - avg_entry_price) / avg_entry_price * 100)
+                        if avg_entry_price > 0
+                        else 0
+                    )
+
+                    # Calculate hold time
+                    entry_time = datetime.fromisoformat(
+                        earliest_buy["created_at"].replace("Z", "+00:00")
+                    )
+                    exit_time = datetime.fromisoformat(
+                        exit_trade["created_at"].replace("Z", "+00:00")
+                    )
+                    hold_duration = exit_time - entry_time
+                    hours = int(hold_duration.total_seconds() / 3600)
+                    minutes = int((hold_duration.total_seconds() % 3600) / 60)
+                    hold_time = f"{hours}h {minutes}m"
+
+                    closed_trades.append(
+                        {
+                            "symbol": symbol,
+                            "strategy": strategy,
+                            "status": "closed",
+                            "entry_price": avg_entry_price,
+                            "exit_price": exit_price,
+                            "pnl": pnl,
+                            "pnl_pct": pnl_pct,
+                            "hold_time": hold_time,
+                            "exit_reason": exit_trade.get("exit_reason", "manual"),
+                        }
+                    )
+
+                else:
+                    # Open position
+                    unrealized_pnl = 0
+                    unrealized_pnl_pct = 0
+
+                    if current_price:
+                        unrealized_pnl = (
+                            current_price - avg_entry_price
+                        ) * total_amount
+                        unrealized_pnl_pct = (
+                            ((current_price - avg_entry_price) / avg_entry_price * 100)
+                            if avg_entry_price > 0
+                            else 0
+                        )
+
+                    # Calculate hold time
+                    entry_time = datetime.fromisoformat(
+                        earliest_buy["created_at"].replace("Z", "+00:00")
+                    )
+                    hold_duration = datetime.now(timezone.utc) - entry_time
+                    hours = int(hold_duration.total_seconds() / 3600)
+                    minutes = int((hold_duration.total_seconds() % 3600) / 60)
+                    hold_time = f"{hours}h {minutes}m"
+
+                    # DCA status
+                    num_fills = len(group_data["buys"])
+                    dca_status = (
+                        f"{num_fills}/5 levels"
+                        if strategy == "DCA" and num_fills > 1
+                        else "-"
+                    )
+
+                    # Get SL/TP/TS info
+                    stop_loss = earliest_buy.get("stop_loss")
+                    take_profit = earliest_buy.get("take_profit")
+                    trailing_stop = earliest_buy.get("trailing_stop_pct")
+
+                    sl_display = None
+                    tp_display = None
+                    ts_display = None
+
+                    if stop_loss:
+                        sl_price = float(stop_loss)
+                        sl_pnl = ((sl_price - avg_entry_price) / avg_entry_price) * 100
+                        sl_display = f"{unrealized_pnl_pct:.1f}% / {sl_pnl:.1f}%"
+
+                    if take_profit:
+                        tp_price = float(take_profit)
+                        tp_pnl = ((tp_price - avg_entry_price) / avg_entry_price) * 100
+                        tp_display = f"{unrealized_pnl_pct:.1f}% / {tp_pnl:.1f}%"
+
+                    if trailing_stop:
+                        ts_pct = float(trailing_stop) * 100
+                        ts_display = f"Set at {ts_pct:.1f}%"
+
+                    open_trades.append(
+                        {
+                            "symbol": symbol,
+                            "strategy": strategy,
+                            "amount": total_amount,
+                            "entry_price": avg_entry_price,
+                            "dca_status": dca_status,
+                            "current_price": current_price,
+                            "unrealized_pnl": unrealized_pnl,
+                            "unrealized_pnl_pct": unrealized_pnl_pct,
+                            "hold_time": hold_time,
+                            "sl_display": sl_display,
+                            "tp_display": tp_display,
+                            "ts_display": ts_display,
+                            "exit_reason": None,
+                        }
+                    )
+
+        # Calculate overall stats from ALL trades (not just current page)
+        all_trade_groups = {}
+        for trade in all_trades:
+            group_id = trade.get("trade_group_id") or f"legacy_{trade.get('id')}"
+
+            if group_id not in all_trade_groups:
+                all_trade_groups[group_id] = {
+                    "buys": [],
+                    "sells": [],
+                }
+
+            if trade["side"] == "BUY":
+                all_trade_groups[group_id]["buys"].append(trade)
+            else:
+                all_trade_groups[group_id]["sells"].append(trade)
+
+        # Process all groups for stats
+        for group_id, group_data in all_trade_groups.items():
+            if group_data["sells"]:
+                # Closed position
+                stats["closed_count"] += 1
+                sell = group_data["sells"][0]
+                pnl = sell.get("pnl", 0) or 0
+                stats["total_pnl_dollar"] += pnl
+                if pnl > 0:
+                    stats["win_count"] += 1
+                else:
+                    stats["loss_count"] += 1
+            elif group_data["buys"]:
+                # Open position
+                stats["open_count"] += 1
+
+        # Calculate win rate
+        if stats["closed_count"] > 0:
+            stats["win_rate"] = (stats["win_count"] / stats["closed_count"]) * 100
+
+        # Calculate total P&L percentage
+        if STARTING_CAPITAL > 0:
+            stats["total_pnl"] = (stats["total_pnl_dollar"] / STARTING_CAPITAL) * 100
+
+        return jsonify(
+            {
+                "open_trades": open_trades,
+                "trades": closed_trades,
+                "stats": stats,
+                "pagination": {
+                    "current_page": page,
+                    "total_pages": total_pages,
+                    "per_page": per_page,
+                    "total_trades": total_trades,
+                    "has_prev": page > 1,
+                    "has_next": page < total_pages,
+                },
+            }
+        )
+
+    except Exception as e:
+        logger.error(f"Error fetching trades: {e}")
+        import traceback
+
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/api/engine-status")
 def get_engine_status():
     """Check if paper trading engine is running"""
     try:
-        # If running on Railway, check database for recent activity
-        if os.environ.get("RAILWAY_ENVIRONMENT"):
-            db = SupabaseClient()
+        db = SupabaseClient()
 
-            # Check system_heartbeat table for recent paper trading engine heartbeat
-            five_minutes_ago = (
-                datetime.now(timezone.utc) - timedelta(minutes=5)
-            ).isoformat()
+        # Check system_heartbeat table for paper trading status
+        five_minutes_ago = (
+            datetime.now(timezone.utc) - timedelta(minutes=5)
+        ).isoformat()
 
-            result = (
-                db.client.table("system_heartbeat")
-                .select("*")
-                .eq("service_name", "paper_trading_engine")
-                .gte("last_heartbeat", five_minutes_ago)
-                .single()
-                .execute()
-            )
+        result = (
+            db.client.table("system_heartbeat")
+            .select("*")
+            .eq("service_name", "paper_trading_engine")
+            .gte("last_heartbeat", five_minutes_ago)
+            .single()
+            .execute()
+        )
 
-            # If we have a recent heartbeat, paper trading is running
-            if result.data:
-                metadata = result.data.get("metadata", {})
-                return jsonify(
-                    {
-                        "running": True,
-                        "source": "railway_heartbeat",
-                        "last_heartbeat": result.data.get("last_heartbeat"),
-                        "positions_open": metadata.get("positions_open", 0),
-                        "balance": metadata.get("balance", 0),
-                        "market_regime": metadata.get("market_regime", "UNKNOWN"),
-                    }
-                )
+        is_running = result.data is not None if result else False
 
-            # Fallback: check for recent trades (within last hour)
+        # Also check for recent trades as backup
+        if not is_running:
             one_hour_ago = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
-
             trade_result = (
                 db.client.table("paper_trades")
                 .select("created_at")
@@ -1539,942 +1038,31 @@ def get_engine_status():
                 .execute()
             )
 
-            return jsonify(
-                {
-                    "running": bool(trade_result.data),
-                    "source": "railway_trades_fallback",
-                }
-            )
-        else:
-            # Local check - look for process
-            import subprocess
+            is_running = bool(trade_result.data) if trade_result else False
 
-            result = subprocess.run(
-                ["pgrep", "-f", "run_paper_trading"], capture_output=True, text=True
-            )
-            is_running = bool(result.stdout.strip())
+        return jsonify({"running": is_running})
 
-            return jsonify(
-                {
-                    "running": is_running,
-                    "pid": result.stdout.strip() if is_running else None,
-                }
-            )
     except Exception as e:
         logger.error(f"Error checking engine status: {e}")
-        return jsonify({"running": False, "error": str(e)})
+        return jsonify({"running": False})
 
 
-@app.route("/api/market-protection")
-def get_market_protection():
-    """API endpoint for market protection status"""
-    try:
-        # Get regime stats
-        regime_stats = regime_detector.get_regime_stats()
+# Add placeholder routes for other pages
+@app.route("/strategies")
+def strategies():
+    return "<h1>Strategies Page - Coming Soon</h1>"
 
-        # Get trade limiter stats
-        limiter_stats = trade_limiter.get_limiter_stats()
 
-        # Try to get actual BTC data from database
-        btc_24h_change = 0
-        volatility = 0
-        try:
-            db = SupabaseClient()
+@app.route("/market")
+def market():
+    return "<h1>Market Page - Coming Soon</h1>"
 
-            # Get recent BTC price data
-            now = datetime.now()
-            yesterday = now - timedelta(days=1)
 
-            btc_data = (
-                db.client.table("ohlc_data")
-                .select("close, timestamp")
-                .eq("symbol", "BTC")
-                .gte("timestamp", yesterday.isoformat())
-                .order("timestamp", desc=True)
-                .limit(100)
-                .execute()
-            )
-
-            if btc_data.data and len(btc_data.data) > 1:
-                latest_price = btc_data.data[0].get("close", 0)
-                oldest_price = btc_data.data[-1].get("close", 0)
-                if oldest_price > 0:
-                    btc_24h_change = (
-                        (latest_price - oldest_price) / oldest_price
-                    ) * 100
-
-                # Calculate volatility from price range
-                prices = [
-                    d.get("close", 0) for d in btc_data.data if d.get("close", 0) > 0
-                ]
-                if len(prices) > 1:
-                    volatility = ((max(prices) - min(prices)) / min(prices)) * 100
-
-        except Exception as e:
-            logger.debug(f"Could not get BTC data: {e}")
-
-        # Format response
-        response = {
-            "regime": regime_stats["current_regime"],
-            "btc_1h_change": regime_stats.get("btc_1h_change", 0) or 0,
-            "btc_4h_change": regime_stats.get("btc_4h_change", 0) or 0,
-            "btc_24h_change": btc_24h_change,
-            "volatility_24h": volatility,
-            "volatility_smoothed": regime_stats.get("volatility_smoothed", volatility)
-            or volatility,
-            "disabled_strategies": list(regime_stats.get("disabled_strategies", [])),
-            "strategy_info": {},
-            "symbols_on_cooldown": [],
-            "symbols_banned": [],
-        }
-
-        # Add strategy disable info
-        for strategy in response["disabled_strategies"]:
-            reenable_time = regime_stats.get("strategy_reenable_times", {}).get(
-                strategy
-            )
-            if reenable_time:
-                time_remaining = (reenable_time - datetime.now()).total_seconds()
-                if time_remaining > 0:
-                    hours = int(time_remaining // 3600)
-                    minutes = int((time_remaining % 3600) // 60)
-                    response["strategy_info"][strategy] = {
-                        "reason": f"Volatility > {regime_detector.strategy_volatility_limits.get(strategy, 0)}%",
-                        "disabled_at": (reenable_time - timedelta(hours=2)).strftime(
-                            "%H:%M"
-                        ),
-                        "reenable_at": reenable_time.strftime("%H:%M"),
-                        "time_remaining": f"{hours}h {minutes}m",
-                    }
-
-        # Add cooldown symbols (they come as a list of dicts)
-        cooldown_symbols = limiter_stats.get("symbols_on_cooldown", [])
-        if isinstance(cooldown_symbols, list):
-            for item in cooldown_symbols:
-                if isinstance(item, dict):
-                    response["symbols_on_cooldown"].append(
-                        {
-                            "symbol": item.get("symbol", "Unknown"),
-                            "reason": item.get("reason", "Stop loss cooldown"),
-                            "cooldown_until": "Active",
-                            "time_remaining": "Check limiter",
-                            "status": "COOLDOWN",
-                            "consecutive_stops": item.get("consecutive_stops", 0),
-                        }
-                    )
-
-        # Add banned symbols (they also come as a list of dicts)
-        banned_symbols = limiter_stats.get("symbols_banned", [])
-        if isinstance(banned_symbols, list):
-            for item in banned_symbols:
-                if isinstance(item, dict):
-                    response["symbols_banned"].append(
-                        {
-                            "symbol": item.get("symbol", "Unknown"),
-                            "reason": item.get("reason", "3+ consecutive stops"),
-                            "cooldown_until": "Manual reset required",
-                            "time_remaining": "∞",
-                            "status": "BANNED",
-                            "consecutive_stops": item.get("consecutive_stops", 3),
-                        }
-                    )
-
-        return jsonify(response)
-
-    except Exception as e:
-        logger.error(f"Error getting market protection status: {e}")
-        return jsonify(
-            {
-                "regime": "NORMAL",
-                "btc_24h_change": 0,
-                "volatility_24h": 0,
-                "disabled_strategies": [],
-                "symbols_on_cooldown": [],
-                "symbols_banned": [],
-                "error": str(e),
-            }
-        )
-
-
-@app.route("/api/market-summary")
-def get_market_summary():
-    """API endpoint for market summary data"""
-    try:
-        db = SupabaseClient()
-
-        # Get top movers from strategy cache
-        top_movers = []
-        try:
-            # Get top gainers from strategy status cache
-            gainers = (
-                db.client.table("strategy_status_cache")
-                .select("symbol, current_price, readiness, status, strategy_name")
-                .gte("readiness", 70)
-                .order("readiness", desc=True)
-                .limit(5)
-                .execute()
-            )
-
-            if gainers.data:
-                for item in gainers.data:
-                    top_movers.append(
-                        {
-                            "symbol": item.get("symbol"),
-                            "price": item.get("current_price", 0),
-                            "change_24h": f"{item.get('readiness', 0):.1f}",  # Use readiness as proxy for momentum
-                            "volume": "N/A",
-                            "market_cap": "CRYPTO",
-                            "status": item.get("status", ""),
-                            "strategy": item.get("strategy_name", ""),
-                        }
-                    )
-        except Exception as e:
-            logger.debug(f"Could not get top movers: {e}")
-
-        # Get market condition from precalculator cache (the source of truth)
-        condition = "NORMAL"
-        best_strategy = "WAIT"
-        notes = f"Monitoring {len(top_movers)} active signals"
-
-        try:
-            market_summary = (
-                db.client.table("market_summary_cache")
-                .select("*")
-                .order("calculated_at", desc=True)
-                .limit(1)
-                .execute()
-            )
-
-            if market_summary.data:
-                summary = market_summary.data[0]
-                best_strategy = summary.get("best_strategy", "WAIT")
-                notes = summary.get("notes", notes)
-
-                # Map strategy to market condition
-                if best_strategy == "SWING":
-                    condition = "BULLISH"
-                elif best_strategy == "DCA":
-                    condition = "NORMAL"
-                elif best_strategy == "CHANNEL":
-                    condition = "SIDEWAYS"
-                else:
-                    condition = "WAITING"
-        except Exception as e:
-            logger.debug(f"Could not get market summary cache: {e}")
-            # Fall back to simple calculation if cache unavailable
-            if len(top_movers) > 0:
-                avg_readiness = sum(float(m["change_24h"]) for m in top_movers) / len(
-                    top_movers
-                )
-                if avg_readiness > 80:
-                    condition = "BULLISH"
-                    best_strategy = "SWING"
-                elif avg_readiness > 70:
-                    condition = "NORMAL"
-                    best_strategy = "DCA"
-
-        return jsonify(
-            {
-                "condition": condition,
-                "best_strategy": best_strategy,
-                "notes": notes,
-                "top_movers": top_movers,
-            }
-        )
-
-    except Exception as e:
-        logger.error(f"Error getting market summary: {e}")
-        return jsonify(
-            {
-                "condition": "ERROR",
-                "best_strategy": "WAIT",
-                "notes": str(e),
-                "top_movers": [],
-            }
-        )
-
-
-# Copy over the existing API endpoints from the original dashboard
-@app.route("/api/trades")
-def get_trades():
-    """API endpoint to get current trades data - using trade_group_id for proper grouping"""
-
-    try:
-        db = SupabaseClient()
-
-        # Get all trades with pagination to handle large datasets
-        all_trades = []
-        limit = 1000
-        offset = 0
-
-        while True:
-            result = (
-                db.client.table("paper_trades")
-                .select("*")
-                .order("created_at", desc=True)
-                .range(offset, offset + limit - 1)
-                .execute()
-            )
-
-            if not result.data:
-                break
-
-            all_trades.extend(result.data)
-
-            if len(result.data) < limit:
-                break
-            offset += limit
-
-        # Use all_trades instead of result.data
-        result.data = all_trades
-
-        trades_data = []
-        open_trades = []
-
-        # Initialize portfolio metrics
-        STARTING_CAPITAL = 10000.0  # Default starting capital for paper trading
-
-        stats = {
-            "open_count": 0,
-            "closed_count": 0,
-            "win_count": 0,
-            "loss_count": 0,
-            "win_rate": 0,
-            "total_pnl": 0,
-            "total_pnl_dollar": 0,
-            "starting_capital": STARTING_CAPITAL,
-        }
-
-        if result.data:
-            # Get current prices
-            symbols = list(
-                set(trade["symbol"] for trade in result.data if trade["symbol"])
-            )
-            current_prices = {}
-
-            for symbol in symbols:
-                try:
-                    price_result = (
-                        db.client.table("ohlc_data")
-                        .select("close")
-                        .eq("symbol", symbol)
-                        .order("timestamp", desc=True)
-                        .limit(1)
-                        .execute()
-                    )
-
-                    if price_result.data:
-                        current_prices[symbol] = float(price_result.data[0]["close"])
-                except Exception:
-                    pass
-
-            # Group trades by trade_group_id
-            trades_by_group = {}
-
-            for trade in result.data:
-                group_id = trade.get("trade_group_id")
-
-                if group_id:
-                    if group_id not in trades_by_group:
-                        trades_by_group[group_id] = {
-                            "buys": [],
-                            "sells": [],
-                            "symbol": trade["symbol"],
-                            "strategy": trade.get("strategy_name", "N/A"),
-                        }
-
-                    if trade["side"] == "BUY":
-                        trades_by_group[group_id]["buys"].append(trade)
-                    else:
-                        trades_by_group[group_id]["sells"].append(trade)
-
-            # Process grouped trades
-            for group_id, group_data in trades_by_group.items():
-                symbol = group_data["symbol"]
-                strategy = group_data["strategy"]
-                current_price = current_prices.get(symbol)
-
-                # Sort trades by created_at
-                group_data["buys"].sort(key=lambda x: x["created_at"])
-                group_data["sells"].sort(key=lambda x: x["created_at"])
-
-                # Calculate aggregated entry data for multiple BUYs (DCA)
-                if group_data["buys"]:
-                    total_cost = 0
-                    total_amount = 0
-                    earliest_buy = None
-
-                    for buy in group_data["buys"]:
-                        # Calculate position size from price and amount
-                        price = float(buy.get("price", 0))
-                        amount = float(buy.get("amount", 0))
-                        cost = price * amount  # Calculate position size in USD
-                        total_cost += cost
-                        total_amount += amount
-                        if not earliest_buy:
-                            earliest_buy = buy
-
-                    avg_entry_price = (
-                        total_cost / total_amount if total_amount > 0 else 0
-                    )
-
-                    # Check if position is closed
-                    is_closed = len(group_data["sells"]) > 0
-
-                    if is_closed and group_data["sells"]:
-                        # Closed position
-                        exit_trade = group_data["sells"][-1]
-                        exit_price = float(exit_trade["price"])
-                        pnl = (exit_price - avg_entry_price) * total_amount
-                        pnl_pct = (
-                            ((exit_price - avg_entry_price) / avg_entry_price * 100)
-                            if avg_entry_price > 0
-                            else 0
-                        )
-
-                        stats["closed_count"] += 1
-                        stats["total_pnl_dollar"] += pnl
-
-                        if pnl > 0:
-                            stats["win_count"] += 1
-
-                        # Calculate hold time
-                        entry_time = datetime.fromisoformat(
-                            earliest_buy["created_at"].replace("Z", "+00:00")
-                        )
-                        exit_time = datetime.fromisoformat(
-                            exit_trade["created_at"].replace("Z", "+00:00")
-                        )
-                        hold_duration = exit_time - entry_time
-                        hours = int(hold_duration.total_seconds() / 3600)
-                        minutes = int((hold_duration.total_seconds() % 3600) / 60)
-                        hold_time = f"{hours}h {minutes}m"
-
-                        trades_data.append(
-                            {
-                                "symbol": symbol,
-                                "strategy": strategy,
-                                "status": "closed",
-                                "entry_price": avg_entry_price,
-                                "exit_price": exit_price,
-                                "pnl": pnl,
-                                "pnl_pct": pnl_pct,
-                                "hold_time": hold_time,
-                                "exit_reason": exit_trade.get("exit_reason", "manual"),
-                            }
-                        )
-                    else:
-                        # Open position
-                        stats["open_count"] += 1
-
-                        if current_price:
-                            unrealized_pnl = (
-                                current_price - avg_entry_price
-                            ) * total_amount
-                            unrealized_pnl_pct = (
-                                (
-                                    (current_price - avg_entry_price)
-                                    / avg_entry_price
-                                    * 100
-                                )
-                                if avg_entry_price > 0
-                                else 0
-                            )
-                        else:
-                            unrealized_pnl = 0
-                            unrealized_pnl_pct = 0
-
-                        # Calculate hold time
-                        entry_time = datetime.fromisoformat(
-                            earliest_buy["created_at"].replace("Z", "+00:00")
-                        )
-                        hold_duration = datetime.now(timezone.utc) - entry_time
-                        hours = int(hold_duration.total_seconds() / 3600)
-                        minutes = int((hold_duration.total_seconds() % 3600) / 60)
-                        hold_time = f"{hours}h {minutes}m"
-
-                        # Get additional fields from the first buy trade
-                        stop_loss = earliest_buy.get("stop_loss")
-                        take_profit = earliest_buy.get("take_profit")
-                        trailing_stop = earliest_buy.get("trailing_stop_pct")
-
-                        # Calculate SL/TP/TS displays
-                        sl_display = None
-                        tp_display = None
-                        ts_display = None
-
-                        if stop_loss:
-                            sl_price = float(stop_loss)
-                            sl_pnl = (
-                                (sl_price - avg_entry_price) / avg_entry_price
-                            ) * 100
-                            sl_display = f"{unrealized_pnl_pct:.1f}% / {sl_pnl:.1f}%"
-
-                        if take_profit:
-                            tp_price = float(take_profit)
-                            tp_pnl = (
-                                (tp_price - avg_entry_price) / avg_entry_price
-                            ) * 100
-                            tp_display = f"{unrealized_pnl_pct:.1f}% / {tp_pnl:.1f}%"
-
-                        if trailing_stop:
-                            ts_pct = float(trailing_stop) * 100
-                            if take_profit:
-                                tp_price = float(take_profit)
-                                tp_pnl = (
-                                    (tp_price - avg_entry_price) / avg_entry_price
-                                ) * 100
-                                if unrealized_pnl_pct >= tp_pnl:
-                                    ts_display = f"🟢 Active: {unrealized_pnl_pct:.1f}% / -{ts_pct:.1f}%"
-                                else:
-                                    ts_display = (
-                                        f"⚪ Inactive (activates at TP: {tp_pnl:.1f}%)"
-                                    )
-
-                        # Determine DCA status
-                        dca_status = (
-                            "Single"
-                            if len(group_data["buys"]) == 1
-                            else f"DCA x{len(group_data['buys'])}"
-                        )
-
-                        open_trades.append(
-                            {
-                                "symbol": symbol,
-                                "strategy": strategy,
-                                "amount": total_amount,
-                                "entry_price": avg_entry_price,
-                                "dca_status": dca_status,
-                                "current_price": current_price,
-                                "unrealized_pnl": unrealized_pnl,
-                                "unrealized_pnl_pct": unrealized_pnl_pct,
-                                "hold_time": hold_time,
-                                "sl_display": sl_display,
-                                "tp_display": tp_display,
-                                "ts_display": ts_display,
-                                "position_size": total_cost,
-                                "exit_reason": "",  # Open positions don't have exit reason
-                            }
-                        )
-
-        # Calculate win rate
-        if stats["closed_count"] > 0:
-            stats["win_rate"] = (stats["win_count"] / stats["closed_count"]) * 100
-            stats["loss_count"] = stats["closed_count"] - stats["win_count"]
-
-        return jsonify(
-            {"trades": trades_data, "open_trades": open_trades, "stats": stats}
-        )
-
-    except Exception as e:
-        logger.error(f"Error getting trades: {e}")
-        return jsonify({"trades": [], "open_trades": [], "stats": {}, "error": str(e)})
-
-
-@app.route("/api/strategy-status")
-def get_strategy_status():
-    """Get current strategy status from cache or calculate fresh"""
-    try:
-        db = SupabaseClient()
-        strategy_status = {}
-
-        # Try to get from cache first
-        try:
-            # Get candidates by strategy name (readiness > 70 means ready)
-            dca_results = (
-                db.client.table("strategy_status_cache")
-                .select("*")
-                .eq("strategy_name", "DCA")
-                .gte("readiness", 70)  # Readiness score >= 70 means ready
-                .order("readiness", desc=True)
-                .limit(10)
-                .execute()
-            )
-
-            if dca_results.data:
-                strategy_status["dca"] = {
-                    "name": "DCA",
-                    "thresholds": {},
-                    "candidates": [
-                        {
-                            "symbol": item.get("symbol"),
-                            "price": item.get("current_price", 0),
-                            "readiness": f"{item.get('readiness', 0):.1f}%",
-                            "status": item.get("status", ""),
-                            "details": item.get("details", {}),
-                        }
-                        for item in dca_results.data
-                    ],
-                }
-
-            # Get Swing candidates
-            swing_results = (
-                db.client.table("strategy_status_cache")
-                .select("*")
-                .eq("strategy_name", "SWING")
-                .gte("readiness", 70)  # Readiness score >= 70 means ready
-                .order("readiness", desc=True)
-                .limit(10)
-                .execute()
-            )
-
-            if swing_results.data:
-                strategy_status["swing"] = {
-                    "name": "SWING",
-                    "thresholds": {},
-                    "candidates": [
-                        {
-                            "symbol": item.get("symbol"),
-                            "price": item.get("current_price", 0),
-                            "readiness": f"{item.get('readiness', 0):.1f}%",
-                            "status": item.get("status", ""),
-                            "details": item.get("details", {}),
-                        }
-                        for item in swing_results.data
-                    ],
-                }
-
-            # Get Channel candidates
-            channel_results = (
-                db.client.table("strategy_status_cache")
-                .select("*")
-                .eq("strategy_name", "CHANNEL")
-                .gte("readiness", 70)  # Readiness score >= 70 means ready
-                .order("readiness", desc=True)
-                .limit(10)
-                .execute()
-            )
-
-            if channel_results.data:
-                strategy_status["channel"] = {
-                    "name": "CHANNEL",
-                    "thresholds": {},
-                    "candidates": [
-                        {
-                            "symbol": item.get("symbol"),
-                            "price": item.get("current_price", 0),
-                            "readiness": f"{item.get('readiness', 0):.1f}%",
-                            "status": item.get("status", ""),
-                            "details": item.get("details", {}),
-                        }
-                        for item in channel_results.data
-                    ],
-                }
-
-        except Exception as e:
-            logger.warning(f"Cache not ready yet: {e}")
-
-        return jsonify(strategy_status)
-
-    except Exception as e:
-        logger.error(f"Error getting strategy status: {e}")
-        return jsonify({})
-
-
-# R&D API Endpoints
-@app.route("/api/ml-model-status")
-def get_ml_model_status():
-    """Get ML model training status"""
-    try:
-        import json
-        from pathlib import Path
-
-        model_dir = Path("models")
-        result = {
-            "channel": None,
-            "dca": None,
-            "swing": None,
-            "channel_samples": 0,
-            "dca_samples": 0,
-            "swing_samples": 0,
-            "next_retrain": "2:00 AM PST",
-        }
-
-        # Check for model files and training results
-        for strategy in ["channel", "dca", "swing"]:
-            # Try training_results.json first, then metadata.json
-            training_file = model_dir / strategy / "training_results.json"
-            metadata_file = model_dir / strategy / "metadata.json"
-
-            if training_file.exists():
-                with open(training_file) as f:
-                    training_data = json.load(f)
-                    # Calculate composite score as the retrainer does
-                    accuracy = training_data.get("accuracy", 0)
-                    precision = training_data.get("precision", 0)
-                    recall = training_data.get("recall", 0)
-                    # Composite score: 30% accuracy, 50% precision, 20% recall
-                    composite_score = (
-                        (accuracy * 0.3) + (precision * 0.5) + (recall * 0.2)
-                    )
-                    result[strategy] = {
-                        "score": f"{composite_score:.3f}",
-                        "trained": "Trained",
-                        "samples": training_data.get("samples_trained", "Unknown"),
-                        "accuracy": f"{accuracy:.3f}",
-                        "precision": f"{precision:.3f}",
-                        "recall": f"{recall:.3f}",
-                    }
-            elif metadata_file.exists():
-                with open(metadata_file) as f:
-                    metadata = json.load(f)
-                    result[strategy] = {
-                        "score": f"{metadata.get('score', 0):.3f}",
-                        "trained": metadata.get("timestamp", "Unknown"),
-                        "samples": metadata.get("samples_trained", 0),
-                    }
-
-        # Get sample counts from database
-        db = SupabaseClient()
-        for strategy in ["CHANNEL", "DCA", "SWING"]:
-            count_result = (
-                db.client.table("paper_trades")
-                .select("*", count="exact")
-                .eq("strategy_name", strategy)
-                .eq("side", "SELL")
-                .not_.in_("exit_reason", ["POSITION_LIMIT_CLEANUP", "manual", "MANUAL"])
-                .execute()
-            )
-            count = (
-                count_result.count
-                if hasattr(count_result, "count")
-                else len(count_result.data)
-            )
-            result[f"{strategy.lower()}_samples"] = count
-
-        return jsonify(result)
-
-    except Exception as e:
-        logger.error(f"Error getting ML model status: {e}")
-        return jsonify({})
-
-
-@app.route("/api/parameter-recommendations")
-def get_parameter_recommendations():
-    """Generate parameter recommendations based on completed trades"""
-    try:
-        db = SupabaseClient()
-
-        # Get recent completed trades for analysis
-        trades_result = (
-            db.client.table("paper_trades")
-            .select("*")
-            .eq("side", "SELL")
-            .not_.is_("exit_reason", "null")
-            .order("filled_at", desc=True)
-            .limit(100)
-            .execute()
-        )
-
-        recommendations = []
-
-        if trades_result.data:
-            trades_df = pd.DataFrame(trades_result.data)
-
-            # Analyze by strategy
-            for strategy in trades_df["strategy_name"].unique():
-                strategy_trades = trades_df[trades_df["strategy_name"] == strategy]
-
-                # Load current config values
-                import json
-
-                config_path = Path("configs/paper_trading.json")
-                current_config = {}
-                if config_path.exists():
-                    with open(config_path) as f:
-                        config = json.load(f)
-                        # Get mid_cap values as default (most common)
-                        if strategy in config.get("strategies", {}):
-                            exits = (
-                                config["strategies"][strategy]
-                                .get("exits_by_tier", {})
-                                .get("mid_cap", {})
-                            )
-                            current_config = {
-                                "stop_loss": exits.get("stop_loss", 0.03) * 100,
-                                "take_profit": exits.get("take_profit", 0.03) * 100,
-                            }
-
-                # Analyze stop losses
-                stop_losses = strategy_trades[
-                    strategy_trades["exit_reason"] == "stop_loss"
-                ]
-                if len(stop_losses) > 5:
-                    current_sl = current_config.get("stop_loss", 3.0)
-                    recommendations.append(
-                        {
-                            "strategy": strategy,
-                            "parameter": "Stop Loss",
-                            "current": current_sl,
-                            "recommended": current_sl * 1.33,  # Increase by 33%
-                            "reason": f"{len(stop_losses)} premature stops in last 100 trades",
-                        }
-                    )
-
-                # Analyze take profits
-                timeouts = strategy_trades[strategy_trades["exit_reason"] == "timeout"]
-                if len(timeouts) > 10:
-                    current_tp = current_config.get("take_profit", 3.0)
-                    recommendations.append(
-                        {
-                            "strategy": strategy,
-                            "parameter": "Take Profit",
-                            "current": current_tp,
-                            "recommended": current_tp * 0.83,  # Decrease by 17%
-                            "reason": f"{len(timeouts)} trades timed out before profit",
-                        }
-                    )
-
-        return jsonify({"recommendations": recommendations})
-
-    except Exception as e:
-        logger.error(f"Error generating recommendations: {e}")
-        return jsonify({"recommendations": []})
-
-
-@app.route("/api/parameter-history")
-def get_parameter_history():
-    """Get history of parameter changes"""
-    try:
-        # Note: learning_history table doesn't exist yet
-        # Will be created when Shadow Testing is implemented
-        # For now, return example data
-
-        history = [
-            {
-                "date": "2025-01-24",
-                "parameter": "CHANNEL Stop Loss",
-                "old_value": 5.0,
-                "new_value": 3.0,
-                "impact": 12,
-            },
-            {
-                "date": "2025-01-24",
-                "parameter": "CHANNEL Take Profit",
-                "old_value": 7.0,
-                "new_value": 3.0,
-                "impact": 8,
-            },
-            {
-                "date": "2025-08-26",
-                "parameter": "DCA Drop Threshold",
-                "old_value": 4.0,
-                "new_value": 2.5,
-                "impact": 3,
-            },
-        ]
-
-        return jsonify({"history": history})
-
-    except Exception as e:
-        logger.error(f"Error getting parameter history: {e}")
-        return jsonify({"history": []})
-
-
-@app.route("/api/ml-learning-progress")
-def get_ml_learning_progress():
-    """Get ML model learning progress"""
-    try:
-        db = SupabaseClient()
-
-        progress = {}
-
-        for strategy in ["CHANNEL", "DCA", "SWING"]:
-            # Count completed trades
-            count_result = (
-                db.client.table("paper_trades")
-                .select("*", count="exact")
-                .eq("strategy_name", strategy)
-                .eq("side", "SELL")
-                .not_.in_("exit_reason", ["POSITION_LIMIT_CLEANUP", "manual", "MANUAL"])
-                .execute()
-            )
-
-            current = count_result.count if hasattr(count_result, "count") else 0
-
-            # Calculate milestones
-            if current < 20:
-                next_milestone = 20  # First training
-            elif current < 50:
-                next_milestone = 50  # Better model
-            elif current < 100:
-                next_milestone = 100  # Good model
-            else:
-                next_milestone = current + 20  # Continuous improvement
-
-            progress[strategy] = {
-                "current": current,
-                "required": 20,
-                "next_milestone": next_milestone,
-            }
-
-        return jsonify(progress)
-
-    except Exception as e:
-        logger.error(f"Error getting learning progress: {e}")
-        return jsonify({})
-
-
-@app.route("/api/recent-ml-predictions")
-def get_recent_ml_predictions():
-    """Get recent ML predictions and their accuracy"""
-    try:
-        db = SupabaseClient()
-
-        # Get recent ML predictions
-        predictions_result = (
-            db.client.table("ml_predictions")
-            .select("*")
-            .order("timestamp", desc=True)
-            .limit(20)
-            .execute()
-        )
-
-        predictions = []
-        if predictions_result.data:
-            for pred in predictions_result.data:
-                predictions.append(
-                    {
-                        "timestamp": pred["timestamp"],
-                        "symbol": pred["symbol"],
-                        "strategy": pred.get("model_version", "Unknown")
-                        .split("_")[0]
-                        .upper(),
-                        "confidence": pred.get("confidence", 0),
-                        "predicted": "BUY" if pred["prediction"] == "UP" else "SKIP",
-                        "actual": None,  # Would need to match with trades
-                        "correct": None,
-                    }
-                )
-
-        return jsonify({"predictions": predictions})
-
-    except Exception as e:
-        logger.error(f"Error getting ML predictions: {e}")
-        return jsonify({"predictions": []})
+@app.route("/rd")
+def rd():
+    return "<h1>R&D Page - Coming Soon</h1>"
 
 
 if __name__ == "__main__":
-    # Get port from Railway or default to 8080 for local
     port = int(os.environ.get("PORT", 8080))
-
-    print("\n" + "=" * 60)
-    print("🚀 STARTING ENHANCED MULTI-PAGE DASHBOARD")
-    print("=" * 60)
-
-    if os.environ.get("RAILWAY_ENVIRONMENT"):
-        print(f"\n📊 Dashboard running on Railway (port {port})")
-        print("🌐 Access via your Railway public URL")
-    else:
-        print(f"\n📊 Dashboard URL: http://localhost:{port}")
-        print("📄 Pages available:")
-        print(f"   - Paper Trading: http://localhost:{port}/")
-        print(f"   - Strategies: http://localhost:{port}/strategies")
-        print(f"   - Market: http://localhost:{port}/market")
-        print(f"   - R&D: http://localhost:{port}/rd")
-
-    print("\n✅ Dashboard server starting...")
-    print("=" * 60 + "\n")
-
-    # Run the Flask app
-    app.run(host="0.0.0.0", port=port, debug=False)
+    app.run(host="0.0.0.0", port=port, debug=True)
