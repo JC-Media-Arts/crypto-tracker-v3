@@ -1802,13 +1802,31 @@ def get_trades():
     try:
         db = SupabaseClient()
 
-        # Get all trades
-        result = (
-            db.client.table("paper_trades")
-            .select("*")
-            .order("created_at", desc=True)
-            .execute()
-        )
+        # Get all trades with pagination to handle large datasets
+        all_trades = []
+        limit = 1000
+        offset = 0
+
+        while True:
+            result = (
+                db.client.table("paper_trades")
+                .select("*")
+                .order("created_at", desc=True)
+                .range(offset, offset + limit - 1)
+                .execute()
+            )
+
+            if not result.data:
+                break
+
+            all_trades.extend(result.data)
+
+            if len(result.data) < limit:
+                break
+            offset += limit
+
+        # Use all_trades instead of result.data
+        result.data = all_trades
 
         trades_data = []
         open_trades = []
