@@ -104,7 +104,7 @@ class ModelRetrainer:
                     .select("*")
                     .eq("symbol", trade["symbol"])
                     .eq("strategy_name", strategy)  # Fixed column name
-                    .eq("decision", "TAKE")
+                    .eq("decision", "BUY")  # Changed from TAKE to BUY
                     .lte("timestamp", trade["created_at"])
                     .order("timestamp", desc=True)
                     .limit(1)
@@ -117,10 +117,16 @@ class ModelRetrainer:
                     features = scan.get("features", {})
 
                     # Add outcome based on P&L
-                    features["outcome"] = 1 if trade.get("pnl_usd", 0) > 0 else 0
+                    features["outcome"] = 1 if trade.get("pnl", 0) > 0 else 0
                     features["symbol"] = trade["symbol"]
-                    features["pnl_usd"] = trade.get("pnl_usd", 0)
-                    features["pnl_pct"] = trade.get("pnl_pct", 0)
+                    features["pnl"] = trade.get("pnl", 0)
+                    # Calculate P&L percentage if we have price and amount
+                    if trade.get("price") and trade.get("amount"):
+                        features["pnl_pct"] = (
+                            trade.get("pnl", 0) / (trade["price"] * trade["amount"])
+                        ) * 100
+                    else:
+                        features["pnl_pct"] = 0
                     features["exit_reason"] = trade.get("exit_reason")
 
                     features_list.append(features)
