@@ -1371,6 +1371,7 @@ crypto-tracker-v3/
 ### Risk Log
 | Date | Risk Identified | Impact | Mitigation | Status |
 |------|----------------|--------|------------|--------|
+| 1/27 | Duplicate trade notifications despite config | Individual trade notifications sent even with "individual_trades": false | Removed redundant notification calls from run_paper_trading_simple.py | ✅ Resolved |
 | 8/26 | Market analyzer lying about DCA readiness | Said "4 symbols ready" when none qualified at -4% threshold | Fixed config loading in strategy_precalculator.py | ✅ Resolved |
 | 8/26 | Paper trader balance mismatch with dashboard | "Insufficient balance" errors despite dashboard showing funds | Implemented database sync on startup | ✅ Resolved |
 | 8/25 | Strategy imbalance - CHANNEL 98.4% of trades | SWING never triggered, DCA underutilized, no diversification | Adjusted thresholds: DCA -2.5%, SWING 1%, CHANNEL 10% | ✅ Resolved |
@@ -1391,6 +1392,7 @@ crypto-tracker-v3/
 ### Lessons Learned Log
 | Date | Lesson | Action |
 |------|--------|--------|
+| 1/27 | Duplicate notification sources caused unwanted individual trade alerts | Removed redundant notification calls from run_paper_trading_simple.py, relying solely on SimplePaperTraderV2's config-based notifications |
 | 8/26 | Market conditions determine strategy dominance - CHANNEL should dominate in sideways markets | Accepted that strategy imbalance can be correct for market conditions |
 | 8/26 | "Fallback" messages indicate system working correctly, not a bug | Market-aware prioritization falls back when preferred strategy has no signals |
 | 8/26 | Test scripts essential for threshold validation before deployment | Created test_strategy_thresholds.py to verify signal generation |

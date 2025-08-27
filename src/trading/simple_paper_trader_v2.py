@@ -950,12 +950,12 @@ class SimplePaperTraderV2:
 
     def sync_from_database(self):
         """Sync balance and positions from database - same logic as dashboard"""
-        if not self.db:
+        if not self.db_client:
             raise Exception("Database client not initialized")
 
         # Get all trades from database
         result = (
-            self.db.client.table("paper_trades")
+            self.db_client.client.table("paper_trades")
             .select("*")
             .order("created_at", desc=False)
             .execute()

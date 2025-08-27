@@ -30,7 +30,8 @@ from src.data.hybrid_fetcher import HybridDataFetcher  # noqa: E402
 from src.trading.simple_paper_trader_v2 import SimplePaperTraderV2  # noqa: E402
 from src.config.settings import Settings  # noqa: E402
 from src.data.supabase_client import SupabaseClient  # noqa: E402
-from src.notifications.paper_trading_notifier import PaperTradingNotifier  # noqa: E402
+
+# Notification handled internally by SimplePaperTraderV2
 
 # Import only what we need from strategies - NO ML
 from src.strategies.dca.detector import DCADetector  # noqa: E402
@@ -63,13 +64,8 @@ class SimplifiedPaperTradingSystem:
             config_path="configs/paper_trading.json",  # Load all thresholds from config
         )
 
-        # Initialize notifier for system-level alerts
-        self.notifier = None
-        try:
-            self.notifier = PaperTradingNotifier()
-            logger.info("✅ Slack notifier initialized")
-        except Exception as e:
-            logger.warning(f"Could not initialize Slack notifier: {e}")
+        # Notifier is handled by SimplePaperTraderV2 internally
+        # It respects the config flag for individual trade notifications
 
         # Initialize database
         self.supabase = SupabaseClient()
@@ -952,38 +948,7 @@ class SimplifiedPaperTradingSystem:
                 # Track position timestamp for market transitions
                 self.position_timestamps[symbol] = datetime.now()
 
-                # Send Slack notification
-                if self.notifier:
-                    try:
-                        # Calculate exit prices for notification
-                        config = self.paper_trader.config
-                        tier = self.paper_trader.get_market_cap_tier(symbol)
-                        exits = (
-                            config.get("exits", {})
-                            .get(strategy.lower(), {})
-                            .get(tier, {})
-                        )
-
-                        stop_loss_pct = exits.get("stop_loss", 0.05)
-                        take_profit_pct = exits.get("take_profit", 0.10)
-                        trailing_stop_pct = exits.get("trailing_stop", 0.01)
-
-                        entry_price = trading_signal["current_price"]
-                        stop_loss = entry_price * (1 - stop_loss_pct)
-                        take_profit = entry_price * (1 + take_profit_pct)
-
-                        await self.notifier.notify_position_opened(
-                            symbol=symbol,
-                            strategy=strategy,
-                            entry_price=entry_price,
-                            position_size=position_size,
-                            stop_loss=stop_loss,
-                            take_profit=take_profit,
-                            trailing_stop_pct=trailing_stop_pct,
-                            market_cap_tier=tier,
-                        )
-                    except Exception as e:
-                        logger.debug(f"Could not send notification: {e}")
+                # Notification handled by SimplePaperTraderV2 based on config
 
                 return True
 
@@ -1076,14 +1041,7 @@ class SimplifiedPaperTradingSystem:
                 except Exception as e:
                     logger.debug(f"Could not log trade: {e}")
 
-                # Send notification
-                if self.notifier:
-                    await self.notifier.send_trade_closed(
-                        symbol=trade.symbol,
-                        strategy=trade.strategy,
-                        pnl=trade.pnl,
-                        exit_reason=trade.exit_reason,
-                    )
+                # Notification handled by SimplePaperTraderV2 based on config
 
     async def run(self):
         """Main trading loop"""
