@@ -63,11 +63,15 @@
 **To Format All Python Files:**
 ```bash
 black .
+# Or exclude external directories:
+black --exclude="~/.*|venv/.*" .
 ```
 
 **To Check Without Modifying:**
 ```bash
 black --check .
+# Or exclude external directories:
+black --exclude="~/.*|venv/.*" --check .
 ```
 
 This section lists the currently active production files and their deprecated versions.
