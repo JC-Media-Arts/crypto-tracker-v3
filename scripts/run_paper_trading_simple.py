@@ -3,7 +3,7 @@
 Market-Aware Paper Trading System with Intelligent Strategy Prioritization
 Prioritizes strategies based on market analysis and manages positions intelligently
 Version: 2.3.2 - Reduce logging to avoid Railway 500 logs/sec limit
-BUILD_ID: 20250826-201500
+BUILD_ID: 20250827-163500
 """
 
 import asyncio
@@ -129,7 +129,9 @@ class SimplifiedPaperTradingSystem:
 
         logger.info("=" * 80)
         logger.info("🚀 MARKET-AWARE PAPER TRADING SYSTEM v2.3.2")
-        logger.info("   BUILD_ID: 20250826-201500 - Reduced logging for Railway")
+        logger.info(
+            "   BUILD_ID: 20250827-163500 - Fixed timezone and method signatures"
+        )
         logger.info("   Mode: Rule-Based with Market Intelligence")
         logger.info(f"   Balance: ${self.paper_trader.balance:.2f}")
         logger.info(f"   Position Size: ${self.config['position_size']}")
@@ -445,8 +447,8 @@ class SimplifiedPaperTradingSystem:
 
                 result = await self.paper_trader.close_position(
                     symbol=symbol,
-                    market_price=current_prices[symbol],
-                    reason="POSITION_LIMIT_CLEANUP",
+                    current_price=current_prices[symbol],
+                    exit_reason="POSITION_LIMIT_CLEANUP",
                 )
 
                 if result.get("success"):

@@ -6,7 +6,7 @@ import json
 import os
 import random
 import string
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Optional
 from dataclasses import dataclass, asdict
 from loguru import logger
@@ -393,12 +393,24 @@ class SimplePaperTraderV2:
         return usd_value * self.base_fee_rate
 
     def generate_trade_group_id(self, strategy: str, symbol: str) -> str:
-        """Generate a unique trade group ID for linking related trades"""
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        """Generate a unique trade group ID for linking related trades
+
+        Must be <= 36 characters for database column constraint.
+        Format: {strategy[:3]}_{symbol[:6]}_{timestamp}_{random}
+        Example: DCA_MEME_240827162507_abc123 (30 chars)
+        """
+        timestamp = datetime.now(timezone.utc).strftime(
+            "%y%m%d%H%M%S"
+        )  # Shorter year format
         random_suffix = "".join(
-            random.choices(string.ascii_lowercase + string.digits, k=6)
+            random.choices(
+                string.ascii_lowercase + string.digits, k=4
+            )  # Shorter suffix
         )
-        return f"{strategy}_{symbol}_{timestamp}_{random_suffix}"
+        # Truncate strategy to 3 chars and symbol to 6 chars to ensure fit
+        strategy_short = strategy[:3].upper()
+        symbol_short = symbol[:6].upper()
+        return f"{strategy_short}_{symbol_short}_{timestamp}_{random_suffix}"
 
     async def open_position(
         self,
@@ -503,7 +515,7 @@ class SimplePaperTraderV2:
             entry_price=actual_price,
             amount=crypto_amount,
             usd_value=usd_amount,
-            entry_time=datetime.now(),
+            entry_time=datetime.now(timezone.utc),
             strategy=strategy,
             stop_loss=actual_price * (1 - stop_loss_pct),
             take_profit=actual_price * (1 + take_profit_pct),
@@ -583,7 +595,7 @@ class SimplePaperTraderV2:
 
             current_price = current_prices[symbol]
             hold_duration = (
-                datetime.now() - position.entry_time
+                datetime.now(timezone.utc) - position.entry_time
             ).total_seconds() / 3600
 
             # Update highest price for trailing stop
@@ -654,7 +666,7 @@ class SimplePaperTraderV2:
             exit_price=exit_price,
             amount=position.amount,
             entry_time=position.entry_time,
-            exit_time=datetime.now(),
+            exit_time=datetime.now(timezone.utc),
             pnl_usd=pnl_net,
             pnl_percent=pnl_percent,
             fees_paid=total_fees,
@@ -798,7 +810,7 @@ class SimplePaperTraderV2:
 
     def get_trades_today(self) -> List[Dict]:
         """Get trades closed today"""
-        today = datetime.now().date()
+        today = datetime.now(timezone.utc).date()
         trades_today = []
 
         for trade in self.trades:
