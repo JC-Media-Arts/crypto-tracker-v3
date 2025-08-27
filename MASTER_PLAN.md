@@ -1578,6 +1578,7 @@ crypto-tracker-v3/
 | Date | Lesson | Action |
 |------|--------|--------|
 | 12/27 | UI pagination and backend pagination are different concepts - backend fetched all data but UI displayed all at once | Implemented proper UI pagination with 100 trades per page, Next/Previous buttons, and page navigation |
+| 12/27 | JavaScript duplicate variable declaration breaks entire script | Always check for duplicate `let` declarations when merging code changes |
 | 8/27 | CHANNEL strategy with 96.5% win rate was too easy to trigger, dominating trades | Tightened buy_zone from 10% to 5%, increased strength to 0.80, closed 320/370 positions |
 | 8/27 | Dashboard showing only 108 positions but database has 887 open (845 CHANNEL) | Dashboard bug: only fetching 1000 most recent trades, missing 6,424 older trades. CHANNEL still over-triggering |
 | 8/27 | Emergency cleanup: Closed 798 excess CHANNEL positions, kept only top 50 | CHANNEL detector likely still using wrong config. Realized -$17.88 P&L from cleanup |
