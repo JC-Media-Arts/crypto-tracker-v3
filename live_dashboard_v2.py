@@ -796,11 +796,9 @@ async function fetchTrades(page = 1, isManualNavigation = false) {
 }
 
 function updateFilteredView() {
-    const data = allTradesData;
+        const data = allTradesData;
     const openTable = document.getElementById('openPositionsTable');
     const closedTable = document.getElementById('closedTradesTable');
-
-    console.log('updateFilteredView called, currentFilter:', currentFilter, 'data:', data);
 
     // Calculate stats based on filter
     let filteredPnl = 0;
@@ -810,7 +808,6 @@ function updateFilteredView() {
 
     if (currentFilter === 'open' || currentFilter === 'all') {
         // Show open positions
-        console.log('Checking open trades:', data.open_trades ? data.open_trades.length : 'none');
         if (data.open_trades && data.open_trades.length > 0) {
             openTable.innerHTML = data.open_trades.map(trade => `
                 <tr>
@@ -839,7 +836,6 @@ function updateFilteredView() {
                 filteredPnl += trade.unrealized_pnl || 0;
             });
         } else {
-            console.log('No open trades found, showing empty message');
             openTable.innerHTML = '<tr><td colspan="13" style="text-align: center;">No open positions</td></tr>';
         }
         document.getElementById('openPositionsContainer').style.display = 'block';
