@@ -57,6 +57,10 @@ Last Updated: August 27, 2025
     - Captures all ML learning opportunities (90 symbols × 3 strategies × 12 scans/hr = 3,240 records/hr)
     - ScanBuffer class handles async background flushing without blocking trades
     - Successfully capturing 755,775+ scan records with features
+  - **Updated 8/27**: Tightened CHANNEL thresholds & portfolio cleanup
+    - buy_zone: 0.10 → 0.05 (50% reduction)
+    - channel_strength_min: 0.75 → 0.80
+    - Closed 320 underperforming positions, kept top 50
   - **Updated 8/26**: Market-aware strategy prioritization
   - **Updated 8/26**: Database balance synchronization on startup
   - Configuration: `configs/paper_trading_config.py` (detection) + `configs/paper_trading.json` (exits)
@@ -1503,6 +1507,7 @@ crypto-tracker-v3/
 ### Lessons Learned Log
 | Date | Lesson | Action |
 |------|--------|--------|
+| 8/27 | CHANNEL strategy with 96.5% win rate was too easy to trigger, dominating trades | Tightened buy_zone from 10% to 5%, increased strength to 0.80, closed 320/370 positions |
 | 8/27 | Market analyzer should analyze actual market structure, not just count signals | Implemented market structure analysis to determine strategy based on drops, trends, and volatility |
 | 8/27 | Database schema changes require thorough impact analysis on ML systems | Always check column names and data types in dependent scripts before running ML training |
 | 8/27 | Trading report accuracy requires using actual portfolio state, not local calculations | Use SimplePaperTraderV2's database sync as single source of truth |

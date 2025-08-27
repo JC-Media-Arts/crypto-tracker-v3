@@ -37,14 +37,14 @@ PAPER_TRADING_CONFIG = {
         },
         "CHANNEL": {
             "enabled": True,
-            "min_confidence": 0.65,  # Changed from 0.55 (aggressive adjustment)
+            "min_confidence": 0.65,  # Keep selective confidence threshold
             "entry_threshold": 0.9,
             "exit_threshold": 0.1,
             "channel_width_min": 0.02,
-            "channel_touches": 3,  # Changed from 2 (aggressive adjustment)
-            "buy_zone": 0.10,  # Changed from 0.15 to reduce CHANNEL dominance
-            "sell_zone": 0.90,  # Changed from 0.85 to be more selective
-            "channel_strength_min": 0.75,  # Changed from 0.70 for higher quality signals
+            "channel_touches": 3,  # Require multiple touches for valid channel
+            "buy_zone": 0.05,  # Changed from 0.10 to be much more selective (50% reduction)
+            "sell_zone": 0.95,  # Changed from 0.90 to focus on extreme tops
+            "channel_strength_min": 0.80,  # Changed from 0.75 for higher quality signals only
         },
     },
     "timeframes": {"primary": "15m", "confirmation": "1h", "trend": "4h"},
@@ -55,5 +55,5 @@ PAPER_TRADING_CONFIG = {
         "avoid_news_hours": False,
         "trade_weekends": True,
     },
-    "updated_at": "2025-08-26T03:50:00.000000",  # Rebalanced: DCA -2.5%, SWING 1%, CHANNEL 10%
+    "updated_at": "2025-08-27T12:40:00.000000",  # CHANNEL optimized: buy_zone 5%, strength 0.80
 }
