@@ -144,7 +144,10 @@ class SimpleRetrainer:
                         self._update_last_train_time(strategy)
                         return f"Model updated (improvement: {new_score:.3f} > {current_score:.3f})"
                     else:
-                        return f"Kept existing model (current: {current_score:.3f}, new: {new_score:.3f}, threshold: {improvement_threshold:.1%})"
+                        return (
+                            f"Kept existing model (current: {current_score:.3f}, "
+                            f"new: {new_score:.3f}, threshold: {improvement_threshold:.1%})"
+                        )
                 except Exception as e:
                     if "Feature shape mismatch" in str(
                         e
@@ -155,13 +158,13 @@ class SimpleRetrainer:
                         logger.warning(
                             "Consider manual review before replacing legacy model"
                         )
-                        # For now, preserve the legacy model unless the new one is exceptionally good
-                        if new_score > 0.85:  # High threshold to protect legacy models
+                        # Use reasonable threshold for legacy model replacement
+                        if new_score > 0.65:  # More reasonable threshold for updates
                             self._save_model(new_model, strategy, new_score)
                             self._update_last_train_time(strategy)
                             return f"Legacy model replaced with high-scoring new model (score: {new_score:.3f})"
                         else:
-                            return f"Kept legacy model (feature mismatch, new score {new_score:.3f} < 0.85 threshold)"
+                            return f"Kept legacy model (feature mismatch, new score {new_score:.3f} < 0.65 threshold)"
                     else:
                         raise
             else:

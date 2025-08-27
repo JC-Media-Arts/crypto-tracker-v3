@@ -2,8 +2,8 @@
 """
 Market-Aware Paper Trading System with Intelligent Strategy Prioritization
 Prioritizes strategies based on market analysis and manages positions intelligently
-Version: 2.3.2 - Reduce logging to avoid Railway 500 logs/sec limit
-BUILD_ID: 20250827-164500
+Version: 2.4.0 - Batch scan logging to capture all learning opportunities
+BUILD_ID: 20250827-173000
 """
 
 import asyncio
@@ -42,6 +42,105 @@ from src.strategies.regime_detector import RegimeDetector, MarketRegime  # noqa:
 from src.trading.trade_limiter import TradeLimiter  # noqa: E402
 
 
+class ScanBuffer:
+    """Buffer for batching scan_history logs to respect Railway limits"""
+
+    def __init__(
+        self, supabase_client, max_size: int = 500, max_age_seconds: int = 300
+    ):
+        """
+        Initialize scan buffer
+
+        Args:
+            supabase_client: Supabase client for database writes
+            max_size: Maximum buffer size before flush (default 500)
+            max_age_seconds: Maximum age in seconds before flush (default 300 = 5 minutes)
+        """
+        self.supabase = supabase_client
+        self.buffer = []
+        self.last_flush = datetime.now(timezone.utc)
+        self.max_size = max_size
+        self.max_age_seconds = max_age_seconds
+        self.flush_in_progress = False
+        self.total_scans_logged = 0
+        self.total_batches_sent = 0
+
+    async def add_scan(self, scan_data: Dict):
+        """
+        Add a scan to the buffer and flush if needed
+
+        Args:
+            scan_data: Scan data to log
+        """
+        # Add to buffer (instant, non-blocking)
+        self.buffer.append(scan_data)
+
+        # Check if we should flush (non-blocking check)
+        if self.should_flush() and not self.flush_in_progress:
+            # Fire and forget - doesn't block trading
+            asyncio.create_task(self.flush())
+
+    def should_flush(self) -> bool:
+        """Check if buffer should be flushed"""
+        if not self.buffer:
+            return False
+
+        # Flush if buffer is full
+        if len(self.buffer) >= self.max_size:
+            return True
+
+        # Flush if time elapsed
+        time_elapsed = (datetime.now(timezone.utc) - self.last_flush).total_seconds()
+        if time_elapsed >= self.max_age_seconds:
+            return True
+
+        return False
+
+    async def flush(self):
+        """Flush buffer to database (runs async in background)"""
+        if not self.buffer or self.flush_in_progress:
+            return
+
+        try:
+            self.flush_in_progress = True
+
+            # Copy buffer for sending (so we can continue adding)
+            buffer_to_send = self.buffer.copy()
+            self.buffer = []
+
+            # Batch insert to scan_history
+            if buffer_to_send:
+                await asyncio.get_event_loop().run_in_executor(
+                    None,
+                    lambda: self.supabase.client.table("scan_history")
+                    .insert(buffer_to_send)
+                    .execute(),
+                )
+
+                self.total_scans_logged += len(buffer_to_send)
+                self.total_batches_sent += 1
+
+                logger.debug(
+                    f"Flushed {len(buffer_to_send)} scans to database "
+                    f"(Total: {self.total_scans_logged} scans in {self.total_batches_sent} batches)"
+                )
+
+            self.last_flush = datetime.now(timezone.utc)
+
+        except Exception as e:
+            logger.error(f"Error flushing scan buffer: {e}")
+            # Re-add failed scans to buffer for retry
+            self.buffer = buffer_to_send + self.buffer
+        finally:
+            self.flush_in_progress = False
+
+    async def force_flush(self):
+        """Force flush the buffer (e.g., on shutdown)"""
+        if self.buffer:
+            logger.info(f"Force flushing {len(self.buffer)} pending scans...")
+            await self.flush()
+
+
 class SimplifiedPaperTradingSystem:
     """
     Simplified paper trading system with NO ML dependencies
@@ -69,6 +168,12 @@ class SimplifiedPaperTradingSystem:
 
         # Initialize database
         self.supabase = SupabaseClient()
+
+        # Initialize scan buffer for batch logging
+        self.scan_buffer = ScanBuffer(self.supabase, max_size=500, max_age_seconds=300)
+        logger.info(
+            "Scan buffer initialized - will batch log every 5 minutes or 500 scans"
+        )
 
         # Track last heartbeat time to avoid too frequent updates
         self.last_heartbeat_time = datetime.now(timezone.utc)
@@ -554,17 +659,26 @@ class SimplifiedPaperTradingSystem:
                                 "price", current_price
                             )
                         signals_by_strategy["DCA"].append(dca_signal)
-                        # Reduced logging to avoid Railway 500 logs/sec limit
-                        pass
-                        # logger.debug(f"📊 DCA Signal: {symbol} - drop {dca_signal.get('drop_pct', 0):.1f}%")
-                        # await self.log_scan(symbol, "DCA", "BUY", "Signal detected",
-                        #     confidence=dca_signal["confidence"],
-                        #     metadata={"drop_pct": dca_signal.get("drop_pct", 0)},
-                        #     market_data=data)
+                        # Log signal detection for ML learning
+                        await self.log_scan(
+                            symbol,
+                            "DCA",
+                            "BUY",
+                            "Signal detected",
+                            confidence=dca_signal["confidence"],
+                            metadata={"drop_pct": dca_signal.get("drop_pct", 0)},
+                            market_data=data,
+                        )
                     else:
-                        # Skip logging for NO signal to reduce log volume
-                        pass
-                        # await self.log_scan(symbol, "DCA", "SKIP", "No signal", confidence=0.0, market_data=data)
+                        # Log no signal for complete ML dataset
+                        await self.log_scan(
+                            symbol,
+                            "DCA",
+                            "SKIP",
+                            "No signal",
+                            confidence=0.0,
+                            market_data=data,
+                        )
 
                 # Swing - Check if disabled due to volatility
                 if not self.regime_detector.should_disable_strategy("SWING"):
@@ -577,19 +691,28 @@ class SimplifiedPaperTradingSystem:
                                 "price", current_price
                             )
                         signals_by_strategy["SWING"].append(swing_signal)
-                        # Reduced logging to avoid Railway 500 logs/sec limit
-                        pass
-                        # logger.debug(
-                        #     f"📊 Swing Signal: {symbol} - breakout {swing_signal.get('breakout_pct', 0):.1f}%"
-                        # )
-                        # await self.log_scan(symbol, "SWING", "BUY", "Signal detected",
-                        #     confidence=swing_signal["confidence"],
-                        #     metadata={"breakout_pct": swing_signal.get("breakout_pct", 0)},
-                        #     market_data=data)
+                        # Log signal detection for ML learning
+                        await self.log_scan(
+                            symbol,
+                            "SWING",
+                            "BUY",
+                            "Signal detected",
+                            confidence=swing_signal["confidence"],
+                            metadata={
+                                "breakout_pct": swing_signal.get("breakout_pct", 0)
+                            },
+                            market_data=data,
+                        )
                     else:
-                        # Skip logging for NO signal to reduce log volume
-                        pass
-                        # await self.log_scan(symbol, "SWING", "SKIP", "No signal", confidence=0.0, market_data=data)
+                        # Log no signal for complete ML dataset
+                        await self.log_scan(
+                            symbol,
+                            "SWING",
+                            "SKIP",
+                            "No signal",
+                            confidence=0.0,
+                            market_data=data,
+                        )
 
                 # Channel - Check if disabled due to volatility
                 if not self.regime_detector.should_disable_strategy("CHANNEL"):
@@ -602,17 +725,26 @@ class SimplifiedPaperTradingSystem:
                                 "price", current_price
                             )
                         signals_by_strategy["CHANNEL"].append(channel_signal)
-                        # Reduced logging to avoid Railway 500 logs/sec limit
-                        pass
-                        # logger.debug(f"📊 Channel Signal: {symbol} - position {channel_signal.get('position', 0):.2f}")
-                        # await self.log_scan(symbol, "CHANNEL", "BUY", "Signal detected",
-                        #     confidence=channel_signal["confidence"],
-                        #     metadata={"position": channel_signal.get("position", 0)},
-                        #     market_data=data)
+                        # Log signal detection for ML learning
+                        await self.log_scan(
+                            symbol,
+                            "CHANNEL",
+                            "BUY",
+                            "Signal detected",
+                            confidence=channel_signal["confidence"],
+                            metadata={"position": channel_signal.get("position", 0)},
+                            market_data=data,
+                        )
                     else:
-                        # Skip logging for NO signal to reduce log volume
-                        pass
-                        # await self.log_scan(symbol, "CHANNEL", "SKIP", "No signal", confidence=0.0, market_data=data)
+                        # Log no signal for complete ML dataset
+                        await self.log_scan(
+                            symbol,
+                            "CHANNEL",
+                            "SKIP",
+                            "No signal",
+                            confidence=0.0,
+                            market_data=data,
+                        )
 
             except Exception as e:
                 logger.error(f"Error evaluating {symbol}: {e}")
@@ -936,13 +1068,12 @@ class SimplifiedPaperTradingSystem:
                 "btc_price": btc_price,
             }
 
-            # Insert to scan_history
-            self.supabase.client.table("scan_history").insert(scan_data).execute()
+            # Add to buffer instead of direct insert - instant and non-blocking
+            await self.scan_buffer.add_scan(scan_data)
 
         except Exception as e:
             # Don't let logging errors stop trading
             logger.error(f"Could not log scan for {symbol}: {e}")
-            logger.debug(f"Full scan data: {scan_data}")
 
     async def execute_trade(self, trading_signal: Dict) -> bool:
         """Execute a trade based on signal"""
@@ -1135,6 +1266,10 @@ class SimplifiedPaperTradingSystem:
         logger.info("Shutdown signal received, closing positions...")
         self.shutdown = True
 
+        # Force flush any pending scans before shutdown
+        if hasattr(self, "scan_buffer"):
+            asyncio.create_task(self.scan_buffer.force_flush())
+
 
 async def main():
     """Main entry point"""
@@ -1180,6 +1315,14 @@ async def main():
     except KeyboardInterrupt:
         logger.info("Shutdown requested")
     finally:
+        # Force flush any remaining scans before exit
+        if hasattr(system, "scan_buffer"):
+            await system.scan_buffer.force_flush()
+            logger.info(
+                f"Total scans logged: {system.scan_buffer.total_scans_logged} "
+                f"in {system.scan_buffer.total_batches_sent} batches"
+            )
+
         # Save final state
         logger.info("Final portfolio state:")
         final_stats = system.paper_trader.get_portfolio_stats()
