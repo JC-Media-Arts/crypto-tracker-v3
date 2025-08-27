@@ -166,15 +166,18 @@ Last Updated: August 27, 2025
   - Multi-page dashboard with Paper Trading, Strategies, Market, and R&D sections
   - **NEW 8/26**: R&D page shows ML model scores, parameter recommendations, and insights
   - **FIXED 8/26**: Shows composite scores (weighted accuracy/precision/recall) instead of raw accuracy
-  - **NEW 12/27**: Proper UI pagination - loads 100 trades per page with Next/Previous buttons
-    - Significantly reduces Supabase API calls and improves performance
+  - **NEW 12/27**: Proper UI pagination for Paper Trading page only
+    - Loads 100 trades per page with Next/Previous buttons
     - Page input for direct navigation (e.g., jump to page 50)
-    - Shows current page info: "Showing trades 1-100 of 8310 total"
+    - Shows current page info: "Showing trades 1-100 of 293 total"
     - Stats still calculated from all trades for accuracy
+    - Auto-refresh preserves current page during navigation
+    - Filter changes automatically reset to page 1
   - **RESTORED 12/27**: All dashboard pages (Strategies, Market, R&D) now fully functional
     - R&D page: ML model status, learning progress, parameter recommendations (5 API endpoints)
     - Strategies page: Real-time signals, market conditions, strategy readiness
     - Market page: BTC changes, volatility, top movers (2 API endpoints)
+    - All three pages restored to August 26 implementation, only Paper Trading modified
   - Reads from cache tables for performance
   - Auto-refreshes every 10 seconds
 
