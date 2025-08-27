@@ -192,9 +192,15 @@ class SimplifiedPaperTradingSystem:
             "swing_breakout_threshold": PAPER_TRADING_CONFIG["strategies"]["SWING"].get(
                 "breakout_threshold", 1.015
             ),
-            "channel_position_threshold": PAPER_TRADING_CONFIG["strategies"][
-                "CHANNEL"
-            ].get("buy_zone", 0.15),
+            "buy_zone": PAPER_TRADING_CONFIG["strategies"]["CHANNEL"].get(
+                "buy_zone", 0.15
+            ),
+            "sell_zone": PAPER_TRADING_CONFIG["strategies"]["CHANNEL"].get(
+                "sell_zone", 0.85
+            ),
+            "channel_strength_min": PAPER_TRADING_CONFIG["strategies"]["CHANNEL"].get(
+                "channel_strength_min", 0.75
+            ),
             # Volume and other thresholds
             "swing_volume_surge": PAPER_TRADING_CONFIG["strategies"]["SWING"].get(
                 "volume_surge", 1.5
