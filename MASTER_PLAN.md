@@ -1510,6 +1510,7 @@ crypto-tracker-v3/
 | 8/27 | CHANNEL strategy with 96.5% win rate was too easy to trigger, dominating trades | Tightened buy_zone from 10% to 5%, increased strength to 0.80, closed 320/370 positions |
 | 8/27 | Dashboard showing only 108 positions but database has 887 open (845 CHANNEL) | Dashboard bug: only fetching 1000 most recent trades, missing 6,424 older trades. CHANNEL still over-triggering |
 | 8/27 | Emergency cleanup: Closed 798 excess CHANNEL positions, kept only top 50 | CHANNEL detector likely still using wrong config. Realized -$17.88 P&L from cleanup |
+| 8/27 | Dashboard showed 0 positions after cleanup but database had 92 open | Fixed: Dashboard only fetched last 1000 trades. Added pagination to fetch all 8,226 trades |
 | 8/27 | Market analyzer should analyze actual market structure, not just count signals | Implemented market structure analysis to determine strategy based on drops, trends, and volatility |
 | 8/27 | Database schema changes require thorough impact analysis on ML systems | Always check column names and data types in dependent scripts before running ML training |
 | 8/27 | Trading report accuracy requires using actual portfolio state, not local calculations | Use SimplePaperTraderV2's database sync as single source of truth |
