@@ -18,7 +18,9 @@ def check_scan_history():
     db = SupabaseClient()
 
     # Check for recent scans (last 30 minutes - matching dashboard logic)
-    thirty_minutes_ago = (datetime.now(timezone.utc) - timedelta(minutes=30)).isoformat()
+    thirty_minutes_ago = (
+        datetime.now(timezone.utc) - timedelta(minutes=30)
+    ).isoformat()
 
     print("\n=== Checking Scan History (Last 30 Minutes) ===")
     print(f"Current UTC time: {datetime.now(timezone.utc).isoformat()}")
@@ -36,7 +38,9 @@ def check_scan_history():
     if result.data:
         print(f"\nFound {len(result.data)} recent scans:")
         for scan in result.data:
-            print(f"  - {scan['timestamp']}: {scan['symbol']} | {scan['strategy_name']} | {scan['decision']}")
+            print(
+                f"  - {scan['timestamp']}: {scan['symbol']} | {scan['strategy_name']} | {scan['decision']}"
+            )
     else:
         print("\n❌ NO RECENT SCANS FOUND!")
 
@@ -50,10 +54,10 @@ def check_scan_history():
         )
 
         if last_scan.data:
-            last_time = last_scan.data[0]['timestamp']
+            last_time = last_scan.data[0]["timestamp"]
             print(f"\nLast scan was at: {last_time}")
             # Calculate time difference
-            last_dt = datetime.fromisoformat(last_time.replace('Z', '+00:00'))
+            last_dt = datetime.fromisoformat(last_time.replace("Z", "+00:00"))
             time_diff = datetime.now(timezone.utc) - last_dt
             print(f"That was {time_diff.total_seconds() / 60:.1f} minutes ago")
         else:
@@ -66,7 +70,9 @@ def check_paper_trades():
     """Check recent paper trades"""
     db = SupabaseClient()
 
-    thirty_minutes_ago = (datetime.now(timezone.utc) - timedelta(minutes=30)).isoformat()
+    thirty_minutes_ago = (
+        datetime.now(timezone.utc) - timedelta(minutes=30)
+    ).isoformat()
 
     print("\n=== Checking Paper Trades (Last 30 Minutes) ===")
 
@@ -82,9 +88,13 @@ def check_paper_trades():
     if result.data:
         print(f"\nFound {len(result.data)} recent trades:")
         for trade in result.data:
-            print(f"  - {trade['created_at']}: {trade['symbol']} | {trade['side']} | {trade['strategy_name']}")
+            print(
+                f"  - {trade['created_at']}: {trade['symbol']} | {trade['side']} | {trade['strategy_name']}"
+            )
     else:
-        print("\n❌ NO RECENT TRADES FOUND (this is normal if no buy/sell conditions met)")
+        print(
+            "\n❌ NO RECENT TRADES FOUND (this is normal if no buy/sell conditions met)"
+        )
 
         # Check last trade
         last_trade = (
@@ -96,10 +106,10 @@ def check_paper_trades():
         )
 
         if last_trade.data:
-            last_time = last_trade.data[0]['created_at']
+            last_time = last_trade.data[0]["created_at"]
             print(f"\nLast trade was at: {last_time}")
             # Calculate time difference
-            last_dt = datetime.fromisoformat(last_time.replace('Z', '+00:00'))
+            last_dt = datetime.fromisoformat(last_time.replace("Z", "+00:00"))
             time_diff = datetime.now(timezone.utc) - last_dt
             print(f"That was {time_diff.total_seconds() / 60:.1f} minutes ago")
 
@@ -125,13 +135,15 @@ def check_strategy_cache():
         print(f"Last cache update: {first['calculated_at']}")
 
         # Check how old the cache is
-        last_dt = datetime.fromisoformat(first['calculated_at'].replace('Z', '+00:00'))
+        last_dt = datetime.fromisoformat(first["calculated_at"].replace("Z", "+00:00"))
         time_diff = datetime.now(timezone.utc) - last_dt
         print(f"Cache age: {time_diff.total_seconds() / 60:.1f} minutes")
 
         print(f"\nRecent cache entries:")
         for entry in result.data[:3]:
-            print(f"  - {entry['symbol']} | {entry['strategy_name']} | {entry['status']}")
+            print(
+                f"  - {entry['symbol']} | {entry['strategy_name']} | {entry['status']}"
+            )
     else:
         print("❌ No cache data found!")
 

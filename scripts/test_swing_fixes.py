@@ -4,6 +4,7 @@ Test script to verify SWING fixes are working correctly
 """
 import sys
 from pathlib import Path
+
 sys.path.append(str(Path(__file__).parent.parent))
 
 from configs.paper_trading_config import PAPER_TRADING_CONFIG
@@ -15,14 +16,14 @@ def test_precalculator_formula():
 
     # Test cases: (breakout_pct, expected_readiness_range)
     test_cases = [
-        (-3.0, (0, 0)),      # Far below resistance
-        (-2.0, (0, 0)),      # At the edge
-        (-1.0, (30, 40)),    # Approaching resistance
-        (-0.5, (45, 55)),    # Close to resistance
-        (0.0, (65, 75)),     # At resistance
-        (0.5, (75, 85)),     # Breaking resistance
-        (1.0, (85, 95)),     # At threshold
-        (2.0, (95, 100)),    # Strong breakout
+        (-3.0, (0, 0)),  # Far below resistance
+        (-2.0, (0, 0)),  # At the edge
+        (-1.0, (30, 40)),  # Approaching resistance
+        (-0.5, (45, 55)),  # Close to resistance
+        (0.0, (65, 75)),  # At resistance
+        (0.5, (75, 85)),  # Breaking resistance
+        (1.0, (85, 95)),  # At threshold
+        (2.0, (95, 100)),  # Strong breakout
     ]
 
     threshold = 1.0  # 1% breakout threshold
@@ -40,7 +41,9 @@ def test_precalculator_formula():
 
         in_range = min_expected <= breakout_readiness <= max_expected
         status = "✅" if in_range else "❌"
-        print(f"{status} Breakout {breakout_pct:+.1f}%: Readiness = {breakout_readiness:.1f}% (expected {min_expected}-{max_expected}%)")
+        print(
+            f"{status} Breakout {breakout_pct:+.1f}%: Readiness = {breakout_readiness:.1f}% (expected {min_expected}-{max_expected}%)"
+        )
 
     print("\n✅ Precalculator formula fixed - high readiness only for actual breakouts!")
 
@@ -49,7 +52,7 @@ def test_config_loading():
     """Test that SwingDetector loads config properly"""
     print("\n=== Testing SWING Config Loading ===\n")
 
-    swing_cfg = PAPER_TRADING_CONFIG['strategies'].get('SWING', {})
+    swing_cfg = PAPER_TRADING_CONFIG["strategies"].get("SWING", {})
 
     print(f"Configuration loaded from paper_trading_config.py:")
     print(f"  breakout_threshold: {swing_cfg.get('breakout_threshold', 'NOT FOUND')}")
@@ -59,7 +62,7 @@ def test_config_loading():
     print(f"  min_confidence: {swing_cfg.get('min_confidence', 'NOT FOUND')}")
 
     # Test the threshold conversion
-    breakout_threshold = swing_cfg.get('breakout_threshold', 1.010)
+    breakout_threshold = swing_cfg.get("breakout_threshold", 1.010)
     breakout_pct = (breakout_threshold - 1) * 100
     print(f"\nThreshold conversion: {breakout_threshold} → {breakout_pct:.1f}%")
 
@@ -78,8 +81,12 @@ def test_simple_rules_comparison():
 
     # Create config matching paper_trading_config
     config = {
-        "swing_breakout_threshold": PAPER_TRADING_CONFIG["strategies"]["SWING"].get("breakout_threshold", 1.010),
-        "swing_volume_surge": PAPER_TRADING_CONFIG["strategies"]["SWING"].get("volume_surge", 1.3),
+        "swing_breakout_threshold": PAPER_TRADING_CONFIG["strategies"]["SWING"].get(
+            "breakout_threshold", 1.010
+        ),
+        "swing_volume_surge": PAPER_TRADING_CONFIG["strategies"]["SWING"].get(
+            "volume_surge", 1.3
+        ),
     }
 
     rules = SimpleRules(config)
@@ -102,8 +109,12 @@ def test_simple_rules_comparison():
 
         status = "✅" if triggers == should_trigger else "❌"
         print(f"{status} {description}:")
-        print(f"    Breakout: {price_breakout_pct:.1f}% vs {breakout_threshold_pct:.1f}% threshold")
-        print(f"    Volume: {volume_surge:.1f}x vs {rules.swing_volume_surge:.1f}x threshold")
+        print(
+            f"    Breakout: {price_breakout_pct:.1f}% vs {breakout_threshold_pct:.1f}% threshold"
+        )
+        print(
+            f"    Volume: {volume_surge:.1f}x vs {rules.swing_volume_surge:.1f}x threshold"
+        )
         print(f"    Triggers: {triggers}")
 
 
