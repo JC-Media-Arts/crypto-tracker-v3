@@ -15,7 +15,7 @@ os.environ["SHADOW_ENABLED"] = "false"
 
 import sys  # noqa: E402
 from pathlib import Path  # noqa: E402
-from datetime import datetime  # noqa: E402
+from datetime import datetime, timezone  # noqa: E402
 from typing import Dict, List  # noqa: E402
 from loguru import logger  # noqa: E402
 import signal as sig_handler  # noqa: E402
@@ -71,7 +71,7 @@ class SimplifiedPaperTradingSystem:
         self.supabase = SupabaseClient()
 
         # Track last heartbeat time to avoid too frequent updates
-        self.last_heartbeat_time = datetime.now()
+        self.last_heartbeat_time = datetime.now(timezone.utc)
 
         # Load configuration from central source
         # Build config from PAPER_TRADING_CONFIG with backward compatibility
@@ -311,7 +311,7 @@ class SimplifiedPaperTradingSystem:
         # First time or actual strategy change
         if self.last_best_strategy is None:
             self.last_best_strategy = new_best_strategy
-            self.strategy_change_time = datetime.now()
+            self.strategy_change_time = datetime.now(timezone.utc)
             return
 
         logger.info(
@@ -320,7 +320,7 @@ class SimplifiedPaperTradingSystem:
 
         # Check how long since strategy changed
         time_since_change = (
-            datetime.now() - self.strategy_change_time
+            datetime.now(timezone.utc) - self.strategy_change_time
         ).total_seconds() / 3600  # hours
 
         # Get current prices for all positions
@@ -349,7 +349,8 @@ class SimplifiedPaperTradingSystem:
                 (current_price - position.entry_price) / position.entry_price
             ) * 100
             position_age = (
-                datetime.now() - self.position_timestamps.get(symbol, datetime.now())
+                datetime.now(timezone.utc)
+                - self.position_timestamps.get(symbol, datetime.now(timezone.utc))
             ).total_seconds() / 3600
 
             # Scenario 5 logic: tiered closing based on performance and age
@@ -395,7 +396,7 @@ class SimplifiedPaperTradingSystem:
             )
 
         self.last_best_strategy = new_best_strategy
-        self.strategy_change_time = datetime.now()
+        self.strategy_change_time = datetime.now(timezone.utc)
 
     async def close_worst_positions(self, strategy: str, count: int) -> int:
         """Close worst performing positions of a strategy to make room"""
@@ -851,7 +852,7 @@ class SimplifiedPaperTradingSystem:
         """Update system heartbeat to show service is running"""
         try:
             # Only update heartbeat once per minute to avoid excessive DB writes
-            current_time = datetime.now()
+            current_time = datetime.now(timezone.utc)
             if (current_time - self.last_heartbeat_time).seconds < 60:
                 return
 
@@ -898,8 +899,6 @@ class SimplifiedPaperTradingSystem:
     ):
         """Log scan attempt to scan_history table for ML/Shadow analysis"""
         try:
-            from datetime import datetime, timezone
-
             # Calculate features from market data if provided
             features = (
                 self._calculate_features(symbol, market_data)
@@ -988,7 +987,7 @@ class SimplifiedPaperTradingSystem:
                 )
 
                 # Track position timestamp for market transitions
-                self.position_timestamps[symbol] = datetime.now()
+                self.position_timestamps[symbol] = datetime.now(timezone.utc)
 
                 # Notification handled by SimplePaperTraderV2 based on config
 
@@ -1067,7 +1066,7 @@ class SimplifiedPaperTradingSystem:
                 try:
                     self.supabase.client.table("trade_logs").insert(
                         {
-                            "timestamp": datetime.now().isoformat(),
+                            "timestamp": datetime.now(timezone.utc).isoformat(),
                             "symbol": trade.symbol,
                             "strategy_name": trade.strategy,
                             "action": "CLOSE",
