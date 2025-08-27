@@ -92,26 +92,18 @@ def test_heartbeat_table():
             print(f"      Positions open: {metadata.get('positions_open', 0)}")
             print(f"      Balance: ${metadata.get('balance', 0):.2f}")
             print(
-                f"      Market regime: "
-                f"{metadata.get('market_regime', 'UNKNOWN')}"
+                f"      Market regime: " f"{metadata.get('market_regime', 'UNKNOWN')}"
             )
             print(
-                f"      Symbols monitored: "
-                f"{metadata.get('symbols_monitored', 0)}"
+                f"      Symbols monitored: " f"{metadata.get('symbols_monitored', 0)}"
             )
         else:
             print("   ⚠️  No recent heartbeat from paper trading engine")
-            print(
-                "      (This is normal if paper trading is not "
-                "currently running)"
-            )
+            print("      (This is normal if paper trading is not " "currently running)")
 
     except Exception as e:
         if "multiple" not in str(e).lower():
-            print(
-                "   ⚠️  Paper trading engine heartbeat not found "
-                "(not running)"
-            )
+            print("   ⚠️  Paper trading engine heartbeat not found " "(not running)")
         else:
             print(f"   ❌ Error checking paper trading: {e}")
 

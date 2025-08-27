@@ -97,10 +97,7 @@ def check_trading_activity():
                 minutes_old = int(age.total_seconds() / 60)
 
                 if minutes_old < 5:
-                    print(
-                        f"   ✅ RUNNING - Last heartbeat {minutes_old} "
-                        "minutes ago"
-                    )
+                    print(f"   ✅ RUNNING - Last heartbeat {minutes_old} " "minutes ago")
                 elif minutes_old < 60:
                     print(
                         f"   ⚠️  POSSIBLY STOPPED - Last heartbeat "
@@ -113,10 +110,7 @@ def check_trading_activity():
                         f"{hours_old} hours ago"
                     )
 
-                print(
-                    f"   Positions open: "
-                    f"{metadata.get('positions_open', 0)}"
-                )
+                print(f"   Positions open: " f"{metadata.get('positions_open', 0)}")
                 print(f"   Balance: ${metadata.get('balance', 0):.2f}")
             else:
                 print("   ⚠️  Heartbeat exists but no timestamp")
@@ -132,16 +126,10 @@ def check_trading_activity():
     print("\n🎯 VERDICT:")
     if trade_count > 0:
         print("   Paper Trading has been RUNNING (trades found)")
-        print(
-            "   The 'Stopped' messages were false positives during "
-            "quiet periods"
-        )
+        print("   The 'Stopped' messages were false positives during " "quiet periods")
     else:
         print("   No recent trades, but this could mean:")
-        print(
-            "   1. Market conditions haven't triggered any trades "
-            "(most likely)"
-        )
+        print("   1. Market conditions haven't triggered any trades " "(most likely)")
         print("   2. Service is actually stopped (check Railway dashboard)")
 
     print("\n💡 To check Railway directly:")
