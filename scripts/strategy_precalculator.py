@@ -412,30 +412,208 @@ class StrategyPreCalculator:
         except Exception as e:
             logger.error(f"Error saving to cache: {e}")
 
-    async def calculate_market_summary(self, swing, channel, dca):
-        """Calculate and save market summary"""
+    async def analyze_market_structure(self):
+        """Analyze actual market structure instead of just counting signals"""
         try:
-            # Find best opportunities
+            # Focus on top coins for market analysis
+            market_symbols = [
+                "BTC",
+                "ETH",
+                "SOL",
+                "BNB",
+                "XRP",
+                "ADA",
+                "DOGE",
+                "AVAX",
+                "DOT",
+                "POL",
+            ]
+
+            metrics = {
+                "total_symbols": len(market_symbols),
+                "avg_drop_from_high": 0,
+                "avg_range_size": 0,
+                "trending_up_count": 0,
+                "trending_down_count": 0,
+                "ranging_count": 0,
+                "symbols_with_drop": 0,
+                "symbols_with_surge": 0,
+                "biggest_drop": 0,
+                "biggest_drop_symbol": None,
+            }
+
+            for symbol in market_symbols:
+                try:
+                    # Fetch recent data for analysis
+                    result = (
+                        self.db.client.table("ohlc_recent")
+                        .select("*")
+                        .eq("symbol", symbol)
+                        .eq("timeframe", "15m")
+                        .order("timestamp", desc=True)
+                        .limit(100)
+                        .execute()
+                    )
+
+                    if not result.data or len(result.data) < 50:
+                        continue
+
+                    data = result.data[::-1]  # Reverse to chronological
+
+                    # Calculate drop from recent high (20 bars = 5 hours)
+                    high_20 = max(d["high"] for d in data[-20:])
+                    low_20 = min(d["low"] for d in data[-20:])
+                    current = data[-1]["close"]
+
+                    drop_from_high = ((current - high_20) / high_20) * 100
+                    metrics["avg_drop_from_high"] += drop_from_high
+
+                    # Track biggest drop
+                    if drop_from_high < metrics["biggest_drop"]:
+                        metrics["biggest_drop"] = drop_from_high
+                        metrics["biggest_drop_symbol"] = symbol
+
+                    # Count symbols with significant drops
+                    if drop_from_high < -1.5:
+                        metrics["symbols_with_drop"] += 1
+
+                    # Calculate range size
+                    range_size = ((high_20 - low_20) / low_20) * 100
+                    metrics["avg_range_size"] += range_size
+
+                    # Determine trend (using 20 vs 50 bar SMAs)
+                    if len(data) >= 50:
+                        sma_20 = sum(d["close"] for d in data[-20:]) / 20
+                        sma_50 = sum(d["close"] for d in data[-50:]) / 50
+
+                        if sma_20 > sma_50 * 1.02:  # Up trend (2% above)
+                            metrics["trending_up_count"] += 1
+                        elif sma_20 < sma_50 * 0.98:  # Down trend (2% below)
+                            metrics["trending_down_count"] += 1
+                        else:  # Ranging
+                            metrics["ranging_count"] += 1
+
+                    # Check for volume surge
+                    recent_vol = data[-1]["volume"]
+                    avg_vol = sum(d["volume"] for d in data[-20:]) / 20
+                    if recent_vol > avg_vol * 1.5:
+                        metrics["symbols_with_surge"] += 1
+
+                except Exception as e:
+                    logger.warning(f"Error analyzing {symbol}: {str(e)[:50]}")
+                    continue
+
+            # Calculate averages
+            if metrics["total_symbols"] > 0:
+                metrics["avg_drop_from_high"] /= metrics["total_symbols"]
+                metrics["avg_range_size"] /= metrics["total_symbols"]
+
+            logger.info(
+                f"""
+📊 Market Structure Analysis:
+   Average Drop: {metrics['avg_drop_from_high']:.1f}%
+   Average Range: {metrics['avg_range_size']:.1f}%
+   Trending Up: {metrics['trending_up_count']}/{metrics['total_symbols']}
+   Trending Down: {metrics['trending_down_count']}/{metrics['total_symbols']}
+   Ranging: {metrics['ranging_count']}/{metrics['total_symbols']}
+   Symbols with >1.5% drop: {metrics['symbols_with_drop']}
+   Biggest Drop: {metrics['biggest_drop']:.1f}% ({metrics['biggest_drop_symbol']})
+            """
+            )
+
+            return metrics
+
+        except Exception as e:
+            logger.error(f"Error analyzing market structure: {e}")
+            return None
+
+    def determine_best_strategy_from_structure(self, metrics):
+        """Determine best strategy based on actual market structure, not signal counts"""
+        if not metrics:
+            return "CHANNEL", "NEUTRAL", "Unable to analyze market"
+
+        condition = "NEUTRAL"
+        best_strategy = "CHANNEL"  # Default
+        notes = ""
+
+        # Decision tree based on market reality
+
+        # 1. Significant market-wide drop detected -> DCA opportunity
+        if metrics["avg_drop_from_high"] < -1.5 or metrics["symbols_with_drop"] >= 4:
+            best_strategy = "DCA"
+            condition = "DIP OPPORTUNITY"
+            notes = (
+                f"Market dropped {abs(metrics['avg_drop_from_high']):.1f}% - "
+                f"{metrics['symbols_with_drop']} coins down >1.5%"
+            )
+
+        # 2. Strong upward momentum with volume -> SWING opportunity
+        elif metrics["trending_up_count"] >= 6 and metrics["symbols_with_surge"] >= 3:
+            best_strategy = "SWING"
+            condition = "BREAKOUT MOMENTUM"
+            notes = (
+                f"{metrics['trending_up_count']} coins trending up with volume surges"
+            )
+
+        # 3. Downtrend but not sharp drop -> Wait or careful DCA
+        elif metrics["trending_down_count"] >= 6:
+            if metrics["avg_drop_from_high"] < -1.0:
+                best_strategy = "DCA"
+                condition = "GRADUAL DECLINE"
+                notes = "Market declining - selective DCA opportunities"
+            else:
+                best_strategy = "WAIT"
+                condition = "DOWNTREND"
+                notes = "Market trending down - wait for better entries"
+
+        # 4. Low volatility ranging market -> CHANNEL trading
+        elif metrics["ranging_count"] >= 5 and metrics["avg_range_size"] < 4:
+            best_strategy = "CHANNEL"
+            condition = "RANGE-BOUND"
+            notes = f"Market ranging in {metrics['avg_range_size']:.1f}% band - ideal for channel trading"
+
+        # 5. Mixed signals but some upward momentum -> Look for SWING
+        elif metrics["trending_up_count"] > metrics["trending_down_count"]:
+            best_strategy = "SWING"
+            condition = "SELECTIVE MOMENTUM"
+            notes = f"{metrics['trending_up_count']} coins showing strength"
+
+        # 6. Default to CHANNEL in unclear conditions
+        else:
+            best_strategy = "CHANNEL"
+            condition = "NEUTRAL"
+            notes = "Mixed market - channel trading at extremes"
+
+        logger.info(f"📈 Strategy Decision: {best_strategy} - {condition}")
+        logger.info(f"   Reasoning: {notes}")
+
+        return best_strategy, condition, notes
+
+    async def calculate_market_summary(self, swing, channel, dca):
+        """Calculate and save market summary using market structure analysis"""
+        try:
+            # Keep signal counts for reference
             ready_swing = sum(1 for s in swing if s["readiness"] >= 90)
             ready_channel = sum(1 for c in channel if c["readiness"] >= 80)
             ready_dca = sum(1 for d in dca if d["readiness"] >= 80)
 
-            if ready_channel > ready_swing and ready_channel > ready_dca:
-                condition = "RANGE-BOUND"
-                best_strategy = "CHANNEL"
-                notes = f"{ready_channel} symbols in buy zone"
-            elif ready_swing > ready_dca:
-                condition = "BREAKOUT POTENTIAL"
-                best_strategy = "SWING"
-                notes = f"{ready_swing} symbols near breakout"
-            elif ready_dca > 0:
-                condition = "DIP OPPORTUNITY"
-                best_strategy = "DCA"
-                notes = f"{ready_dca} symbols ready for DCA"
-            else:
-                condition = "NEUTRAL"
-                best_strategy = "WAIT"
-                notes = "No strong setups currently"
+            logger.info(
+                f"Signal Counts - Swing: {ready_swing}, Channel: {ready_channel}, DCA: {ready_dca}"
+            )
+
+            # Analyze actual market structure
+            market_metrics = await self.analyze_market_structure()
+
+            # Determine best strategy based on market structure, not counts
+            (
+                best_strategy,
+                condition,
+                notes,
+            ) = self.determine_best_strategy_from_structure(market_metrics)
+
+            # Add signal availability info to notes
+            signal_info = f" (Signals available: {ready_dca} DCA, {ready_swing} Swing, {ready_channel} Channel)"
+            notes = notes + signal_info if notes else signal_info
 
             # Save to cache
             summary = {

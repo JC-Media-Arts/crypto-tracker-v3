@@ -45,7 +45,7 @@
 **⚠️ CRITICAL: Always check this section first when working on the codebase!**
 
 This section lists the currently active production files and their deprecated versions.
-Last Updated: August 26, 2025
+Last Updated: August 27, 2025
 
 ### Paper Trading System
 - **ACTIVE**: `scripts/run_paper_trading_simple.py` ✅
@@ -85,6 +85,10 @@ Last Updated: August 26, 2025
   - Deployed as "System - Pre-Calculator" on Railway
   - Pre-calculates strategy readiness for dashboard
   - Updates cache tables every 5 minutes
+  - **UPDATED 8/27**: Market structure analysis (v2.0.0)
+    - Analyzes actual market conditions instead of counting signals
+    - Determines best strategy based on market drops, trends, and volatility
+    - Prevents mismatches between recommended strategy and available signals
 
 - **DEPRECATED**:
   - `scripts/run_feature_calculator.py` ❌ (Old feature calculator)
@@ -1499,6 +1503,7 @@ crypto-tracker-v3/
 ### Lessons Learned Log
 | Date | Lesson | Action |
 |------|--------|--------|
+| 8/27 | Market analyzer should analyze actual market structure, not just count signals | Implemented market structure analysis to determine strategy based on drops, trends, and volatility |
 | 8/27 | Database schema changes require thorough impact analysis on ML systems | Always check column names and data types in dependent scripts before running ML training |
 | 8/27 | Trading report accuracy requires using actual portfolio state, not local calculations | Use SimplePaperTraderV2's database sync as single source of truth |
 | 8/27 | Railway's 500 logs/sec limit requires intelligent batching strategies | Implemented ScanBuffer class for async background batch logging with 500-scan or 5-minute flushes |
