@@ -4,18 +4,14 @@ Handles DCA and Swing strategies with conflict resolution and capital allocation
 Based on MASTER_PLAN.md specifications
 """
 
-import asyncio
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Dict, List, Optional
 from datetime import datetime, timedelta
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
-import numpy as np
 from loguru import logger
-import json
 
 from src.strategies.dca.detector import DCADetector
 from src.strategies.dca.grid import GridCalculator
-from src.strategies.dca.executor import DCAExecutor
 from src.strategies.swing.detector import SwingDetector
 from src.strategies.swing.analyzer import SwingAnalyzer
 from src.strategies.channel.detector import ChannelDetector
@@ -103,13 +99,23 @@ class StrategyManager:
 
         # Check if ML is enabled (from env or config)
         self.ml_enabled = os.getenv("ML_ENABLED", "true").lower() == "true"
-        self.ml_enabled = config.get("ml_enabled", self.ml_enabled)
+        # Handle both dict and Settings object
+        if isinstance(config, dict):
+            self.ml_enabled = config.get("ml_enabled", self.ml_enabled)
+        elif hasattr(config, "ml_enabled"):
+            self.ml_enabled = config.ml_enabled
 
         # Check if shadow testing is enabled
         self.shadow_enabled = (
             os.getenv("SHADOW_TESTING_ENABLED", "true").lower() == "true"
         )
-        self.shadow_enabled = config.get("shadow_testing_enabled", self.shadow_enabled)
+        # Handle both dict and Settings object
+        if isinstance(config, dict):
+            self.shadow_enabled = config.get(
+                "shadow_testing_enabled", self.shadow_enabled
+            )
+        elif hasattr(config, "shadow_testing_enabled"):
+            self.shadow_enabled = config.shadow_testing_enabled
 
         # Initialize scan logger for ML learning (only if ML enabled)
         self.scan_logger = (
@@ -183,8 +189,11 @@ class StrategyManager:
         logger.info(
             f"Strategy Manager initialized with ${self.allocation.total_capital} capital"
         )
+        channel_alloc = getattr(self.allocation, "channel_allocation", 0.3)
         logger.info(
-            f"Allocation: DCA {self.allocation.dca_allocation:.0%}, Swing {self.allocation.swing_allocation:.0%}, Channel {getattr(self.allocation, 'channel_allocation', 0.3):.0%}"
+            f"Allocation: DCA {self.allocation.dca_allocation:.0%}, "
+            f"Swing {self.allocation.swing_allocation:.0%}, "
+            f"Channel {channel_alloc:.0%}"
         )
         logger.info(
             f"Regime Detection: {'Enabled' if self.regime_detector.enabled else 'Disabled'}"
@@ -370,7 +379,6 @@ class StrategyManager:
             )
 
             # Determine position size
-            base_size = self.config.get("dca_position_size", 100)
             position_size = self.position_sizer.calculate_position_size(
                 symbol=symbol,
                 portfolio_value=self.allocation.dca_available,
@@ -491,7 +499,6 @@ class StrategyManager:
             )
 
             # Determine position size
-            base_size = self.config.get("swing_position_size", 200)
             position_size = self.position_sizer.calculate_position_size(
                 symbol=symbol,
                 portfolio_value=self.allocation.swing_available,
