@@ -171,6 +171,10 @@ Last Updated: August 27, 2025
     - Page input for direct navigation (e.g., jump to page 50)
     - Shows current page info: "Showing trades 1-100 of 8310 total"
     - Stats still calculated from all trades for accuracy
+  - **RESTORED 12/27**: All dashboard pages (Strategies, Market, R&D) now fully functional
+    - R&D page: ML model status, learning progress, parameter recommendations (5 API endpoints)
+    - Strategies page: Real-time signals, market conditions, strategy readiness
+    - Market page: BTC changes, volatility, top movers (2 API endpoints)
   - Reads from cache tables for performance
   - Auto-refreshes every 10 seconds
 
