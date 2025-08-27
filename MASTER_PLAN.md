@@ -96,6 +96,7 @@ Last Updated: August 26, 2025
     - Deployed as "Research - ML Analyzer" on Railway
     - Analyzes scan_history and generates predictions
     - Models: `models/dca/`, `models/swing/`, `models/channel/`
+    - **UPDATED 8/27**: Now using retrained CHANNEL model (77.4% win rate, 0.786 score)
   - `scripts/run_daily_retraining.py` ✅
     - ML Retrainer Cron service
     - Runs daily at 2 AM PST
@@ -261,10 +262,11 @@ Last Updated: August 26, 2025
 - [x] **Created backfill script for scan features**
   - Built `backfill_scan_features.py` but found all 755,775 scans already have features
   - Script ready for future use if needed
-- [x] **Attempted ML model retraining**
-  - Created `retrain_models_from_scratch.py` script
-  - Discovered issue: paper_trades table uses different column names (pnl vs pnl_usd)
-  - All trades showing as losses - needs investigation
+- [x] **Successfully retrained and deployed CHANNEL ML model**
+  - Fixed P&L column mismatch (pnl vs pnl_usd) in `retrain_models_from_scratch.py`
+  - Trained new CHANNEL model: 77.4% win rate, 0.786 composite score
+  - Deployed new model to ML Analyzer service by replacing `models/channel/classifier.pkl`
+  - ML Analyzer now using improved model in production
 - [x] Fixed all CI/CD issues with Black and Flake8
 - [x] Deployed all fixes to production via Railway
 
@@ -296,14 +298,13 @@ Last Updated: August 26, 2025
 
 ### 🎯 Next Steps
 - Deploy Health Reporter service to Railway
-- Monitor CHANNEL model performance with new 0.786 composite score
+- Monitor CHANNEL model performance with new 0.786 composite score in production
 - Consider retraining DCA/SWING when more data available (need 20+ trades)
-- Verify ML Analyzer using the new trained model
+- Watch for ML predictions from the improved model in scan_history
 
 ### ❓ Questions/Decisions Needed
 - Is the 0.65 threshold appropriate for ML model updates? (Current: 0.786 > 0.65 ✅)
 - Should health reports run as continuous service or cron?
-- Should we update the ML Analyzer to use the new channel_model.pkl?
 
 ---
 
