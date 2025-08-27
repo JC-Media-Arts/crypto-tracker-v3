@@ -265,8 +265,20 @@ class StrategyPreCalculator:
         avg_volume = sum(d["volume"] for d in recent_data[-10:]) / 10
         volume_ratio = current["volume"] / avg_volume if avg_volume > 0 else 0
 
-        # Readiness calculation
-        breakout_readiness = min(100, max(0, (breakout_pct + 2) * 50))
+        # Fixed readiness calculation - properly scale based on proximity to breakout
+        threshold = 1.0  # 1% breakout threshold from config
+        if breakout_pct < -2:
+            breakout_readiness = 0  # Far below resistance
+        elif breakout_pct < 0:
+            # Below resistance: scale 0-70% based on proximity
+            breakout_readiness = (breakout_pct + 2) * 35
+        elif breakout_pct < threshold:
+            # Between resistance and threshold: 70-90%
+            breakout_readiness = 70 + (breakout_pct / threshold) * 20
+        else:
+            # Above threshold: 90-100%
+            breakout_readiness = min(100, 90 + (breakout_pct - threshold) * 10)
+
         volume_readiness = min(100, (volume_ratio / 1.5) * 100)
         readiness = breakout_readiness * 0.7 + volume_readiness * 0.3
 

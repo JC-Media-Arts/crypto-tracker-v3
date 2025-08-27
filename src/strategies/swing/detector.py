@@ -27,16 +27,25 @@ class SwingDetector:
         self.supabase = supabase_client
         self.fetcher = HybridDataFetcher()
 
-        # Swing detection parameters (Custom balanced approach - aggressive settings)
+        # Load configuration from paper_trading_config.py
+        from configs.paper_trading_config import PAPER_TRADING_CONFIG
+
+        swing_cfg = PAPER_TRADING_CONFIG["strategies"].get("SWING", {})
+
+        # Swing detection parameters - properly loaded from config
         self.config = {
             # Breakout detection
             "breakout_lookback": 20,  # periods to look back for resistance
-            "breakout_threshold": 1.015,  # 1.5% above resistance (was 2%)
-            "volume_spike_threshold": 1.5,  # 1.5x average volume (was 2x)
+            "breakout_threshold": swing_cfg.get(
+                "breakout_threshold", 1.010
+            ),  # Load from config (default 1%)
+            "volume_spike_threshold": swing_cfg.get(
+                "volume_surge", 1.3
+            ),  # Load from config (default 1.3x)
             # Momentum indicators
             "momentum_period": 14,
-            "rsi_overbought": 75,  # Raised from 70
-            "rsi_bullish_min": 45,  # RSI above 45 for bullish momentum (was 50)
+            "rsi_overbought": swing_cfg.get("rsi_max", 75),  # Load from config
+            "rsi_bullish_min": swing_cfg.get("rsi_min", 45),  # Load from config
             "macd_signal_cross": True,
             # Trend filters
             "sma_fast": 20,

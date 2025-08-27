@@ -109,8 +109,10 @@ class SimpleRules:
             volume_surge = current["volume"] / avg_volume if avg_volume > 0 else 0
 
             # Simple rules: Breakout + Volume
+            # Convert threshold to percentage (1.010 = 1% breakout)
+            breakout_threshold_pct = (self.swing_breakout_threshold - 1) * 100
             if (
-                price_breakout >= self.swing_breakout_threshold
+                price_breakout >= breakout_threshold_pct
                 and volume_surge > self.swing_volume_surge
             ):
                 return {
