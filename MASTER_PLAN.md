@@ -44,6 +44,32 @@
 
 **⚠️ CRITICAL: Always check this section first when working on the codebase!**
 
+### 🚨 **CRITICAL: BLACK FORMATTING REQUIREMENTS** 🚨
+**BEFORE EVERY COMMIT, YOU MUST:**
+1. **Run Black formatter**: `black .` or `black <specific files>`
+2. **Black Version**: **MUST BE 23.12.1** (NOT 24.x.x)
+3. **Line Length**: DEFAULT 88 characters (do NOT override)
+4. **Configuration Sources**:
+   - `pyproject.toml`: Uses default Black settings
+   - `.pre-commit-config.yaml`: black==23.12.1
+   - `.github/workflows/ci.yml`: black==23.12.1
+   - `.github/workflows/railway-deploy.yml`: black==23.12.1
+   - `requirements.txt`: black==23.12.1
+5. **Common Failures**:
+   - Using wrong Black version (24.x.x has different rules)
+   - Not running Black before pushing
+   - CI/CD will FAIL if not properly formatted
+
+**To Format All Python Files:**
+```bash
+black .
+```
+
+**To Check Without Modifying:**
+```bash
+black --check .
+```
+
 This section lists the currently active production files and their deprecated versions.
 Last Updated: August 27, 2025
 
