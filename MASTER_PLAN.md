@@ -166,6 +166,11 @@ Last Updated: August 27, 2025
   - Multi-page dashboard with Paper Trading, Strategies, Market, and R&D sections
   - **NEW 8/26**: R&D page shows ML model scores, parameter recommendations, and insights
   - **FIXED 8/26**: Shows composite scores (weighted accuracy/precision/recall) instead of raw accuracy
+  - **NEW 12/27**: Proper UI pagination - loads 100 trades per page with Next/Previous buttons
+    - Significantly reduces Supabase API calls and improves performance
+    - Page input for direct navigation (e.g., jump to page 50)
+    - Shows current page info: "Showing trades 1-100 of 8310 total"
+    - Stats still calculated from all trades for accuracy
   - Reads from cache tables for performance
   - Auto-refreshes every 10 seconds
 
@@ -272,6 +277,34 @@ Last Updated: August 27, 2025
 ---
 
 ## Daily Check-in & Progress Tracking
+
+### Daily Check-in - December 27, 2024
+
+📅 **Date**: December 27, 2024
+**Time**: 3:00 PM PST
+
+### ✅ Completed Today
+- [x] **Implemented proper UI pagination for the dashboard**
+  - Added Next/Previous navigation buttons
+  - Limited display to 100 trades per page (was loading all 8000+ at once)
+  - Added direct page navigation input field
+  - Shows "Showing trades 1-100 of 8310 total" for clarity
+  - Backend still calculates stats from all trades for accuracy
+  - Significantly reduces Supabase API load and improves browser performance
+
+### 📊 System Metrics
+- Total trades in database: 8,310
+- Dashboard pages: 831 (at 100 trades per page)
+- Previous load: ALL trades at once (heavy on Supabase)
+- New load: Only 100 trades per page request
+
+### 💡 Key Insights
+- UI pagination is different from backend pagination
+- Backend pagination was already implemented to fetch all records
+- UI pagination was missing, causing performance issues
+- 100 trades per page is a good balance between usability and performance
+
+---
 
 ### Daily Check-in - August 27, 2025
 
@@ -1537,6 +1570,7 @@ crypto-tracker-v3/
 ### Lessons Learned Log
 | Date | Lesson | Action |
 |------|--------|--------|
+| 12/27 | UI pagination and backend pagination are different concepts - backend fetched all data but UI displayed all at once | Implemented proper UI pagination with 100 trades per page, Next/Previous buttons, and page navigation |
 | 8/27 | CHANNEL strategy with 96.5% win rate was too easy to trigger, dominating trades | Tightened buy_zone from 10% to 5%, increased strength to 0.80, closed 320/370 positions |
 | 8/27 | Dashboard showing only 108 positions but database has 887 open (845 CHANNEL) | Dashboard bug: only fetching 1000 most recent trades, missing 6,424 older trades. CHANNEL still over-triggering |
 | 8/27 | Emergency cleanup: Closed 798 excess CHANNEL positions, kept only top 50 | CHANNEL detector likely still using wrong config. Realized -$17.88 P&L from cleanup |
