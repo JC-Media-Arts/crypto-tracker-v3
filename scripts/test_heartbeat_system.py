@@ -3,17 +3,15 @@
 Test script to verify the system heartbeat functionality
 """
 
-import os
 import sys
 from pathlib import Path
 from datetime import datetime, timedelta, timezone
-import time
 
 # Add project root to path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from src.data.supabase_client import SupabaseClient
-from loguru import logger
+from src.data.supabase_client import SupabaseClient  # noqa: E402
+
 
 def test_heartbeat_table():
     """Test that we can write to and read from the heartbeat table"""
@@ -29,16 +27,14 @@ def test_heartbeat_table():
             "service_name": "test_service",
             "last_heartbeat": datetime.now(timezone.utc).isoformat(),
             "status": "running",
-            "metadata": {
-                "test": True,
-                "timestamp": datetime.now().isoformat()
-            }
+            "metadata": {"test": True, "timestamp": datetime.now().isoformat()},
         }
 
-        result = db.client.table("system_heartbeat").upsert(
-            test_heartbeat,
-            on_conflict="service_name"
-        ).execute()
+        result = (
+            db.client.table("system_heartbeat")
+            .upsert(test_heartbeat, on_conflict="service_name")
+            .execute()
+        )
 
         if result.data:
             print("   ✅ Successfully wrote heartbeat to database")
@@ -52,12 +48,16 @@ def test_heartbeat_table():
     # 2. Test reading heartbeat
     print("\n2. Testing heartbeat read...")
     try:
-        result = db.client.table("system_heartbeat").select("*").eq(
-            "service_name", "test_service"
-        ).single().execute()
+        result = (
+            db.client.table("system_heartbeat")
+            .select("*")
+            .eq("service_name", "test_service")
+            .single()
+            .execute()
+        )
 
         if result.data:
-            print(f"   ✅ Successfully read heartbeat:")
+            print("   ✅ Successfully read heartbeat:")
             print(f"      Service: {result.data.get('service_name')}")
             print(f"      Status: {result.data.get('status')}")
             print(f"      Last heartbeat: {result.data.get('last_heartbeat')}")
@@ -76,25 +76,42 @@ def test_heartbeat_table():
             datetime.now(timezone.utc) - timedelta(minutes=5)
         ).isoformat()
 
-        result = db.client.table("system_heartbeat").select("*").eq(
-            "service_name", "paper_trading_engine"
-        ).gte("last_heartbeat", five_minutes_ago).single().execute()
+        result = (
+            db.client.table("system_heartbeat")
+            .select("*")
+            .eq("service_name", "paper_trading_engine")
+            .gte("last_heartbeat", five_minutes_ago)
+            .single()
+            .execute()
+        )
 
         if result.data:
-            print(f"   ✅ Paper trading engine is RUNNING")
+            print("   ✅ Paper trading engine is RUNNING")
             metadata = result.data.get("metadata", {})
             print(f"      Last heartbeat: {result.data.get('last_heartbeat')}")
             print(f"      Positions open: {metadata.get('positions_open', 0)}")
             print(f"      Balance: ${metadata.get('balance', 0):.2f}")
-            print(f"      Market regime: {metadata.get('market_regime', 'UNKNOWN')}")
-            print(f"      Symbols monitored: {metadata.get('symbols_monitored', 0)}")
+            print(
+                f"      Market regime: "
+                f"{metadata.get('market_regime', 'UNKNOWN')}"
+            )
+            print(
+                f"      Symbols monitored: "
+                f"{metadata.get('symbols_monitored', 0)}"
+            )
         else:
             print("   ⚠️  No recent heartbeat from paper trading engine")
-            print("      (This is normal if paper trading is not currently running)")
+            print(
+                "      (This is normal if paper trading is not "
+                "currently running)"
+            )
 
     except Exception as e:
         if "multiple" not in str(e).lower():
-            print(f"   ⚠️  Paper trading engine heartbeat not found (not running)")
+            print(
+                "   ⚠️  Paper trading engine heartbeat not found "
+                "(not running)"
+            )
         else:
             print(f"   ❌ Error checking paper trading: {e}")
 

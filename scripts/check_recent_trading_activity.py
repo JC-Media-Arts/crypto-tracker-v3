@@ -3,7 +3,6 @@
 Check recent trading activity to see if paper trading has been running
 """
 
-import os
 import sys
 from pathlib import Path
 from datetime import datetime, timedelta, timezone
@@ -11,8 +10,8 @@ from datetime import datetime, timedelta, timezone
 # Add project root to path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from src.data.supabase_client import SupabaseClient
-from loguru import logger
+from src.data.supabase_client import SupabaseClient  # noqa: E402
+
 
 def check_trading_activity():
     """Check recent trading activity"""
@@ -65,7 +64,11 @@ def check_trading_activity():
 
         if trade_count > 0:
             print(f"   Latest trade: {trades_result.data[0]['created_at']}")
-            print(f"                 {trades_result.data[0]['symbol']} - {trades_result.data[0]['side']} ({trades_result.data[0]['strategy_name']})")
+            latest = trades_result.data[0]
+            print(
+                f"                 {latest['symbol']} - "
+                f"{latest['side']} ({latest['strategy_name']})"
+            )
 
         if scan_count > 0:
             print(f"   Latest scan: {scans_result.data[0]['timestamp']}")
@@ -87,20 +90,33 @@ def check_trading_activity():
 
             # Parse timestamp and calculate how old it is
             from datetime import datetime
+
             if last_hb:
-                hb_time = datetime.fromisoformat(last_hb.replace('Z', '+00:00'))
+                hb_time = datetime.fromisoformat(last_hb.replace("Z", "+00:00"))
                 age = datetime.now(timezone.utc) - hb_time
                 minutes_old = int(age.total_seconds() / 60)
 
                 if minutes_old < 5:
-                    print(f"   ✅ RUNNING - Last heartbeat {minutes_old} minutes ago")
+                    print(
+                        f"   ✅ RUNNING - Last heartbeat {minutes_old} "
+                        "minutes ago"
+                    )
                 elif minutes_old < 60:
-                    print(f"   ⚠️  POSSIBLY STOPPED - Last heartbeat {minutes_old} minutes ago")
+                    print(
+                        f"   ⚠️  POSSIBLY STOPPED - Last heartbeat "
+                        f"{minutes_old} minutes ago"
+                    )
                 else:
                     hours_old = minutes_old // 60
-                    print(f"   ❌ LIKELY STOPPED - Last heartbeat {hours_old} hours ago")
+                    print(
+                        f"   ❌ LIKELY STOPPED - Last heartbeat "
+                        f"{hours_old} hours ago"
+                    )
 
-                print(f"   Positions open: {metadata.get('positions_open', 0)}")
+                print(
+                    f"   Positions open: "
+                    f"{metadata.get('positions_open', 0)}"
+                )
                 print(f"   Balance: ${metadata.get('balance', 0):.2f}")
             else:
                 print("   ⚠️  Heartbeat exists but no timestamp")
@@ -116,16 +132,23 @@ def check_trading_activity():
     print("\n🎯 VERDICT:")
     if trade_count > 0:
         print("   Paper Trading has been RUNNING (trades found)")
-        print("   The 'Stopped' messages were false positives during quiet periods")
+        print(
+            "   The 'Stopped' messages were false positives during "
+            "quiet periods"
+        )
     else:
         print("   No recent trades, but this could mean:")
-        print("   1. Market conditions haven't triggered any trades (most likely)")
+        print(
+            "   1. Market conditions haven't triggered any trades "
+            "(most likely)"
+        )
         print("   2. Service is actually stopped (check Railway dashboard)")
 
     print("\n💡 To check Railway directly:")
     print("   1. Go to Railway dashboard")
     print("   2. Check 'Trading - Paper Engine' service")
     print("   3. Look at logs and deployment status")
+
 
 if __name__ == "__main__":
     check_trading_activity()
