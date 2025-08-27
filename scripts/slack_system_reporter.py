@@ -5,22 +5,24 @@ Provides comprehensive system health reports and real-time critical alerts.
 """
 
 import asyncio
-import json
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Dict, List, Any, Optional
+from typing import Dict, Any
 import schedule
 import time
 
 # Add project root to path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from src.config.settings import get_settings
-from src.data.supabase_client import SupabaseClient
-from src.data.hybrid_fetcher import HybridDataFetcher
-from src.notifications.slack_notifier import SlackNotifier, NotificationType
-from loguru import logger
+from src.config.settings import get_settings  # noqa: E402
+from src.data.supabase_client import SupabaseClient  # noqa: E402
+from src.data.hybrid_fetcher import HybridDataFetcher  # noqa: E402
+from src.notifications.slack_notifier import (  # noqa: E402
+    SlackNotifier,
+    NotificationType,
+)
+from loguru import logger  # noqa: E402
 
 
 class SlackSystemReporter:
@@ -444,7 +446,17 @@ class SlackSystemReporter:
             status_emoji = "🔴"
 
         # Create title
-        title = f"{status_emoji} {'Morning' if is_morning else 'Evening'} System Report"
+        if report.get("is_startup"):
+            # For startup/restart reports
+            if report.get("type") == "status":
+                title = f"{status_emoji} System Status Report"
+            else:
+                title = f"{status_emoji} Startup System Report"
+        else:
+            # For scheduled reports
+            title = (
+                f"{status_emoji} {'Morning' if is_morning else 'Evening'} System Report"
+            )
 
         # Create main message
         message_parts = []
@@ -530,6 +542,63 @@ class SlackSystemReporter:
         }
 
         return title, message, details
+
+    async def send_startup_report(self):
+        """Send startup status report to Slack with appropriate labeling."""
+        try:
+            # Determine current hour for appropriate report type
+            from datetime import datetime
+            import pytz
+
+            pst_tz = pytz.timezone("America/Los_Angeles")
+            current_hour = datetime.now(pst_tz).hour
+
+            # Choose appropriate report based on time of day
+            if 5 <= current_hour < 12:
+                # Morning hours - use morning report
+                report = await self.generate_morning_report()
+            elif 12 <= current_hour < 17:
+                # Afternoon - generate current status
+                report = await self.generate_morning_report()
+                report["type"] = "status"  # Override type for proper labeling
+            else:
+                # Evening/night - use evening report format
+                report = await self.generate_evening_report()
+
+            # For startup reports, override the title format
+            report["is_startup"] = True
+            title, message, details = self.format_slack_message(report)
+
+            # Determine notification type based on health status
+            health_status = (
+                report["sections"].get("health", {}).get("status", "unknown")
+            )
+            if health_status == "critical":
+                notification_type = NotificationType.SYSTEM_ALERT
+            else:
+                notification_type = NotificationType.DAILY_REPORT
+
+            # Send to Slack using existing notifier
+            await self.slack.send_notification(
+                notification_type=notification_type,
+                title=title,
+                message=message,
+                details=details,
+                color=(
+                    "good"
+                    if health_status == "healthy"
+                    else "warning"
+                    if health_status == "degraded"
+                    else "danger"
+                ),
+            )
+
+            logger.info(
+                f"Startup report sent to Slack (type: {report.get('type', 'status')})"
+            )
+
+        except Exception as e:
+            logger.error(f"Error sending startup report: {e}")
 
     async def send_morning_report(self):
         """Send morning report to Slack."""

@@ -13,8 +13,8 @@ from datetime import datetime, timezone
 # Add project root to path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from scripts.slack_system_reporter import SlackSystemReporter
-from loguru import logger
+from scripts.slack_system_reporter import SlackSystemReporter  # noqa: E402
+from loguru import logger  # noqa: E402
 
 
 async def main():
@@ -39,7 +39,7 @@ async def main():
     # Send an initial status report
     try:
         logger.info("Sending initial status report...")
-        await reporter.send_morning_report()
+        await reporter.send_startup_report()
         logger.info("Initial report sent successfully")
     except Exception as e:
         logger.error(f"Failed to send initial report: {e}")
@@ -57,7 +57,7 @@ async def main():
                 "Slack Reporter Crashed",
                 f"The Slack reporter service has stopped unexpectedly: {str(e)[:200]}",
             )
-        except:
+        except Exception:
             pass
         raise
 
