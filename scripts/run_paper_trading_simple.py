@@ -70,6 +70,9 @@ class SimplifiedPaperTradingSystem:
         # Initialize database
         self.supabase = SupabaseClient()
 
+        # Track last heartbeat time to avoid too frequent updates
+        self.last_heartbeat_time = datetime.now()
+
         # Load configuration from central source
         # Build config from PAPER_TRADING_CONFIG with backward compatibility
         self.config = {
@@ -844,6 +847,45 @@ class SimplifiedPaperTradingSystem:
 
         return rsi
 
+    async def update_heartbeat(self):
+        """Update system heartbeat to show service is running"""
+        try:
+            # Only update heartbeat once per minute to avoid excessive DB writes
+            current_time = datetime.now()
+            if (current_time - self.last_heartbeat_time).seconds < 60:
+                return
+
+            # Update heartbeat with current system status
+            heartbeat_data = {
+                "service_name": "paper_trading_engine",
+                "last_heartbeat": current_time.isoformat(),
+                "status": "running",
+                "metadata": {
+                    "symbols_monitored": len(self.symbols)
+                    if hasattr(self, "symbols")
+                    else 0,
+                    "positions_open": len(self.paper_trader.positions),
+                    "market_regime": self.current_regime.name
+                    if hasattr(self, "current_regime") and self.current_regime
+                    else "UNKNOWN",
+                    "balance": float(self.paper_trader.balance),
+                    "total_pnl": float(self.paper_trader.total_pnl),
+                    "scan_interval": self.config.get("scan_interval", 60),
+                },
+            }
+
+            # Upsert to ensure we update existing record or create new one
+            self.supabase.client.table("system_heartbeat").upsert(
+                heartbeat_data, on_conflict="service_name"
+            ).execute()
+
+            self.last_heartbeat_time = current_time
+            logger.debug("Heartbeat updated successfully")
+
+        except Exception as e:
+            # Silent fail - don't let heartbeat errors disrupt trading
+            logger.debug(f"Failed to update heartbeat: {e}")
+
     async def log_scan(
         self,
         symbol: str,
@@ -1049,6 +1091,9 @@ class SimplifiedPaperTradingSystem:
 
         while not self.shutdown:
             try:
+                # Update heartbeat to show service is running
+                await self.update_heartbeat()
+
                 # Scan for new opportunities
                 await self.scan_for_opportunities()
 

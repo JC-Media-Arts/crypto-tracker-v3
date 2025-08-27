@@ -1498,36 +1498,53 @@ def get_engine_status():
     try:
         # If running on Railway, check database for recent activity
         if os.environ.get("RAILWAY_ENVIRONMENT"):
-            # Check for recent trades or scan history entries (within last 30 minutes)
             db = SupabaseClient()
-            thirty_minutes_ago = (
-                datetime.now(timezone.utc) - timedelta(minutes=30)
+
+            # Check system_heartbeat table for recent paper trading engine heartbeat
+            five_minutes_ago = (
+                datetime.now(timezone.utc) - timedelta(minutes=5)
             ).isoformat()
 
-            # Check for recent scan history (paper trading logs scans frequently)
             result = (
-                db.client.table("scan_history")
-                .select("timestamp")
-                .gte("timestamp", thirty_minutes_ago)
+                db.client.table("system_heartbeat")
+                .select("*")
+                .eq("service_name", "paper_trading_engine")
+                .gte("last_heartbeat", five_minutes_ago)
+                .single()
+                .execute()
+            )
+
+            # If we have a recent heartbeat, paper trading is running
+            if result.data:
+                metadata = result.data.get("metadata", {})
+                return jsonify(
+                    {
+                        "running": True,
+                        "source": "railway_heartbeat",
+                        "last_heartbeat": result.data.get("last_heartbeat"),
+                        "positions_open": metadata.get("positions_open", 0),
+                        "balance": metadata.get("balance", 0),
+                        "market_regime": metadata.get("market_regime", "UNKNOWN"),
+                    }
+                )
+
+            # Fallback: check for recent trades (within last hour)
+            one_hour_ago = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
+
+            trade_result = (
+                db.client.table("paper_trades")
+                .select("created_at")
+                .gte("created_at", one_hour_ago)
                 .limit(1)
                 .execute()
             )
 
-            # If we have recent scans, paper trading is running
-            paper_trading_running = bool(result.data)
-
-            # Also check for recent trades as backup
-            if not paper_trading_running:
-                trade_result = (
-                    db.client.table("paper_trades")
-                    .select("created_at")
-                    .gte("created_at", thirty_minutes_ago)
-                    .limit(1)
-                    .execute()
-                )
-                paper_trading_running = bool(trade_result.data)
-
-            return jsonify({"running": paper_trading_running, "source": "railway"})
+            return jsonify(
+                {
+                    "running": bool(trade_result.data),
+                    "source": "railway_trades_fallback",
+                }
+            )
         else:
             # Local check - look for process
             import subprocess
