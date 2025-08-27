@@ -30,7 +30,10 @@ jobs:
     - name: Check formatting with Black
       run: |
         pip install black==23.12.1
-        black --check src/ scripts/ --exclude='(venv|_tests|_deprecated|test_.*\.py|check_.*\.py|analyze_.*\.py|export_.*\.py|verify_.*\.py|debug_.*\.py)'
+        # Check src/ directory
+        black --check src/
+        # Check scripts/ but exclude test/check/analyze/etc files
+        find scripts/ -type f -name "*.py" ! -name "test_*.py" ! -name "check_*.py" ! -name "analyze_*.py" ! -name "export_*.py" ! -name "verify_*.py" ! -name "debug_*.py" ! -path "*/scripts/_tests/*" ! -path "*/scripts/_deprecated/*" | xargs -r black --check
 
     - name: Run linting
       run: |

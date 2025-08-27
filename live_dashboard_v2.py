@@ -370,7 +370,7 @@ PAPER_TRADING_TEMPLATE = r"""
 <p class="subtitle">Live paper trading performance and positions</p>
 
 <!-- Engine Status Indicator -->
-<div id="engineStatus" style="position: fixed; top: 80px; right: 200px; display: flex; align-items: center; gap: 8px; background: rgba(30, 41, 59, 0.9); padding: 8px 16px; border-radius: 8px; border: 1px solid rgba(148, 163, 184, 0.2);">
+<div id="engineStatus" style="position: fixed; top: 80px; right: 200px; display: flex; align-items: center; gap: 8px; background: rgba(30, 41, 59, 0.9); padding: 8px 16px; border-radius: 8px; border: 1px solid rgba(148, 163, 184, 0.2);">  # noqa: E501
     <div id="statusLight" style="width: 12px; height: 12px; border-radius: 50%; background: #fbbf24;"></div>
     <span id="statusText" style="font-size: 0.875rem; color: #94a3b8;">Checking...</span>
 </div>
@@ -1714,28 +1714,53 @@ def get_market_summary():
         except Exception as e:
             logger.debug(f"Could not get top movers: {e}")
 
-        # Determine overall market condition
+        # Get market condition from precalculator cache (the source of truth)
         condition = "NORMAL"
         best_strategy = "WAIT"
-        total_symbols = len(top_movers)
+        notes = f"Monitoring {len(top_movers)} active signals"
 
-        if total_symbols > 0:
-            # If we have high readiness scores, market might be good
-            avg_readiness = sum(float(m["change_24h"]) for m in top_movers) / len(
-                top_movers
+        try:
+            market_summary = (
+                db.client.table("market_summary_cache")
+                .select("*")
+                .order("calculated_at", desc=True)
+                .limit(1)
+                .execute()
             )
-            if avg_readiness > 80:
-                condition = "BULLISH"
-                best_strategy = "SWING"
-            elif avg_readiness > 70:
-                condition = "NORMAL"
-                best_strategy = "DCA"
+
+            if market_summary.data:
+                summary = market_summary.data[0]
+                best_strategy = summary.get("best_strategy", "WAIT")
+                notes = summary.get("notes", notes)
+
+                # Map strategy to market condition
+                if best_strategy == "SWING":
+                    condition = "BULLISH"
+                elif best_strategy == "DCA":
+                    condition = "NORMAL"
+                elif best_strategy == "CHANNEL":
+                    condition = "SIDEWAYS"
+                else:
+                    condition = "WAITING"
+        except Exception as e:
+            logger.debug(f"Could not get market summary cache: {e}")
+            # Fall back to simple calculation if cache unavailable
+            if len(top_movers) > 0:
+                avg_readiness = sum(float(m["change_24h"]) for m in top_movers) / len(
+                    top_movers
+                )
+                if avg_readiness > 80:
+                    condition = "BULLISH"
+                    best_strategy = "SWING"
+                elif avg_readiness > 70:
+                    condition = "NORMAL"
+                    best_strategy = "DCA"
 
         return jsonify(
             {
                 "condition": condition,
                 "best_strategy": best_strategy,
-                "notes": f"Monitoring {total_symbols} active signals",
+                "notes": notes,
                 "top_movers": top_movers,
             }
         )
@@ -2117,7 +2142,6 @@ def get_ml_model_status():
     """Get ML model training status"""
     try:
         import json
-        import os
         from pathlib import Path
 
         model_dir = Path("models")
@@ -2218,7 +2242,6 @@ def get_parameter_recommendations():
 
                 # Load current config values
                 import json
-                from pathlib import Path
 
                 config_path = Path("configs/paper_trading.json")
                 current_config = {}
