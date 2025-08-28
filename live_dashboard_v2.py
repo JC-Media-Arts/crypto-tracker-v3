@@ -467,9 +467,38 @@ BASE_CSS = r"""
 .risk-content h3 {
     color: #94a3b8;
     font-size: 1.1rem;
+    margin-top: 25px;
     margin-bottom: 15px;
     padding-bottom: 8px;
     border-bottom: 1px solid rgba(100, 181, 246, 0.2);
+    position: relative;
+}
+.risk-content .config-group:first-child h3 {
+    margin-top: 0;
+}
+.section-tooltip {
+    display: inline-block;
+    margin-left: 8px;
+    color: #60a5fa;
+    cursor: help;
+    font-size: 0.9rem;
+}
+.section-tooltip:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    left: 0;
+    top: 100%;
+    margin-top: 5px;
+    padding: 10px 15px;
+    background: rgba(30, 41, 59, 0.95);
+    border: 1px solid rgba(59, 130, 246, 0.5);
+    border-radius: 8px;
+    color: #e2e8f0;
+    font-size: 0.85rem;
+    white-space: normal;
+    max-width: 400px;
+    z-index: 1000;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
 }
 """
 
@@ -1915,7 +1944,7 @@ ADMIN_TEMPLATE = r"""
         <!-- Position & Portfolio Controls -->
         <div id="risk_position" class="risk-content active">
             <div class="config-group">
-                <h3>Position Sizing</h3>
+                <h3>Position Sizing <span class="section-tooltip" data-tooltip="Controls how much capital is allocated to each trade. Base size sets the default amount, multiplier adjusts for confidence/conditions, and max % prevents oversized positions.">ⓘ</span></h3>
                 <div class="config-row">
                     <label>Base Position Size ($)</label>
                     <input type="number" id="base_position_size" step="10" min="10" max="1000" onchange="markUnsaved()">
@@ -1930,7 +1959,7 @@ ADMIN_TEMPLATE = r"""
                 </div>
             </div>
             <div class="config-group">
-                <h3>Position Limits</h3>
+                <h3>Position Limits <span class="section-tooltip" data-tooltip="Maximum number of positions that can be held simultaneously. Limits can be set globally, per strategy, and per symbol to prevent overconcentration.">ⓘ</span></h3>
                 <div class="config-row">
                     <label>Max Total Positions</label>
                     <input type="number" id="max_positions" step="1" min="1" max="100" onchange="markUnsaved()">
@@ -1953,7 +1982,7 @@ ADMIN_TEMPLATE = r"""
         <!-- Market Protection -->
         <div id="risk_market" class="risk-content">
             <div class="config-group">
-                <h3>Market Regime Thresholds</h3>
+                <h3>Market Regime Thresholds <span class="section-tooltip" data-tooltip="Defines market conditions based on price movements. Panic indicates severe drops, Caution signals moderate declines, and Euphoria warns of potential overheating.">ⓘ</span></h3>
                 <div class="config-row">
                     <label>Panic Threshold (%)</label>
                     <input type="number" id="panic_threshold" step="1" min="-50" max="-5" onchange="markUnsaved()">
@@ -1968,7 +1997,7 @@ ADMIN_TEMPLATE = r"""
                 </div>
             </div>
             <div class="config-group">
-                <h3>Volatility Thresholds</h3>
+                <h3>Volatility Thresholds <span class="section-tooltip" data-tooltip="Volatility levels that trigger different trading behaviors. Higher volatility may disable certain strategies or widen stop losses for protection.">ⓘ</span></h3>
                 <div class="config-row">
                     <label>Panic Volatility (%)</label>
                     <input type="number" id="volatility_panic" step="0.5" min="5" max="50" onchange="markUnsaved()">
@@ -1983,7 +2012,7 @@ ADMIN_TEMPLATE = r"""
                 </div>
             </div>
             <div class="config-group">
-                <h3>Strategy Volatility Limits</h3>
+                <h3>Strategy Volatility Limits <span class="section-tooltip" data-tooltip="Maximum volatility each strategy can tolerate. When exceeded, the strategy is temporarily disabled to prevent losses in unstable conditions.">ⓘ</span></h3>
                 <div class="config-row">
                     <label>CHANNEL Max Volatility (%)</label>
                     <input type="number" id="channel_volatility_limit" step="0.5" min="1" max="30" onchange="markUnsaved()">
@@ -1998,7 +2027,7 @@ ADMIN_TEMPLATE = r"""
                 </div>
             </div>
             <div class="config-group">
-                <h3>Cumulative Decline Protection</h3>
+                <h3>Cumulative Decline Protection <span class="section-tooltip" data-tooltip="Monitors sustained market declines over 24-48 hour periods. Triggers protective measures when cumulative drops exceed thresholds.">ⓘ</span></h3>
                 <div class="config-row">
                     <label>24h Decline Threshold (%)</label>
                     <input type="number" id="decline_24h" step="1" min="-20" max="-1" onchange="markUnsaved()">
@@ -2013,7 +2042,7 @@ ADMIN_TEMPLATE = r"""
         <!-- Trade Limiter -->
         <div id="risk_limiter" class="risk-content">
             <div class="config-group">
-                <h3>Consecutive Stop Loss Limits</h3>
+                <h3>Consecutive Stop Loss Limits <span class="section-tooltip" data-tooltip="Prevents repeated losses on the same symbol. After hitting the max consecutive stops, trading is paused for that symbol's cooldown period.">ⓘ</span></h3>
                 <div class="config-row">
                     <label>Max Consecutive Stops</label>
                     <input type="number" id="max_consecutive_stops" step="1" min="1" max="10" onchange="markUnsaved()">
@@ -2028,7 +2057,7 @@ ADMIN_TEMPLATE = r"""
                 </div>
             </div>
             <div class="config-group">
-                <h3>Cooldown Hours by Tier</h3>
+                <h3>Cooldown Hours by Tier <span class="section-tooltip" data-tooltip="How long to pause trading after consecutive stop losses. Longer cooldowns for riskier assets (memecoins) to allow market conditions to stabilize.">ⓘ</span></h3>
                 <div class="config-row">
                     <label>Large Cap Cooldown (hours)</label>
                     <input type="number" id="cooldown_large" step="1" min="1" max="48" onchange="markUnsaved()">
@@ -2051,7 +2080,7 @@ ADMIN_TEMPLATE = r"""
         <!-- Risk Limits -->
         <div id="risk_limits" class="risk-content">
             <div class="config-group">
-                <h3>Daily & Drawdown Limits</h3>
+                <h3>Daily & Drawdown Limits <span class="section-tooltip" data-tooltip="Maximum acceptable losses per day and from peak equity. When exceeded, trading halts to preserve capital and allow for strategy review.">ⓘ</span></h3>
                 <div class="config-row">
                     <label>Max Daily Loss (%)</label>
                     <input type="number" id="max_daily_loss_pct" step="1" min="1" max="50" onchange="markUnsaved()">
@@ -2070,7 +2099,7 @@ ADMIN_TEMPLATE = r"""
                 </div>
             </div>
             <div class="config-group">
-                <h3>Risk per Trade</h3>
+                <h3>Risk per Trade <span class="section-tooltip" data-tooltip="Controls position sizing based on risk tolerance. Limits how much capital can be lost on a single trade and consecutive losing streaks.">ⓘ</span></h3>
                 <div class="config-row">
                     <label>Risk per Trade (%)</label>
                     <input type="number" id="risk_per_trade" step="0.5" min="0.5" max="10" onchange="markUnsaved()">
@@ -2081,7 +2110,7 @@ ADMIN_TEMPLATE = r"""
                 </div>
             </div>
             <div class="config-group">
-                <h3>Emergency Controls</h3>
+                <h3>Emergency Controls <span class="section-tooltip" data-tooltip="Circuit breakers for extreme market conditions. Emergency stop halts all trading, while recovery mode reduces position sizes during drawdowns.">ⓘ</span></h3>
                 <div class="config-row">
                     <label>Emergency Stop Enabled</label>
                     <input type="checkbox" id="emergency_stop_enabled" onchange="markUnsaved()">
@@ -2100,7 +2129,7 @@ ADMIN_TEMPLATE = r"""
         <!-- Dynamic Adjustments -->
         <div id="risk_dynamic" class="risk-content">
             <div class="config-group">
-                <h3>Stop Loss Widening</h3>
+                <h3>Stop Loss Widening <span class="section-tooltip" data-tooltip="Dynamically adjusts stop losses based on market volatility. In high volatility, stops are widened to avoid premature exits from normal price swings.">ⓘ</span></h3>
                 <div class="config-row">
                     <label>Stop Widening Enabled</label>
                     <input type="checkbox" id="stop_widening_enabled" onchange="markUnsaved()">
@@ -2111,7 +2140,7 @@ ADMIN_TEMPLATE = r"""
                 </div>
             </div>
             <div class="config-group">
-                <h3>Max Stop Loss by Tier</h3>
+                <h3>Max Stop Loss by Tier <span class="section-tooltip" data-tooltip="Maximum allowable stop loss for each market cap tier. Prevents stops from being widened beyond reasonable limits, even in extreme volatility.">ⓘ</span></h3>
                 <div class="config-row">
                     <label>Large Cap Max SL (%)</label>
                     <input type="number" id="max_sl_large" step="1" min="5" max="30" onchange="markUnsaved()">
@@ -2130,7 +2159,7 @@ ADMIN_TEMPLATE = r"""
                 </div>
             </div>
             <div class="config-group">
-                <h3>Regime Multipliers</h3>
+                <h3>Regime Multipliers <span class="section-tooltip" data-tooltip="Adjusts trading parameters based on market regime. Higher multipliers in panic/caution modes widen stops and reduce position sizes for protection.">ⓘ</span></h3>
                 <div class="config-row">
                     <label>Panic Multiplier</label>
                     <input type="number" id="panic_multiplier" step="0.1" min="1" max="3" onchange="markUnsaved()">
@@ -2145,7 +2174,7 @@ ADMIN_TEMPLATE = r"""
                 </div>
             </div>
             <div class="config-group">
-                <h3>Hysteresis Settings</h3>
+                <h3>Hysteresis Settings <span class="section-tooltip" data-tooltip="Prevents strategies from rapidly toggling on/off. Requires volatility to drop below re-enable threshold and stay there for cooldown period before reactivating.">ⓘ</span></h3>
                 <div class="config-row">
                     <label>Channel Disable Volatility (%)</label>
                     <input type="number" id="channel_disable_vol" step="0.5" min="1" max="30" onchange="markUnsaved()">
