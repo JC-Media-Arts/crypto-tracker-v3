@@ -33,7 +33,9 @@ class RegimeDetector:
     """
 
     def __init__(
-        self, enabled: bool = True, config_path: str = "configs/paper_trading_config_unified.json"
+        self,
+        enabled: bool = True,
+        config_path: str = "configs/paper_trading_config_unified.json",
     ):
         """
         Initialize the regime detector with enhanced market protection

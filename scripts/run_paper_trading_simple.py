@@ -168,7 +168,7 @@ class SimplifiedPaperTradingSystem:
 
         # Initialize database
         self.supabase = SupabaseClient()
-        
+
         # Load open positions from database on startup
         self._load_positions_from_database()
 
@@ -180,23 +180,25 @@ class SimplifiedPaperTradingSystem:
 
         # Track last heartbeat time to avoid too frequent updates
         self.last_heartbeat_time = datetime.now(timezone.utc)
-        
+
     def _load_positions_from_database(self):
         """Load all open positions from database into memory on startup"""
         try:
             logger.info("Loading open positions from database...")
-            
+
             # Get all open positions from database
-            open_trades = self.supabase.client.table("paper_trades")\
-                .select("*")\
-                .eq("status", "FILLED")\
-                .is_("exit_price", "null")\
+            open_trades = (
+                self.supabase.client.table("paper_trades")
+                .select("*")
+                .eq("status", "FILLED")
+                .is_("exit_price", "null")
                 .execute()
-            
+            )
+
             if not open_trades.data:
                 logger.info("No open positions found in database")
                 return
-            
+
             # Group trades by trade_group_id to identify unique positions
             positions_by_group = {}
             for trade in open_trades.data:
@@ -205,30 +207,34 @@ class SimplifiedPaperTradingSystem:
                     if group_id not in positions_by_group:
                         positions_by_group[group_id] = []
                     positions_by_group[group_id].append(trade)
-            
+
             # Count positions by strategy
             strategy_counts = {"DCA": 0, "SWING": 0, "CHANNEL": 0}
             total_positions = len(positions_by_group)
-            
+
             for group_id, trades in positions_by_group.items():
                 # Get strategy from first trade in group
                 strategy = trades[0].get("strategy", "UNKNOWN")
                 if strategy in strategy_counts:
                     strategy_counts[strategy] += 1
-                    
+
             logger.info(f"Loaded {total_positions} open positions from database:")
             logger.info(f"  DCA: {strategy_counts['DCA']}")
             logger.info(f"  SWING: {strategy_counts['SWING']}")
             logger.info(f"  CHANNEL: {strategy_counts['CHANNEL']}")
-            
+
             # Check if we're over limits
             if total_positions > 150:
-                logger.error(f"⚠️ WARNING: {total_positions} positions exceeds total limit of 150!")
-            
+                logger.error(
+                    f"⚠️ WARNING: {total_positions} positions exceeds total limit of 150!"
+                )
+
             for strategy, count in strategy_counts.items():
                 if count > 50:
-                    logger.error(f"⚠️ WARNING: {strategy} has {count} positions (limit: 50)!")
-                    
+                    logger.error(
+                        f"⚠️ WARNING: {strategy} has {count} positions (limit: 50)!"
+                    )
+
         except Exception as e:
             logger.error(f"Failed to load positions from database: {e}")
             # Don't crash on this error, continue with empty positions
@@ -236,25 +242,54 @@ class SimplifiedPaperTradingSystem:
         # Load configuration using unified config loader
         self.config_loader = ConfigLoader()
         unified_config = self.config_loader.load()
-        
+
         # Build config from unified configuration
         self.config = {
             "ml_enabled": False,  # ALWAYS FALSE
             "shadow_enabled": False,  # ALWAYS FALSE
-            "base_position_usd": unified_config.get("position_management", {}).get("position_sizing", {}).get("base_position_size_usd", 50.0),
-            "max_open_positions": unified_config.get("position_management", {}).get("max_positions_total", 30),
+            "base_position_usd": unified_config.get("position_management", {})
+            .get("position_sizing", {})
+            .get("base_position_size_usd", 50.0),
+            "max_open_positions": unified_config.get("position_management", {}).get(
+                "max_positions_total", 30
+            ),
             # Detection thresholds from unified config
-            "dca_drop_threshold": unified_config.get("strategies", {}).get("DCA", {}).get("detection_thresholds", {}).get("drop_threshold", -4.0),
-            "swing_breakout_threshold": unified_config.get("strategies", {}).get("SWING", {}).get("detection_thresholds", {}).get("breakout_threshold", 1.015),
-            "buy_zone": unified_config.get("strategies", {}).get("CHANNEL", {}).get("detection_thresholds", {}).get("buy_zone", 0.15),
-            "sell_zone": unified_config.get("strategies", {}).get("CHANNEL", {}).get("detection_thresholds", {}).get("sell_zone", 0.85),
-            "channel_strength_min": unified_config.get("strategies", {}).get("CHANNEL", {}).get("detection_thresholds", {}).get("channel_strength_min", 0.75),
+            "dca_drop_threshold": unified_config.get("strategies", {})
+            .get("DCA", {})
+            .get("detection_thresholds", {})
+            .get("drop_threshold", -4.0),
+            "swing_breakout_threshold": unified_config.get("strategies", {})
+            .get("SWING", {})
+            .get("detection_thresholds", {})
+            .get("breakout_threshold", 1.015),
+            "buy_zone": unified_config.get("strategies", {})
+            .get("CHANNEL", {})
+            .get("detection_thresholds", {})
+            .get("buy_zone", 0.15),
+            "sell_zone": unified_config.get("strategies", {})
+            .get("CHANNEL", {})
+            .get("detection_thresholds", {})
+            .get("sell_zone", 0.85),
+            "channel_strength_min": unified_config.get("strategies", {})
+            .get("CHANNEL", {})
+            .get("detection_thresholds", {})
+            .get("channel_strength_min", 0.75),
             # Volume and other thresholds
-            "swing_volume_surge": unified_config.get("strategies", {}).get("SWING", {}).get("detection_thresholds", {}).get("volume_surge", 1.5),
-            "channel_touches": unified_config.get("strategies", {}).get("CHANNEL", {}).get("detection_thresholds", {}).get("channel_touches", 3),
+            "swing_volume_surge": unified_config.get("strategies", {})
+            .get("SWING", {})
+            .get("detection_thresholds", {})
+            .get("volume_surge", 1.5),
+            "channel_touches": unified_config.get("strategies", {})
+            .get("CHANNEL", {})
+            .get("detection_thresholds", {})
+            .get("channel_touches", 3),
             # Basic risk management
-            "min_confidence": unified_config.get("ml_confidence", {}).get("min_signal_strength", 0.45),
-            "scan_interval": unified_config.get("global_settings", {}).get("trading_cycle_seconds", 300),  # Default 5 minutes
+            "min_confidence": unified_config.get("ml_confidence", {}).get(
+                "min_signal_strength", 0.45
+            ),
+            "scan_interval": unified_config.get("global_settings", {}).get(
+                "trading_cycle_seconds", 300
+            ),  # Default 5 minutes
             "position_size": 50.0,
             "max_position_duration_hours": 72,
         }
@@ -1133,15 +1168,17 @@ class SimplifiedPaperTradingSystem:
 
             # CRITICAL: Check database for existing positions (not just in-memory)
             db = SupabaseClient()
-            
+
             # Check if we already have an open position for this symbol
-            existing = db.client.table("paper_trades")\
-                .select("trade_group_id, strategy")\
-                .eq("symbol", symbol)\
-                .eq("status", "FILLED")\
-                .is_("exit_price", "null")\
+            existing = (
+                db.client.table("paper_trades")
+                .select("trade_group_id, strategy")
+                .eq("symbol", symbol)
+                .eq("status", "FILLED")
+                .is_("exit_price", "null")
                 .execute()
-                
+            )
+
             if existing.data:
                 # Group by trade_group_id to count unique positions
                 unique_groups = set(trade["trade_group_id"] for trade in existing.data)
@@ -1150,27 +1187,33 @@ class SimplifiedPaperTradingSystem:
                         f"⚠️ Database shows {len(unique_groups)} open position(s) for {symbol}, skipping new signal"
                     )
                     return False
-            
+
             # Check strategy position count in database
-            strategy_result = db.client.table("paper_trades")\
-                .select("trade_group_id")\
-                .eq("strategy", strategy.upper())\
-                .eq("status", "FILLED")\
-                .is_("exit_price", "null")\
+            strategy_result = (
+                db.client.table("paper_trades")
+                .select("trade_group_id")
+                .eq("strategy", strategy.upper())
+                .eq("status", "FILLED")
+                .is_("exit_price", "null")
                 .execute()
-            
+            )
+
             # Count unique trade groups for this strategy
             if strategy_result.data:
-                unique_strategy_groups = set(trade["trade_group_id"] for trade in strategy_result.data)
+                unique_strategy_groups = set(
+                    trade["trade_group_id"] for trade in strategy_result.data
+                )
                 strategy_count = len(unique_strategy_groups)
-                
+
                 if strategy_count >= 50:
                     logger.error(
                         f"❌ {strategy} has {strategy_count} positions in database (limit: 50), skipping"
                     )
                     return False
                 else:
-                    logger.debug(f"{strategy} has {strategy_count}/50 positions in database")
+                    logger.debug(
+                        f"{strategy} has {strategy_count}/50 positions in database"
+                    )
 
             # Calculate position size
             position_size = self.config["position_size"]
@@ -1315,7 +1358,9 @@ class SimplifiedPaperTradingSystem:
             try:
                 # Check kill switch
                 if not self.config_loader.is_trading_enabled():
-                    logger.warning("Trading is globally disabled via kill switch. Waiting...")
+                    logger.warning(
+                        "Trading is globally disabled via kill switch. Waiting..."
+                    )
                     await asyncio.sleep(60)  # Check every minute
                     continue
                 # Update heartbeat to show service is running

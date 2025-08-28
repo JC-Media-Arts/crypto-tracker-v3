@@ -83,14 +83,20 @@ class SimplePaperTraderV2:
         # Load configuration using the new unified config loader
         self.config_loader = ConfigLoader(config_path)
         self.config = self.config_loader.load()
-        
+
         # Get values from config with fallbacks
         if initial_balance is None:
-            initial_balance = self.config.get('global_settings', {}).get('initial_balance', 10000.0)
+            initial_balance = self.config.get("global_settings", {}).get(
+                "initial_balance", 10000.0
+            )
         if max_positions is None:
-            max_positions = self.config.get('position_management', {}).get('max_positions_total', 50)
+            max_positions = self.config.get("position_management", {}).get(
+                "max_positions_total", 50
+            )
         if max_positions_per_strategy is None:
-            max_positions_per_strategy = self.config.get('position_management', {}).get('max_positions_per_strategy', 50)
+            max_positions_per_strategy = self.config.get("position_management", {}).get(
+                "max_positions_per_strategy", 50
+            )
 
         self.initial_balance = initial_balance
         self.balance = initial_balance
@@ -101,7 +107,11 @@ class SimplePaperTraderV2:
         self.max_positions_per_strategy = max_positions_per_strategy  # Max per strategy
 
         # Load fee from config
-        self.base_fee_rate = self.config.get("fees_and_slippage", {}).get("exchange_fees", {}).get("kraken_taker", 0.0026)
+        self.base_fee_rate = (
+            self.config.get("fees_and_slippage", {})
+            .get("exchange_fees", {})
+            .get("kraken_taker", 0.0026)
+        )
 
         # Initialize Slack notifier
         self.notifier = None
@@ -198,16 +208,16 @@ class SimplePaperTraderV2:
         """
         # Use config loader's built-in method which handles everything
         exit_params = self.config_loader.get_exit_params(strategy, symbol)
-        
+
         # If we got valid params from config, return them
         if exit_params and all(v > 0 for v in exit_params.values()):
             logger.debug(f"Using config exits for {symbol}/{strategy}: {exit_params}")
             return exit_params
-        
+
         # Otherwise fall back to hardcoded defaults
         tier = self.get_market_cap_tier(symbol)
         strategy_lower = strategy.lower()
-        
+
         # Try legacy config format (for backward compatibility)
         strategy_config = self.config.get("strategies", {}).get(strategy.upper(), {})
         if "exits_by_tier" in strategy_config:
@@ -602,8 +612,10 @@ class SimplePaperTraderV2:
         """
         # Get max_hold_hours from config if not provided
         if max_hold_hours is None:
-            max_hold_hours = self.config.get('position_management', {}).get('max_hold_hours', 72)
-        
+            max_hold_hours = self.config.get("position_management", {}).get(
+                "max_hold_hours", 72
+            )
+
         closed_trades = []
 
         for symbol, position in list(self.positions.items()):

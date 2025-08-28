@@ -13,21 +13,21 @@ from datetime import datetime
 
 class ConfigLoader:
     """Loads and manages the unified paper trading configuration."""
-    
+
     _instance = None
     _config = None
     _config_path = None
     _last_loaded = None
-    
+
     def __new__(cls, config_path: Optional[str] = None):
         """Singleton pattern to ensure single config instance."""
         if cls._instance is None:
             cls._instance = super(ConfigLoader, cls).__new__(cls)
         return cls._instance
-    
+
     def __init__(self, config_path: Optional[str] = None):
         """Initialize the config loader.
-        
+
         Args:
             config_path: Path to config file. Defaults to configs/paper_trading_config_unified.json
         """
@@ -36,14 +36,16 @@ class ConfigLoader:
         elif not self._config_path:
             # Default path relative to project root
             project_root = Path(__file__).parent.parent.parent
-            self._config_path = project_root / "configs" / "paper_trading_config_unified.json"
-    
+            self._config_path = (
+                project_root / "configs" / "paper_trading_config_unified.json"
+            )
+
     def load(self, force_reload: bool = False) -> Dict[str, Any]:
         """Load configuration from file.
-        
+
         Args:
             force_reload: Force reload even if already loaded
-            
+
         Returns:
             Configuration dictionary
         """
@@ -54,13 +56,15 @@ class ConfigLoader:
                 file_mtime = os.path.getmtime(self._config_path)
                 if file_mtime <= self._last_loaded.timestamp():
                     return self._config
-        
+
         try:
-            with open(self._config_path, 'r') as f:
+            with open(self._config_path, "r") as f:
                 self._config = json.load(f)
                 self._last_loaded = datetime.now()
                 logger.info(f"Loaded configuration from {self._config_path}")
-                logger.debug(f"Config version: {self._config.get('version', 'unknown')}")
+                logger.debug(
+                    f"Config version: {self._config.get('version', 'unknown')}"
+                )
                 return self._config
         except FileNotFoundError:
             logger.error(f"Configuration file not found: {self._config_path}")
@@ -71,23 +75,23 @@ class ConfigLoader:
         except Exception as e:
             logger.error(f"Error loading configuration: {e}")
             raise
-    
+
     def get(self, key_path: str, default: Any = None) -> Any:
         """Get a configuration value using dot notation.
-        
+
         Args:
             key_path: Dot-separated path to config value (e.g., 'strategies.DCA.min_confidence')
             default: Default value if key not found
-            
+
         Returns:
             Configuration value or default
         """
         if self._config is None:
             self.load()
-        
-        keys = key_path.split('.')
+
+        keys = key_path.split(".")
         value = self._config
-        
+
         for key in keys:
             if isinstance(value, dict):
                 value = value.get(key)
@@ -95,126 +99,126 @@ class ConfigLoader:
                     return default
             else:
                 return default
-        
+
         return value
-    
+
     def get_strategy_config(self, strategy: str) -> Dict[str, Any]:
         """Get configuration for a specific strategy.
-        
+
         Args:
             strategy: Strategy name (DCA, SWING, CHANNEL)
-            
+
         Returns:
             Strategy configuration dictionary
         """
-        return self.get(f'strategies.{strategy}', {})
-    
+        return self.get(f"strategies.{strategy}", {})
+
     def get_tier_config(self, symbol: str) -> str:
         """Get market cap tier for a symbol.
-        
+
         Args:
             symbol: Trading symbol
-            
+
         Returns:
             Tier name (large_cap, mid_cap, small_cap, memecoin)
         """
         if self._config is None:
             self.load()
-        
-        tiers = self._config.get('market_cap_tiers', {})
-        
+
+        tiers = self._config.get("market_cap_tiers", {})
+
         for tier_name, symbols in tiers.items():
             if symbol in symbols:
                 return tier_name
-        
+
         # Default to small_cap if not found
-        return 'small_cap'
-    
+        return "small_cap"
+
     def get_exit_params(self, strategy: str, symbol: str) -> Dict[str, float]:
         """Get exit parameters for a strategy and symbol.
-        
+
         Args:
             strategy: Strategy name
             symbol: Trading symbol
-            
+
         Returns:
             Dictionary with take_profit, stop_loss, trailing_stop, trailing_activation
         """
         tier = self.get_tier_config(symbol)
         strategy_config = self.get_strategy_config(strategy)
-        
-        exits_by_tier = strategy_config.get('exits_by_tier', {})
+
+        exits_by_tier = strategy_config.get("exits_by_tier", {})
         tier_exits = exits_by_tier.get(tier, {})
-        
+
         # Return with defaults if not found
         return {
-            'take_profit': tier_exits.get('take_profit', 0.05),
-            'stop_loss': tier_exits.get('stop_loss', 0.05),
-            'trailing_stop': tier_exits.get('trailing_stop', 0.02),
-            'trailing_activation': tier_exits.get('trailing_activation', 0.02)
+            "take_profit": tier_exits.get("take_profit", 0.05),
+            "stop_loss": tier_exits.get("stop_loss", 0.05),
+            "trailing_stop": tier_exits.get("trailing_stop", 0.02),
+            "trailing_activation": tier_exits.get("trailing_activation", 0.02),
         }
-    
+
     def is_trading_enabled(self) -> bool:
         """Check if trading is globally enabled (kill switch)."""
-        return self.get('global_settings.trading_enabled', False)
-    
+        return self.get("global_settings.trading_enabled", False)
+
     def is_strategy_enabled(self, strategy: str) -> bool:
         """Check if a specific strategy is enabled."""
-        return self.get(f'strategies.{strategy}.enabled', False)
-    
+        return self.get(f"strategies.{strategy}.enabled", False)
+
     def get_position_sizing_config(self) -> Dict[str, Any]:
         """Get position sizing configuration."""
-        return self.get('position_management.position_sizing', {})
-    
+        return self.get("position_management.position_sizing", {})
+
     def get_market_protection_config(self) -> Dict[str, Any]:
         """Get market protection configuration."""
-        return self.get('market_protection', {})
-    
+        return self.get("market_protection", {})
+
     def reload(self) -> Dict[str, Any]:
         """Force reload configuration from file."""
         return self.load(force_reload=True)
-    
+
     def save(self, config: Dict[str, Any]) -> bool:
         """Save configuration to file.
-        
+
         Args:
             config: Configuration dictionary to save
-            
+
         Returns:
             True if successful
         """
         try:
             # Update version and timestamp
-            config['version'] = config.get('version', '1.0.0')
-            config['last_updated'] = datetime.now().isoformat()
-            
+            config["version"] = config.get("version", "1.0.0")
+            config["last_updated"] = datetime.now().isoformat()
+
             # Write to file with pretty formatting
-            with open(self._config_path, 'w') as f:
+            with open(self._config_path, "w") as f:
                 json.dump(config, f, indent=2, sort_keys=False)
-            
+
             # Update internal state
             self._config = config
             self._last_loaded = datetime.now()
-            
+
             logger.info(f"Saved configuration to {self._config_path}")
             return True
-            
+
         except Exception as e:
             logger.error(f"Error saving configuration: {e}")
             return False
-    
+
     @property
     def config(self) -> Dict[str, Any]:
         """Get the full configuration dictionary."""
         if self._config is None:
             self.load()
         return self._config
-    
+
     @property
     def config_path(self) -> Path:
         """Get the configuration file path."""
         return self._config_path
-    
+
     def save_config_change(
         self,
         section: str,
@@ -223,10 +227,10 @@ class ConfigLoader:
         new_value: Any,
         change_type: str = "manual",
         changed_by: Optional[str] = None,
-        description: Optional[str] = None
+        description: Optional[str] = None,
     ) -> bool:
         """Save a configuration change to the database for tracking.
-        
+
         Args:
             section: Configuration section (e.g., 'strategies.DCA.thresholds')
             field: Field name that changed
@@ -235,61 +239,63 @@ class ConfigLoader:
             change_type: Type of change (manual, admin_panel, api, system)
             changed_by: User or system that made the change
             description: Human-readable description
-            
+
         Returns:
             True if saved successfully
         """
         try:
             from src.data.supabase_client import SupabaseClient
-            
+
             db = SupabaseClient()
-            
+
             # Get current full config
             current_config = self.load()
-            
+
             # Prepare the record
             record = {
-                'change_type': change_type,
-                'changed_by': changed_by,
-                'change_description': description,
-                'config_version': current_config.get('version', '1.0.0'),
-                'config_section': section,
-                'field_name': field,
-                'old_value': json.dumps(old_value) if old_value is not None else None,
-                'new_value': json.dumps(new_value) if new_value is not None else None,
-                'full_config_after': json.dumps(current_config),
-                'environment': current_config.get('global_settings', {}).get('environment', 'paper')
+                "change_type": change_type,
+                "changed_by": changed_by,
+                "change_description": description,
+                "config_version": current_config.get("version", "1.0.0"),
+                "config_section": section,
+                "field_name": field,
+                "old_value": json.dumps(old_value) if old_value is not None else None,
+                "new_value": json.dumps(new_value) if new_value is not None else None,
+                "full_config_after": json.dumps(current_config),
+                "environment": current_config.get("global_settings", {}).get(
+                    "environment", "paper"
+                ),
             }
-            
+
             # Insert into database
-            result = db.client.table('config_history').insert(record).execute()
-            
+            result = db.client.table("config_history").insert(record).execute()
+
             if result.data:
                 logger.info(f"Configuration change logged: {section}.{field}")
                 return True
             else:
                 logger.error(f"Failed to log configuration change: {section}.{field}")
                 return False
-                
+
         except Exception as e:
             logger.error(f"Error saving configuration change: {e}")
             return False
-    
+
     def update_config(
         self,
         updates: Dict[str, Any],
         change_type: str = "manual",
         changed_by: Optional[str] = None,
-        description: Optional[str] = None
+        description: Optional[str] = None,
     ) -> bool:
         """Update configuration and save changes to file and database.
-        
+
         Args:
             updates: Dictionary of updates in dot notation (e.g., {'strategies.DCA.drop_threshold': -3.0})
             change_type: Type of change
             changed_by: User or system making the change
             description: Description of the changes
-            
+
         Returns:
             True if all updates successful
         """
@@ -297,99 +303,103 @@ class ConfigLoader:
             # Load current config
             config = self.load()
             old_config = json.loads(json.dumps(config))  # Deep copy
-            
+
             # Track all changes
             changes = []
-            
+
             # Apply updates
             for path, new_value in updates.items():
                 # Split path into parts
-                parts = path.split('.')
-                
+                parts = path.split(".")
+
                 # Navigate to the target location
                 target = config
                 for part in parts[:-1]:
                     if part not in target:
                         target[part] = {}
                     target = target[part]
-                
+
                 # Save old value
                 old_value = target.get(parts[-1])
-                
+
                 # Update value
                 target[parts[-1]] = new_value
-                
+
                 # Track change
-                changes.append({
-                    'section': '.'.join(parts[:-1]),
-                    'field': parts[-1],
-                    'old_value': old_value,
-                    'new_value': new_value
-                })
-            
+                changes.append(
+                    {
+                        "section": ".".join(parts[:-1]),
+                        "field": parts[-1],
+                        "old_value": old_value,
+                        "new_value": new_value,
+                    }
+                )
+
             # Update version and timestamp
-            config['version'] = self._increment_version(config.get('version', '1.0.0'))
-            config['last_updated'] = datetime.now().isoformat()
-            
+            config["version"] = self._increment_version(config.get("version", "1.0.0"))
+            config["last_updated"] = datetime.now().isoformat()
+
             # Save to file
-            with open(self._config_path, 'w') as f:
+            with open(self._config_path, "w") as f:
                 json.dump(config, f, indent=2)
-            
+
             # Log each change to database
             success = True
             for change in changes:
                 if not self.save_config_change(
-                    section=change['section'],
-                    field=change['field'],
-                    old_value=change['old_value'],
-                    new_value=change['new_value'],
+                    section=change["section"],
+                    field=change["field"],
+                    old_value=change["old_value"],
+                    new_value=change["new_value"],
                     change_type=change_type,
                     changed_by=changed_by,
-                    description=description
+                    description=description,
                 ):
                     success = False
-            
+
             # Reload config
             self.reload()
-            
+
             logger.info(f"Configuration updated: {len(changes)} changes applied")
             return success
-            
+
         except Exception as e:
             logger.error(f"Error updating configuration: {e}")
             return False
-    
+
     def _increment_version(self, version: str) -> str:
         """Increment version number (e.g., 1.0.0 -> 1.0.1)"""
         try:
-            parts = version.split('.')
+            parts = version.split(".")
             parts[-1] = str(int(parts[-1]) + 1)
-            return '.'.join(parts)
+            return ".".join(parts)
         except:
             return "1.0.1"
-    
+
     def get_config_history(self, limit: int = 100) -> List[Dict[str, Any]]:
         """Get recent configuration change history from database.
-        
+
         Args:
             limit: Maximum number of records to return
-            
+
         Returns:
             List of configuration change records
         """
         try:
             from src.data.supabase_client import SupabaseClient
-            
+
             db = SupabaseClient()
-            
-            result = db.client.table('config_history')\
-                .select('*')\
-                .order('change_timestamp', desc=True)\
-                .limit(limit)\
+
+            result = (
+                db.client.table("config_history")
+                .select("*")
+                .order("change_timestamp", desc=True)
+                .limit(limit)
                 .execute()
-            
+            )
+
             return result.data if result.data else []
-            
+
         except Exception as e:
             logger.error(f"Error fetching configuration history: {e}")
             return []
@@ -398,10 +408,10 @@ class ConfigLoader:
 # Convenience functions for backward compatibility
 def load_config(config_path: Optional[str] = None) -> Dict[str, Any]:
     """Load configuration (backward compatible function).
-    
+
     Args:
         config_path: Optional path to config file
-        
+
     Returns:
         Configuration dictionary
     """
@@ -411,7 +421,7 @@ def load_config(config_path: Optional[str] = None) -> Dict[str, Any]:
 
 def get_config() -> ConfigLoader:
     """Get the singleton ConfigLoader instance.
-    
+
     Returns:
         ConfigLoader instance
     """
