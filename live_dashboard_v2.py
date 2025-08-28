@@ -370,13 +370,17 @@ PAPER_TRADING_TEMPLATE = r"""
 <p class="subtitle">Live paper trading performance and positions</p>
 
 <!-- Engine Status Indicator -->
-<div id="engineStatus" style="position: fixed; top: 80px; right: 200px; display: flex; align-items: center; gap: 8px; background: rgba(30, 41, 59, 0.9); padding: 8px 16px; border-radius: 8px; border: 1px solid rgba(148, 163, 184, 0.2);">
+<div id="engineStatus" style="position: fixed; top: 80px; right: 200px; display: flex;
+    align-items: center; gap: 8px; background: rgba(30, 41, 59, 0.9); padding: 8px 16px;
+    border-radius: 8px; border: 1px solid rgba(148, 163, 184, 0.2);">
     <div id="statusLight" style="width: 12px; height: 12px; border-radius: 50%; background: #fbbf24;"></div>
     <span id="statusText" style="font-size: 0.875rem; color: #94a3b8;">Checking...</span>
 </div>
 
 <!-- Trade Filter -->
-<div style="display: flex; justify-content: center; gap: 20px; margin-bottom: 25px; padding: 15px; background: rgba(30, 41, 59, 0.5); backdrop-filter: blur(10px); border: 1px solid rgba(148, 163, 184, 0.1); border-radius: 12px;">
+<div style="display: flex; justify-content: center; gap: 20px; margin-bottom: 25px;
+    padding: 15px; background: rgba(30, 41, 59, 0.5); backdrop-filter: blur(10px);
+    border: 1px solid rgba(148, 163, 184, 0.1); border-radius: 12px;">
     <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
         <input type="radio" name="tradeFilter" value="open" id="filterOpen" checked>
         <span style="color: #e2e8f0;">Open Trades Only</span>
@@ -447,17 +451,25 @@ PAPER_TRADING_TEMPLATE = r"""
         </tbody>
     </table>
     <!-- Pagination controls for open positions -->
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; padding: 10px; background: rgba(30, 41, 59, 0.5); border-radius: 8px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;
+        padding: 10px; background: rgba(30, 41, 59, 0.5); border-radius: 8px;">
         <div id="paginationInfo" style="color: #94a3b8;">
             Showing trades 1-100 of 0 total
         </div>
         <div style="display: flex; gap: 10px; align-items: center;">
-            <button id="prevPage" onclick="goToPage(currentPage - 1)" style="padding: 5px 15px; background: #3b82f6; color: white; border: none; border-radius: 5px; cursor: pointer;" disabled>Previous</button>
+            <button id="prevPage" onclick="goToPage(currentPage - 1)"
+                style="padding: 5px 15px; background: #3b82f6; color: white; border: none;
+                border-radius: 5px; cursor: pointer;" disabled>Previous</button>
             <span style="color: #94a3b8;">
-                Page <input type="number" id="pageInput" value="1" min="1" style="width: 50px; padding: 3px; background: #1e293b; border: 1px solid #475569; color: white; border-radius: 3px;" onchange="goToPage(parseInt(this.value))">
+                Page <input type="number" id="pageInput" value="1" min="1"
+                    style="width: 50px; padding: 3px; background: #1e293b;
+                    border: 1px solid #475569; color: white; border-radius: 3px;"
+                    onchange="goToPage(parseInt(this.value))">
                 of <span id="totalPages">1</span>
             </span>
-            <button id="nextPage" onclick="goToPage(currentPage + 1)" style="padding: 5px 15px; background: #3b82f6; color: white; border: none; border-radius: 5px; cursor: pointer;">Next</button>
+            <button id="nextPage" onclick="goToPage(currentPage + 1)"
+                style="padding: 5px 15px; background: #3b82f6; color: white; border: none;
+                border-radius: 5px; cursor: pointer;">Next</button>
         </div>
     </div>
 </div>
@@ -485,17 +497,25 @@ PAPER_TRADING_TEMPLATE = r"""
         </tbody>
     </table>
     <!-- Pagination controls for closed trades -->
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; padding: 10px; background: rgba(30, 41, 59, 0.5); border-radius: 8px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;
+        padding: 10px; background: rgba(30, 41, 59, 0.5); border-radius: 8px;">
         <div id="paginationInfoClosed" style="color: #94a3b8;">
             Showing trades 1-100 of 0 total
         </div>
         <div style="display: flex; gap: 10px; align-items: center;">
-            <button id="prevPageClosed" onclick="goToPage(currentPage - 1)" style="padding: 5px 15px; background: #3b82f6; color: white; border: none; border-radius: 5px; cursor: pointer;" disabled>Previous</button>
+            <button id="prevPageClosed" onclick="goToPage(currentPage - 1)"
+                style="padding: 5px 15px; background: #3b82f6; color: white; border: none;
+                border-radius: 5px; cursor: pointer;" disabled>Previous</button>
             <span style="color: #94a3b8;">
-                Page <input type="number" id="pageInputClosed" value="1" min="1" style="width: 50px; padding: 3px; background: #1e293b; border: 1px solid #475569; color: white; border-radius: 3px;" onchange="goToPage(parseInt(this.value))">
+                Page <input type="number" id="pageInputClosed" value="1" min="1"
+                    style="width: 50px; padding: 3px; background: #1e293b;
+                    border: 1px solid #475569; color: white; border-radius: 3px;"
+                    onchange="goToPage(parseInt(this.value))">
                 of <span id="totalPagesClosed">1</span>
             </span>
-            <button id="nextPageClosed" onclick="goToPage(currentPage + 1)" style="padding: 5px 15px; background: #3b82f6; color: white; border: none; border-radius: 5px; cursor: pointer;">Next</button>
+            <button id="nextPageClosed" onclick="goToPage(currentPage + 1)"
+                style="padding: 5px 15px; background: #3b82f6; color: white; border: none;
+                border-radius: 5px; cursor: pointer;">Next</button>
         </div>
     </div>
 </div>
@@ -1860,7 +1880,7 @@ def get_trades():
     try:
         db = SupabaseClient()
 
-                # For stats, we need all trades but we'll optimize this query
+        # For stats, we need all trades but we'll optimize this query
         # For now, still fetch all trades for stats (we'll optimize this later)
         # But limit to recent trades for display
         all_trades = []
