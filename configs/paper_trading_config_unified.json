@@ -1,6 +1,6 @@
 {
-  "version": "1.0.3",
-  "last_updated": "2025-08-28T10:15:51.927216",
+  "version": "1.0.8",
+  "last_updated": "2025-08-28T13:42:29.256941",
   "description": "Unified paper trading configuration - single source of truth",
   "global_settings": {
     "trading_enabled": true,
@@ -124,7 +124,9 @@
           "trailing_stop": 0.08,
           "trailing_activation": 0.08
         }
-      }
+      },
+      "breakout_threshold": 1.015,
+      "volume_surge": 1.5
     },
     "CHANNEL": {
       "enabled": true,
@@ -134,8 +136,8 @@
         "exit_threshold": 0.1,
         "channel_width_min": 0.03,
         "channel_touches": 5,
-        "buy_zone": 0.02,
-        "sell_zone": 0.98,
+        "buy_zone": 0.03,
+        "sell_zone": 0.97,
         "channel_strength_min": 0.9
       },
       "exits_by_tier": {
@@ -148,7 +150,7 @@
         "mid_cap": {
           "take_profit": 0.025,
           "stop_loss": 0.025,
-          "trailing_stop": 0.007,
+          "trailing_stop": 0.006999999999999999,
           "trailing_activation": 0.012
         },
         "small_cap": {
@@ -377,6 +379,13 @@
     "risk_per_trade": 0.02,
     "max_daily_loss": 0.1,
     "max_drawdown": 0.2,
-    "emergency_stop_loss": 0.3
+    "emergency_stop_loss": 0.3,
+    "max_daily_loss_pct": 15,
+    "max_daily_loss_usd": 1000,
+    "max_open_risk": 2000,
+    "consecutive_loss_limit": 5,
+    "emergency_stop_enabled": false,
+    "recovery_mode_enabled": false,
+    "recovery_position_size": 50
   }
 }

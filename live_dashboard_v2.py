@@ -320,11 +320,14 @@ BASE_CSS = r"""
     padding: 20px;
     border-radius: 10px;
     border-top: 1px solid rgba(100, 181, 246, 0.2);
+    margin-top: 30px;
+}
+.save-buttons {
     display: flex;
     justify-content: center;
     align-items: center;
     gap: 20px;
-    margin-top: 30px;
+    margin-top: 10px;
 }
 .save-btn, .discard-btn {
     padding: 12px 30px;
@@ -354,7 +357,11 @@ BASE_CSS = r"""
     color: #ffc107;
     font-size: 0.95em;
     font-weight: 500;
-    margin-left: 10px;
+    text-align: center;
+    padding: 10px;
+    background: rgba(255, 193, 7, 0.1);
+    border: 1px solid rgba(255, 193, 7, 0.3);
+    border-radius: 5px;
 }
 .tier-tabs {
     display: flex;
@@ -2455,9 +2462,13 @@ ADMIN_TEMPLATE = r"""
 
 <!-- Save/Discard Controls for Paper Trading -->
 <div class="save-controls">
-    <button class="save-btn" onclick="saveAllChanges()">💾 Save All Changes</button>
-    <button class="discard-btn" onclick="discardChanges()">🔄 Discard Changes</button>
-    <span id="unsavedIndicator" style="display: none;" class="unsaved-indicator">Settings have been modified, click Save All Changes to save</span>
+    <div id="unsavedIndicator" style="display: none;" class="unsaved-indicator">
+        ⚠️ Settings have been modified, click Save All Changes to save
+    </div>
+    <div class="save-buttons">
+        <button class="save-btn" onclick="saveAllChanges()">💾 Save All Changes</button>
+        <button class="discard-btn" onclick="discardChanges()">🔄 Discard Changes</button>
+    </div>
 </div>
 
 </div> <!-- End of Paper Trading Configuration Section -->
@@ -3035,13 +3046,16 @@ function checkChangeBoolean(changes, path, elementId) {
 
 // Save all changes
 async function saveAllChanges() {
+    console.log('saveAllChanges called');
     const changes = collectChanges();
+    console.log('Changes collected:', changes);
     
     if (Object.keys(changes).length === 0) {
         showNotification('No changes to save', 'info');
         return;
     }
     
+    console.log('Sending POST request with changes:', changes);
     try {
         const response = await fetch('/api/config/update', {
             method: 'POST',
