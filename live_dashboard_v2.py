@@ -362,8 +362,9 @@ BASE_CSS = r"""
     border: 1px solid rgba(255, 193, 7, 0.3);
     border-radius: 5px;
     margin: 0 auto 15px auto;
-    display: block;
-    max-width: fit-content;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 .tier-tabs {
     display: flex;
@@ -2681,7 +2682,7 @@ function markUnsaved() {
 function updateUnsavedIndicator() {
     const indicator = document.getElementById('unsavedIndicator');
     if (indicator) {
-        indicator.style.display = hasUnsavedChanges ? 'inline-block' : 'none';
+        indicator.style.display = hasUnsavedChanges ? 'flex' : 'none';
     }
 }
 
