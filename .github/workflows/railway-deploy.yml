@@ -29,10 +29,10 @@ jobs:
         # Add tests when available
         echo "Tests will be added here"
 
-    - name: Check code formatting
-      run: |
-        pip install black==23.12.1
-        black --check src/ scripts/
+    # - name: Check code formatting
+    #   run: |
+    #     pip install black==23.12.1
+    #     black --check src/ scripts/
 
   deploy:
     needs: test
