@@ -1848,6 +1848,29 @@ def get_market_summary():
     try:
         db = SupabaseClient()
 
+        # First try to get the market summary from cache (populated by strategy_precalculator.py)
+        condition = "NORMAL"
+        best_strategy = "WAIT"
+        notes = "Market analysis loading..."
+
+        try:
+            # Get the most recent market summary from cache
+            market_summary = (
+                db.client.table("market_summary_cache")
+                .select("*")
+                .order("calculated_at", desc=True)
+                .limit(1)
+                .execute()
+            )
+
+            if market_summary.data:
+                summary = market_summary.data[0]
+                condition = summary.get("condition", "NORMAL")
+                best_strategy = summary.get("best_strategy", "WAIT")
+                notes = summary.get("notes", "Market analysis in progress...")
+        except Exception as e:
+            logger.debug(f"Could not get market summary from cache: {e}")
+
         # Get top movers from strategy cache
         top_movers = []
         try:
@@ -1877,28 +1900,11 @@ def get_market_summary():
         except Exception as e:
             logger.debug(f"Could not get top movers: {e}")
 
-        # Determine overall market condition
-        condition = "NORMAL"
-        best_strategy = "WAIT"
-        total_symbols = len(top_movers)
-
-        if total_symbols > 0:
-            # If we have high readiness scores, market might be good
-            avg_readiness = sum(float(m["change_24h"]) for m in top_movers) / len(
-                top_movers
-            )
-            if avg_readiness > 80:
-                condition = "BULLISH"
-                best_strategy = "SWING"
-            elif avg_readiness > 70:
-                condition = "NORMAL"
-                best_strategy = "DCA"
-
         return jsonify(
             {
                 "condition": condition,
                 "best_strategy": best_strategy,
-                "notes": f"Monitoring {total_symbols} active signals",
+                "notes": notes,
                 "top_movers": top_movers,
             }
         )
