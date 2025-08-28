@@ -424,6 +424,53 @@ BASE_CSS = r"""
     margin-top: 10px;
     border-bottom: 2px solid rgba(100, 181, 246, 0.15);
 }
+
+/* Risk Management Styles */
+.risk-management-section {
+    max-width: 100%;
+}
+.risk-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    border-bottom: 3px solid rgba(100, 181, 246, 0.3);
+    flex-wrap: wrap;
+}
+.risk-tab {
+    padding: 10px 16px;
+    background: rgba(30, 41, 59, 0.5);
+    color: #94a3b8;
+    border: none;
+    border-radius: 8px 8px 0 0;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+.risk-tab:hover {
+    background: rgba(59, 130, 246, 0.2);
+    color: #e2e8f0;
+}
+.risk-tab.active {
+    background: rgba(59, 130, 246, 0.3);
+    color: #60a5fa;
+    border-bottom: 3px solid #60a5fa;
+    margin-bottom: -3px;
+}
+.risk-content {
+    display: none;
+    animation: fadeIn 0.3s ease-in;
+}
+.risk-content.active {
+    display: block;
+}
+.risk-content h3 {
+    color: #94a3b8;
+    font-size: 1.1rem;
+    margin-bottom: 15px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(100, 181, 246, 0.2);
+}
 """
 
 BASE_TEMPLATE = r"""
@@ -1852,21 +1899,265 @@ ADMIN_TEMPLATE = r"""
         </div>
     </div>
     
-    <!-- Position Management -->
-    <div class="config-section">
-        <h2>Position Management</h2>
-        <div class="config-group">
-            <div class="config-row">
-                <label>Base Position Size ($)</label>
-                <input type="number" id="base_position_size" step="10" min="10" max="1000" onchange="markUnsaved()">
+    <!-- Risk Management -->
+    <div class="config-section risk-management-section">
+        <h2>Risk Management</h2>
+        
+        <!-- Risk Management Tabs -->
+        <div class="risk-tabs">
+            <button class="risk-tab active" onclick="showRiskTab('position')">Position & Portfolio</button>
+            <button class="risk-tab" onclick="showRiskTab('market')">Market Protection</button>
+            <button class="risk-tab" onclick="showRiskTab('limiter')">Trade Limiter</button>
+            <button class="risk-tab" onclick="showRiskTab('limits')">Risk Limits</button>
+            <button class="risk-tab" onclick="showRiskTab('dynamic')">Dynamic Adjustments</button>
+        </div>
+        
+        <!-- Position & Portfolio Controls -->
+        <div id="risk_position" class="risk-content active">
+            <div class="config-group">
+                <h3>Position Sizing</h3>
+                <div class="config-row">
+                    <label>Base Position Size ($)</label>
+                    <input type="number" id="base_position_size" step="10" min="10" max="1000" onchange="markUnsaved()">
+                </div>
+                <div class="config-row">
+                    <label>Position Size Multiplier</label>
+                    <input type="number" id="position_multiplier" step="0.1" min="0.5" max="5" onchange="markUnsaved()">
+                </div>
+                <div class="config-row">
+                    <label>Max % of Balance per Position</label>
+                    <input type="number" id="max_percent_balance" step="1" min="1" max="50" onchange="markUnsaved()">
+                </div>
             </div>
-            <div class="config-row">
-                <label>Max Total Positions</label>
-                <input type="number" id="max_positions" step="1" min="1" max="100" onchange="markUnsaved()">
+            <div class="config-group">
+                <h3>Position Limits</h3>
+                <div class="config-row">
+                    <label>Max Total Positions</label>
+                    <input type="number" id="max_positions" step="1" min="1" max="100" onchange="markUnsaved()">
+                </div>
+                <div class="config-row">
+                    <label>Max Positions per Strategy</label>
+                    <input type="number" id="max_positions_per_strategy" step="1" min="1" max="50" onchange="markUnsaved()">
+                </div>
+                <div class="config-row">
+                    <label>Max Positions per Symbol</label>
+                    <input type="number" id="max_positions_per_symbol" step="1" min="1" max="10" onchange="markUnsaved()">
+                </div>
+                <div class="config-row">
+                    <label>Max Hold Hours</label>
+                    <input type="number" id="max_hold_hours" step="1" min="1" max="168" onchange="markUnsaved()">
+                </div>
             </div>
-            <div class="config-row">
-                <label>Max Hold Hours</label>
-                <input type="number" id="max_hold_hours" step="1" min="1" max="168" onchange="markUnsaved()">
+        </div>
+        
+        <!-- Market Protection -->
+        <div id="risk_market" class="risk-content">
+            <div class="config-group">
+                <h3>Market Regime Thresholds</h3>
+                <div class="config-row">
+                    <label>Panic Threshold (%)</label>
+                    <input type="number" id="panic_threshold" step="1" min="-50" max="-5" onchange="markUnsaved()">
+                </div>
+                <div class="config-row">
+                    <label>Caution Threshold (%)</label>
+                    <input type="number" id="caution_threshold" step="1" min="-20" max="-1" onchange="markUnsaved()">
+                </div>
+                <div class="config-row">
+                    <label>Euphoria Threshold (%)</label>
+                    <input type="number" id="euphoria_threshold" step="1" min="1" max="20" onchange="markUnsaved()">
+                </div>
+            </div>
+            <div class="config-group">
+                <h3>Volatility Thresholds</h3>
+                <div class="config-row">
+                    <label>Panic Volatility (%)</label>
+                    <input type="number" id="volatility_panic" step="0.5" min="5" max="50" onchange="markUnsaved()">
+                </div>
+                <div class="config-row">
+                    <label>High Volatility (%)</label>
+                    <input type="number" id="volatility_high" step="0.5" min="3" max="30" onchange="markUnsaved()">
+                </div>
+                <div class="config-row">
+                    <label>Moderate Volatility (%)</label>
+                    <input type="number" id="volatility_moderate" step="0.5" min="1" max="20" onchange="markUnsaved()">
+                </div>
+            </div>
+            <div class="config-group">
+                <h3>Strategy Volatility Limits</h3>
+                <div class="config-row">
+                    <label>CHANNEL Max Volatility (%)</label>
+                    <input type="number" id="channel_volatility_limit" step="0.5" min="1" max="30" onchange="markUnsaved()">
+                </div>
+                <div class="config-row">
+                    <label>SWING Max Volatility (%)</label>
+                    <input type="number" id="swing_volatility_limit" step="0.5" min="1" max="30" onchange="markUnsaved()">
+                </div>
+                <div class="config-row">
+                    <label>DCA Max Volatility (%)</label>
+                    <input type="number" id="dca_volatility_limit" step="0.5" min="1" max="30" onchange="markUnsaved()">
+                </div>
+            </div>
+            <div class="config-group">
+                <h3>Cumulative Decline Protection</h3>
+                <div class="config-row">
+                    <label>24h Decline Threshold (%)</label>
+                    <input type="number" id="decline_24h" step="1" min="-20" max="-1" onchange="markUnsaved()">
+                </div>
+                <div class="config-row">
+                    <label>48h Decline Threshold (%)</label>
+                    <input type="number" id="decline_48h" step="1" min="-30" max="-1" onchange="markUnsaved()">
+                </div>
+            </div>
+        </div>
+        
+        <!-- Trade Limiter -->
+        <div id="risk_limiter" class="risk-content">
+            <div class="config-group">
+                <h3>Consecutive Stop Loss Limits</h3>
+                <div class="config-row">
+                    <label>Max Consecutive Stops</label>
+                    <input type="number" id="max_consecutive_stops" step="1" min="1" max="10" onchange="markUnsaved()">
+                </div>
+                <div class="config-row">
+                    <label>Reset on 50% Take Profit</label>
+                    <input type="checkbox" id="reset_on_tp" onchange="markUnsaved()">
+                </div>
+                <div class="config-row">
+                    <label>Reset on Trailing Stop</label>
+                    <input type="checkbox" id="reset_on_trailing" onchange="markUnsaved()">
+                </div>
+            </div>
+            <div class="config-group">
+                <h3>Cooldown Hours by Tier</h3>
+                <div class="config-row">
+                    <label>Large Cap Cooldown (hours)</label>
+                    <input type="number" id="cooldown_large" step="1" min="1" max="48" onchange="markUnsaved()">
+                </div>
+                <div class="config-row">
+                    <label>Mid Cap Cooldown (hours)</label>
+                    <input type="number" id="cooldown_mid" step="1" min="1" max="48" onchange="markUnsaved()">
+                </div>
+                <div class="config-row">
+                    <label>Small Cap Cooldown (hours)</label>
+                    <input type="number" id="cooldown_small" step="1" min="1" max="72" onchange="markUnsaved()">
+                </div>
+                <div class="config-row">
+                    <label>Memecoin Cooldown (hours)</label>
+                    <input type="number" id="cooldown_meme" step="1" min="1" max="168" onchange="markUnsaved()">
+                </div>
+            </div>
+        </div>
+        
+        <!-- Risk Limits -->
+        <div id="risk_limits" class="risk-content">
+            <div class="config-group">
+                <h3>Daily & Drawdown Limits</h3>
+                <div class="config-row">
+                    <label>Max Daily Loss (%)</label>
+                    <input type="number" id="max_daily_loss_pct" step="1" min="1" max="50" onchange="markUnsaved()">
+                </div>
+                <div class="config-row">
+                    <label>Max Daily Loss ($)</label>
+                    <input type="number" id="max_daily_loss_usd" step="100" min="100" max="10000" onchange="markUnsaved()">
+                </div>
+                <div class="config-row">
+                    <label>Max Drawdown (%)</label>
+                    <input type="number" id="max_drawdown" step="1" min="5" max="50" onchange="markUnsaved()">
+                </div>
+                <div class="config-row">
+                    <label>Max Open Risk ($)</label>
+                    <input type="number" id="max_open_risk" step="100" min="100" max="10000" onchange="markUnsaved()">
+                </div>
+            </div>
+            <div class="config-group">
+                <h3>Risk per Trade</h3>
+                <div class="config-row">
+                    <label>Risk per Trade (%)</label>
+                    <input type="number" id="risk_per_trade" step="0.5" min="0.5" max="10" onchange="markUnsaved()">
+                </div>
+                <div class="config-row">
+                    <label>Consecutive Loss Limit</label>
+                    <input type="number" id="consecutive_loss_limit" step="1" min="1" max="20" onchange="markUnsaved()">
+                </div>
+            </div>
+            <div class="config-group">
+                <h3>Emergency Controls</h3>
+                <div class="config-row">
+                    <label>Emergency Stop Enabled</label>
+                    <input type="checkbox" id="emergency_stop_enabled" onchange="markUnsaved()">
+                </div>
+                <div class="config-row">
+                    <label>Recovery Mode Enabled</label>
+                    <input type="checkbox" id="recovery_mode_enabled" onchange="markUnsaved()">
+                </div>
+                <div class="config-row">
+                    <label>Recovery Position Size (%)</label>
+                    <input type="number" id="recovery_position_size" step="10" min="10" max="100" onchange="markUnsaved()">
+                </div>
+            </div>
+        </div>
+        
+        <!-- Dynamic Adjustments -->
+        <div id="risk_dynamic" class="risk-content">
+            <div class="config-group">
+                <h3>Stop Loss Widening</h3>
+                <div class="config-row">
+                    <label>Stop Widening Enabled</label>
+                    <input type="checkbox" id="stop_widening_enabled" onchange="markUnsaved()">
+                </div>
+                <div class="config-row">
+                    <label>Volatility Factor</label>
+                    <input type="number" id="volatility_factor" step="0.1" min="0.1" max="2" onchange="markUnsaved()">
+                </div>
+            </div>
+            <div class="config-group">
+                <h3>Max Stop Loss by Tier</h3>
+                <div class="config-row">
+                    <label>Large Cap Max SL (%)</label>
+                    <input type="number" id="max_sl_large" step="1" min="5" max="30" onchange="markUnsaved()">
+                </div>
+                <div class="config-row">
+                    <label>Mid Cap Max SL (%)</label>
+                    <input type="number" id="max_sl_mid" step="1" min="5" max="30" onchange="markUnsaved()">
+                </div>
+                <div class="config-row">
+                    <label>Small Cap Max SL (%)</label>
+                    <input type="number" id="max_sl_small" step="1" min="5" max="40" onchange="markUnsaved()">
+                </div>
+                <div class="config-row">
+                    <label>Memecoin Max SL (%)</label>
+                    <input type="number" id="max_sl_meme" step="1" min="5" max="50" onchange="markUnsaved()">
+                </div>
+            </div>
+            <div class="config-group">
+                <h3>Regime Multipliers</h3>
+                <div class="config-row">
+                    <label>Panic Multiplier</label>
+                    <input type="number" id="panic_multiplier" step="0.1" min="1" max="3" onchange="markUnsaved()">
+                </div>
+                <div class="config-row">
+                    <label>Caution Multiplier</label>
+                    <input type="number" id="caution_multiplier" step="0.1" min="1" max="2" onchange="markUnsaved()">
+                </div>
+                <div class="config-row">
+                    <label>Euphoria Multiplier</label>
+                    <input type="number" id="euphoria_multiplier" step="0.1" min="1" max="2" onchange="markUnsaved()">
+                </div>
+            </div>
+            <div class="config-group">
+                <h3>Hysteresis Settings</h3>
+                <div class="config-row">
+                    <label>Channel Disable Volatility (%)</label>
+                    <input type="number" id="channel_disable_vol" step="0.5" min="1" max="30" onchange="markUnsaved()">
+                </div>
+                <div class="config-row">
+                    <label>Channel Re-enable Volatility (%)</label>
+                    <input type="number" id="channel_reenable_vol" step="0.5" min="1" max="30" onchange="markUnsaved()">
+                </div>
+                <div class="config-row">
+                    <label>Re-enable Cooldown (hours)</label>
+                    <input type="number" id="reenable_cooldown" step="1" min="1" max="24" onchange="markUnsaved()">
+                </div>
             </div>
         </div>
     </div>
@@ -2373,10 +2664,67 @@ async function loadConfig() {
         document.getElementById('channel_sell_zone').value = currentConfig.strategies?.CHANNEL?.detection_thresholds?.sell_zone || 0.85;
         document.getElementById('channel_strength').value = currentConfig.strategies?.CHANNEL?.detection_thresholds?.channel_strength_min || 0.9;
         
-        // Populate position management
+        // Populate Risk Management - Position & Portfolio
         document.getElementById('base_position_size').value = currentConfig.position_management?.position_sizing?.base_position_size_usd || 50;
+        document.getElementById('position_multiplier').value = currentConfig.position_management?.position_sizing?.position_size_multiplier || 1.5;
+        document.getElementById('max_percent_balance').value = (currentConfig.position_management?.position_sizing?.max_percent_of_balance || 0.5) * 100;
         document.getElementById('max_positions').value = currentConfig.position_management?.max_positions_total || 50;
+        document.getElementById('max_positions_per_strategy').value = currentConfig.position_management?.max_positions_per_strategy || 50;
+        document.getElementById('max_positions_per_symbol').value = currentConfig.position_management?.max_positions_per_symbol || 3;
         document.getElementById('max_hold_hours').value = currentConfig.position_management?.max_hold_hours || 72;
+        
+        // Populate Risk Management - Market Protection
+        const marketProtection = currentConfig.market_protection || {};
+        document.getElementById('panic_threshold').value = (marketProtection.enhanced_regime?.panic_threshold || -0.1) * 100;
+        document.getElementById('caution_threshold').value = (marketProtection.enhanced_regime?.caution_threshold || -0.05) * 100;
+        document.getElementById('euphoria_threshold').value = (marketProtection.enhanced_regime?.euphoria_threshold || 0.05) * 100;
+        document.getElementById('volatility_panic').value = marketProtection.volatility_thresholds?.panic || 12;
+        document.getElementById('volatility_high').value = marketProtection.volatility_thresholds?.high || 8;
+        document.getElementById('volatility_moderate').value = marketProtection.volatility_thresholds?.moderate || 5;
+        document.getElementById('channel_volatility_limit').value = marketProtection.volatility_thresholds?.strategy_limits?.CHANNEL || 8;
+        document.getElementById('swing_volatility_limit').value = marketProtection.volatility_thresholds?.strategy_limits?.SWING || 15;
+        document.getElementById('dca_volatility_limit').value = marketProtection.volatility_thresholds?.strategy_limits?.DCA || 20;
+        document.getElementById('decline_24h').value = (marketProtection.cumulative_decline?.['24h_threshold'] || -3);
+        document.getElementById('decline_48h').value = (marketProtection.cumulative_decline?.['48h_threshold'] || -5);
+        
+        // Populate Risk Management - Trade Limiter
+        const tradeLimiter = marketProtection.trade_limiter || {};
+        document.getElementById('max_consecutive_stops').value = tradeLimiter.max_consecutive_stops || 3;
+        document.getElementById('reset_on_tp').checked = tradeLimiter.reset_on_50pct_tp !== false;
+        document.getElementById('reset_on_trailing').checked = tradeLimiter.reset_on_trailing_stop !== false;
+        document.getElementById('cooldown_large').value = tradeLimiter.cooldown_hours_by_tier?.large_cap || 4;
+        document.getElementById('cooldown_mid').value = tradeLimiter.cooldown_hours_by_tier?.mid_cap || 6;
+        document.getElementById('cooldown_small').value = tradeLimiter.cooldown_hours_by_tier?.small_cap || 12;
+        document.getElementById('cooldown_meme').value = tradeLimiter.cooldown_hours_by_tier?.memecoin || 24;
+        
+        // Populate Risk Management - Risk Limits (placeholder values for now)
+        const riskManagement = currentConfig.risk_management || {};
+        document.getElementById('max_daily_loss_pct').value = riskManagement.max_daily_loss_pct || 10;
+        document.getElementById('max_daily_loss_usd').value = riskManagement.max_daily_loss_usd || 1000;
+        document.getElementById('max_drawdown').value = riskManagement.max_drawdown || 20;
+        document.getElementById('max_open_risk').value = riskManagement.max_open_risk || 2000;
+        document.getElementById('risk_per_trade').value = riskManagement.risk_per_trade || 2;
+        document.getElementById('consecutive_loss_limit').value = riskManagement.consecutive_loss_limit || 5;
+        document.getElementById('emergency_stop_enabled').checked = riskManagement.emergency_stop_enabled || false;
+        document.getElementById('recovery_mode_enabled').checked = riskManagement.recovery_mode_enabled || false;
+        document.getElementById('recovery_position_size').value = riskManagement.recovery_position_size || 50;
+        
+        // Populate Risk Management - Dynamic Adjustments
+        const stopWidening = marketProtection.stop_widening || {};
+        document.getElementById('stop_widening_enabled').checked = stopWidening.enabled !== false;
+        document.getElementById('volatility_factor').value = stopWidening.volatility_factor || 0.3;
+        document.getElementById('max_sl_large').value = (stopWidening.max_stop_loss_by_tier?.large_cap || 0.1) * 100;
+        document.getElementById('max_sl_mid').value = (stopWidening.max_stop_loss_by_tier?.mid_cap || 0.12) * 100;
+        document.getElementById('max_sl_small').value = (stopWidening.max_stop_loss_by_tier?.small_cap || 0.15) * 100;
+        document.getElementById('max_sl_meme').value = (stopWidening.max_stop_loss_by_tier?.memecoin || 0.15) * 100;
+        document.getElementById('panic_multiplier').value = stopWidening.regime_multipliers?.PANIC || 1.5;
+        document.getElementById('caution_multiplier').value = stopWidening.regime_multipliers?.CAUTION || 1.3;
+        document.getElementById('euphoria_multiplier').value = stopWidening.regime_multipliers?.EUPHORIA || 1.2;
+        
+        const hysteresis = marketProtection.hysteresis || {};
+        document.getElementById('channel_disable_vol').value = hysteresis.channel_disable_volatility || 8;
+        document.getElementById('channel_reenable_vol').value = hysteresis.channel_reenable_volatility || 6;
+        document.getElementById('reenable_cooldown').value = hysteresis.reenable_cooldown_hours || 2;
         
         // Populate exit parameters for all strategies and tiers
         const strategies = ['DCA', 'SWING', 'CHANNEL'];
@@ -2508,10 +2856,61 @@ function collectChanges() {
     checkChange(changes, 'strategies.CHANNEL.detection_thresholds.sell_zone', 'channel_sell_zone');
     checkChange(changes, 'strategies.CHANNEL.detection_thresholds.channel_strength_min', 'channel_strength');
     
-    // Position management
+    // Risk Management - Position & Portfolio
     checkChange(changes, 'position_management.position_sizing.base_position_size_usd', 'base_position_size');
+    checkChange(changes, 'position_management.position_sizing.position_size_multiplier', 'position_multiplier');
+    checkChangePercentage(changes, 'position_management.position_sizing.max_percent_of_balance', 'max_percent_balance');
     checkChange(changes, 'position_management.max_positions_total', 'max_positions');
+    checkChange(changes, 'position_management.max_positions_per_strategy', 'max_positions_per_strategy');
+    checkChange(changes, 'position_management.max_positions_per_symbol', 'max_positions_per_symbol');
     checkChange(changes, 'position_management.max_hold_hours', 'max_hold_hours');
+    
+    // Risk Management - Market Protection
+    checkChangePercentage(changes, 'market_protection.enhanced_regime.panic_threshold', 'panic_threshold');
+    checkChangePercentage(changes, 'market_protection.enhanced_regime.caution_threshold', 'caution_threshold');
+    checkChangePercentage(changes, 'market_protection.enhanced_regime.euphoria_threshold', 'euphoria_threshold');
+    checkChange(changes, 'market_protection.volatility_thresholds.panic', 'volatility_panic');
+    checkChange(changes, 'market_protection.volatility_thresholds.high', 'volatility_high');
+    checkChange(changes, 'market_protection.volatility_thresholds.moderate', 'volatility_moderate');
+    checkChange(changes, 'market_protection.volatility_thresholds.strategy_limits.CHANNEL', 'channel_volatility_limit');
+    checkChange(changes, 'market_protection.volatility_thresholds.strategy_limits.SWING', 'swing_volatility_limit');
+    checkChange(changes, 'market_protection.volatility_thresholds.strategy_limits.DCA', 'dca_volatility_limit');
+    checkChange(changes, 'market_protection.cumulative_decline.24h_threshold', 'decline_24h');
+    checkChange(changes, 'market_protection.cumulative_decline.48h_threshold', 'decline_48h');
+    
+    // Risk Management - Trade Limiter
+    checkChange(changes, 'market_protection.trade_limiter.max_consecutive_stops', 'max_consecutive_stops');
+    checkChangeBoolean(changes, 'market_protection.trade_limiter.reset_on_50pct_tp', 'reset_on_tp');
+    checkChangeBoolean(changes, 'market_protection.trade_limiter.reset_on_trailing_stop', 'reset_on_trailing');
+    checkChange(changes, 'market_protection.trade_limiter.cooldown_hours_by_tier.large_cap', 'cooldown_large');
+    checkChange(changes, 'market_protection.trade_limiter.cooldown_hours_by_tier.mid_cap', 'cooldown_mid');
+    checkChange(changes, 'market_protection.trade_limiter.cooldown_hours_by_tier.small_cap', 'cooldown_small');
+    checkChange(changes, 'market_protection.trade_limiter.cooldown_hours_by_tier.memecoin', 'cooldown_meme');
+    
+    // Risk Management - Risk Limits (these will create new fields in config)
+    checkChange(changes, 'risk_management.max_daily_loss_pct', 'max_daily_loss_pct');
+    checkChange(changes, 'risk_management.max_daily_loss_usd', 'max_daily_loss_usd');
+    checkChange(changes, 'risk_management.max_drawdown', 'max_drawdown');
+    checkChange(changes, 'risk_management.max_open_risk', 'max_open_risk');
+    checkChange(changes, 'risk_management.risk_per_trade', 'risk_per_trade');
+    checkChange(changes, 'risk_management.consecutive_loss_limit', 'consecutive_loss_limit');
+    checkChangeBoolean(changes, 'risk_management.emergency_stop_enabled', 'emergency_stop_enabled');
+    checkChangeBoolean(changes, 'risk_management.recovery_mode_enabled', 'recovery_mode_enabled');
+    checkChange(changes, 'risk_management.recovery_position_size', 'recovery_position_size');
+    
+    // Risk Management - Dynamic Adjustments
+    checkChangeBoolean(changes, 'market_protection.stop_widening.enabled', 'stop_widening_enabled');
+    checkChange(changes, 'market_protection.stop_widening.volatility_factor', 'volatility_factor');
+    checkChangePercentage(changes, 'market_protection.stop_widening.max_stop_loss_by_tier.large_cap', 'max_sl_large');
+    checkChangePercentage(changes, 'market_protection.stop_widening.max_stop_loss_by_tier.mid_cap', 'max_sl_mid');
+    checkChangePercentage(changes, 'market_protection.stop_widening.max_stop_loss_by_tier.small_cap', 'max_sl_small');
+    checkChangePercentage(changes, 'market_protection.stop_widening.max_stop_loss_by_tier.memecoin', 'max_sl_meme');
+    checkChange(changes, 'market_protection.stop_widening.regime_multipliers.PANIC', 'panic_multiplier');
+    checkChange(changes, 'market_protection.stop_widening.regime_multipliers.CAUTION', 'caution_multiplier');
+    checkChange(changes, 'market_protection.stop_widening.regime_multipliers.EUPHORIA', 'euphoria_multiplier');
+    checkChange(changes, 'market_protection.hysteresis.channel_disable_volatility', 'channel_disable_vol');
+    checkChange(changes, 'market_protection.hysteresis.channel_reenable_volatility', 'channel_reenable_vol');
+    checkChange(changes, 'market_protection.hysteresis.reenable_cooldown_hours', 'reenable_cooldown');
     
     // Exit parameters for all strategies and tiers
     const strategies = ['DCA', 'SWING', 'CHANNEL'];
@@ -2541,13 +2940,13 @@ function collectChanges() {
                 const currentTrail = currentConfig.strategies?.[strategy]?.exits_by_tier?.[tier]?.trailing_stop;
                 
                 if (currentTp !== tpValue && !isNaN(tpValue)) {
-                    changes.push({path: `strategies.${strategy}.exits_by_tier.${tier}.take_profit`, value: tpValue});
+                    changes[`strategies.${strategy}.exits_by_tier.${tier}.take_profit`] = tpValue;
                 }
                 if (currentSl !== slValue && !isNaN(slValue)) {
-                    changes.push({path: `strategies.${strategy}.exits_by_tier.${tier}.stop_loss`, value: slValue});
+                    changes[`strategies.${strategy}.exits_by_tier.${tier}.stop_loss`] = slValue;
                 }
                 if (currentTrail !== trailValue && !isNaN(trailValue)) {
-                    changes.push({path: `strategies.${strategy}.exits_by_tier.${tier}.trailing_stop`, value: trailValue});
+                    changes[`strategies.${strategy}.exits_by_tier.${tier}.trailing_stop`] = trailValue;
                 }
             }
         });
@@ -2577,6 +2976,32 @@ function getNestedValue(obj, path) {
         value = value?.[key];
     }
     return value;
+}
+
+// Helper to check if a percentage value changed (converts % to decimal)
+function checkChangePercentage(changes, path, elementId) {
+    const element = document.getElementById(elementId);
+    if (!element) return;
+    
+    const newValue = element.value ? parseFloat(element.value) / 100 : null;
+    const oldValue = getNestedValue(originalConfig, path);
+    
+    if (newValue !== oldValue && newValue !== null) {
+        changes[path] = newValue;
+    }
+}
+
+// Helper to check if a boolean value changed
+function checkChangeBoolean(changes, path, elementId) {
+    const element = document.getElementById(elementId);
+    if (!element) return;
+    
+    const newValue = element.checked;
+    const oldValue = getNestedValue(originalConfig, path);
+    
+    if (newValue !== oldValue) {
+        changes[path] = newValue;
+    }
 }
 
 // Save all changes
@@ -2697,6 +3122,25 @@ function showTier(strategy, tier) {
     
     // Show selected tier content
     document.getElementById(strategy + '_' + tier).classList.add('active');
+    
+    // Add active class to clicked tab
+    event.target.classList.add('active');
+}
+
+// Show risk management tab
+function showRiskTab(tab) {
+    // Hide all risk contents
+    document.querySelectorAll('.risk-content').forEach(content => {
+        content.classList.remove('active');
+    });
+    
+    // Remove active class from all risk tabs
+    document.querySelectorAll('.risk-tab').forEach(t => {
+        t.classList.remove('active');
+    });
+    
+    // Show selected risk content
+    document.getElementById('risk_' + tab).classList.add('active');
     
     // Add active class to clicked tab
     event.target.classList.add('active');
