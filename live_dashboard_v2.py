@@ -3056,14 +3056,27 @@ async function saveAllChanges() {
             })
         });
         
-        if (response.ok) {
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            // Show success with any warnings
             showNotification(`Saved ${Object.keys(changes).length} configuration changes`, 'success');
+            if (data.warnings && data.warnings.length > 0) {
+                showValidationMessages(data.warnings, 'warning');
+            }
             hasUnsavedChanges = false;
             updateUnsavedIndicator();
             await loadConfig();  // Reload to get new version
             await loadConfigHistory();
         } else {
-            throw new Error('Failed to save configuration');
+            // Show validation errors
+            if (data.errors && data.errors.length > 0) {
+                showValidationMessages(data.errors, 'error');
+            }
+            if (data.warnings && data.warnings.length > 0) {
+                showValidationMessages(data.warnings, 'warning');
+            }
+            showNotification(data.message || 'Failed to save configuration', 'error');
         }
     } catch (error) {
         console.error('Error saving config:', error);
@@ -3178,7 +3191,7 @@ function showRiskTab(tab) {
 // Show notification
 function showNotification(message, type) {
     // Simple notification - you can enhance this
-    const color = type === 'success' ? '#10b981' : '#ef4444';
+    const color = type === 'success' ? '#10b981' : type === 'warning' ? '#f59e0b' : '#ef4444';
     const notification = document.createElement('div');
     notification.style.cssText = `
         position: fixed;
@@ -3189,11 +3202,72 @@ function showNotification(message, type) {
         padding: 15px 20px;
         border-radius: 8px;
         z-index: 1000;
+        max-width: 400px;
     `;
     notification.textContent = message;
     document.body.appendChild(notification);
     
     setTimeout(() => notification.remove(), 3000);
+}
+
+// Show validation messages
+function showValidationMessages(messages, type) {
+    const color = type === 'error' ? '#ef4444' : '#f59e0b';
+    const bgColor = type === 'error' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(245, 158, 11, 0.1)';
+    const title = type === 'error' ? 'Validation Errors:' : 'Warnings:';
+    
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(30, 41, 59, 0.98);
+        border: 2px solid ${color};
+        border-radius: 12px;
+        padding: 20px;
+        max-width: 600px;
+        max-height: 70vh;
+        overflow-y: auto;
+        z-index: 2000;
+        box-shadow: 0 10px 50px rgba(0, 0, 0, 0.5);
+    `;
+    
+    modal.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3 style="color: ${color}; margin: 0;">${title}</h3>
+            <button onclick="this.parentElement.parentElement.remove()" style="
+                background: transparent;
+                border: none;
+                color: #94a3b8;
+                font-size: 24px;
+                cursor: pointer;
+                padding: 0;
+                width: 30px;
+                height: 30px;
+            ">×</button>
+        </div>
+        <div style="background: ${bgColor}; border-radius: 8px; padding: 15px;">
+            ${messages.map(msg => `
+                <div style="color: #e2e8f0; margin-bottom: 10px; padding-left: 20px; position: relative;">
+                    <span style="position: absolute; left: 0; color: ${color};">•</span>
+                    ${msg}
+                </div>
+            `).join('')}
+        </div>
+        <button onclick="this.parentElement.remove()" style="
+            margin-top: 15px;
+            padding: 10px 20px;
+            background: ${color};
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+        ">OK</button>
+    `;
+    
+    document.body.appendChild(modal);
 }
 
 // Initialize on load
@@ -4228,21 +4302,30 @@ def update_config():
         description = data.get("description", "Configuration update via admin panel")
 
         loader = ConfigLoader()
-        success = loader.update_config(
+        result = loader.update_config(
             updates=updates,
             change_type=change_type,
             changed_by=changed_by,
             description=description,
+            validate=True,
         )
 
-        if success:
-            return jsonify({"success": True, "message": "Configuration updated"})
+        if result["success"]:
+            response = {
+                "success": True,
+                "message": f"Configuration updated: {result.get('changes', 0)} changes applied",
+                "warnings": result.get("warnings", [])
+            }
+            return jsonify(response)
         else:
             return (
-                jsonify(
-                    {"success": False, "message": "Failed to update configuration"}
-                ),
-                500,
+                jsonify({
+                    "success": False,
+                    "message": "Configuration validation failed",
+                    "errors": result.get("errors", ["Unknown error"]),
+                    "warnings": result.get("warnings", [])
+                }),
+                400,  # Bad request instead of server error
             )
 
     except Exception as e:

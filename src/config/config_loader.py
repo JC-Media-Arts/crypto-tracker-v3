@@ -281,13 +281,140 @@ class ConfigLoader:
             logger.error(f"Error saving configuration change: {e}")
             return False
 
+    def validate_config(self, config: Dict[str, Any], updates: Optional[Dict[str, Any]] = None) -> Dict[str, List[str]]:
+        """Validate configuration values and relationships.
+        
+        Args:
+            config: Full configuration dictionary to validate
+            updates: Optional dictionary of updates to validate before applying
+            
+        Returns:
+            Dictionary with 'errors' and 'warnings' lists
+        """
+        errors = []
+        warnings = []
+        
+        # If updates provided, create a test config with updates applied
+        if updates:
+            test_config = json.loads(json.dumps(config))  # Deep copy
+            for path, new_value in updates.items():
+                parts = path.split(".")
+                target = test_config
+                for part in parts[:-1]:
+                    if part not in target:
+                        target[part] = {}
+                    target = target[part]
+                target[parts[-1]] = new_value
+            config = test_config
+        
+        # Validate global settings
+        if config.get("global_settings", {}).get("initial_balance", 0) <= 0:
+            errors.append("Initial balance must be greater than 0")
+            
+        # Validate position management
+        pos_mgmt = config.get("position_management", {})
+        if pos_mgmt.get("max_positions_per_strategy", 0) > pos_mgmt.get("max_positions_total", 100):
+            errors.append("Max positions per strategy cannot exceed total max positions")
+        
+        if pos_mgmt.get("max_positions_per_symbol", 0) > pos_mgmt.get("max_positions_per_strategy", 50):
+            warnings.append("Max positions per symbol exceeds max per strategy - may never be reached")
+            
+        base_size = pos_mgmt.get("position_sizing", {}).get("base_position_size_usd", 50)
+        if base_size < 10:
+            errors.append("Base position size must be at least $10")
+        elif base_size < 25:
+            warnings.append("Base position size below $25 may result in poor fee ratios")
+            
+        # Validate strategy exit parameters
+        strategies = config.get("strategies", {})
+        for strategy_name, strategy_config in strategies.items():
+            if not isinstance(strategy_config, dict):
+                continue
+                
+            exits_by_tier = strategy_config.get("exits_by_tier", {})
+            for tier, exits in exits_by_tier.items():
+                if not isinstance(exits, dict):
+                    continue
+                    
+                tp = exits.get("take_profit", 0)
+                sl = exits.get("stop_loss", 0)
+                trail = exits.get("trailing_stop", 0)
+                
+                # Basic boundary checks
+                if tp <= 0 or tp > 1.0:  # 0-100%
+                    errors.append(f"{strategy_name}/{tier}: Take profit must be between 0% and 100%")
+                if sl <= 0 or sl > 0.5:  # 0-50%
+                    errors.append(f"{strategy_name}/{tier}: Stop loss must be between 0% and 50%")
+                if trail < 0 or trail > sl:
+                    errors.append(f"{strategy_name}/{tier}: Trailing stop cannot exceed stop loss")
+                
+                # Check minimum profitability (TP must cover fees and slippage)
+                min_fees = 0.003  # 0.3% minimum fees + slippage
+                if tp < min_fees * 2:
+                    errors.append(f"{strategy_name}/{tier}: Take profit ({tp*100:.1f}%) too low to cover fees (~{min_fees*100:.1f}%)")
+                elif tp < min_fees * 3:
+                    warnings.append(f"{strategy_name}/{tier}: Take profit ({tp*100:.1f}%) provides minimal profit after fees")
+                    
+        # Validate market protection
+        market_protection = config.get("market_protection", {})
+        if market_protection.get("enabled"):
+            regime = market_protection.get("enhanced_regime", {})
+            
+            panic = regime.get("panic_threshold", -0.1)
+            caution = regime.get("caution_threshold", -0.05)
+            euphoria = regime.get("euphoria_threshold", 0.05)
+            
+            if panic >= caution:
+                errors.append("Panic threshold must be more negative than caution threshold")
+            if caution >= 0:
+                errors.append("Caution threshold must be negative")
+            if euphoria <= 0:
+                errors.append("Euphoria threshold must be positive")
+                
+            # Validate volatility thresholds
+            vol = market_protection.get("volatility_thresholds", {})
+            if vol.get("panic", 12) <= vol.get("high", 8):
+                errors.append("Panic volatility must be higher than high volatility")
+            if vol.get("high", 8) <= vol.get("moderate", 5):
+                errors.append("High volatility must be higher than moderate volatility")
+                
+            # Validate trade limiter
+            limiter = market_protection.get("trade_limiter", {})
+            if limiter.get("max_consecutive_stops", 3) < 1:
+                errors.append("Max consecutive stops must be at least 1")
+            if limiter.get("max_consecutive_stops", 3) > 10:
+                warnings.append("Max consecutive stops > 10 may never trigger protection")
+                
+            # Validate cooldowns
+            cooldowns = limiter.get("cooldown_hours_by_tier", {})
+            if cooldowns.get("large_cap", 4) > cooldowns.get("mid_cap", 6):
+                warnings.append("Large cap cooldown exceeds mid cap - unusual configuration")
+                
+        # Validate risk management limits
+        risk_mgmt = config.get("risk_management", {})
+        if risk_mgmt:
+            daily_loss_pct = risk_mgmt.get("max_daily_loss_pct", 10)
+            if daily_loss_pct <= 0 or daily_loss_pct > 50:
+                errors.append("Max daily loss % must be between 0% and 50%")
+                
+            drawdown = risk_mgmt.get("max_drawdown", 20)
+            if drawdown <= daily_loss_pct:
+                warnings.append("Max drawdown should typically exceed daily loss limit")
+                
+            risk_per_trade = risk_mgmt.get("risk_per_trade", 2)
+            if risk_per_trade <= 0 or risk_per_trade > 10:
+                errors.append("Risk per trade must be between 0% and 10%")
+                
+        return {"errors": errors, "warnings": warnings}
+
     def update_config(
         self,
         updates: Dict[str, Any],
         change_type: str = "manual",
         changed_by: Optional[str] = None,
         description: Optional[str] = None,
-    ) -> bool:
+        validate: bool = True,
+    ) -> Dict[str, Any]:
         """Update configuration and save changes to file and database.
 
         Args:
@@ -295,14 +422,28 @@ class ConfigLoader:
             change_type: Type of change
             changed_by: User or system making the change
             description: Description of the changes
+            validate: Whether to validate before applying
 
         Returns:
-            True if all updates successful
+            Dictionary with 'success' boolean and optional 'errors'/'warnings' lists
         """
         try:
             # Load current config
             config = self.load()
             old_config = json.loads(json.dumps(config))  # Deep copy
+            
+            # Validate if requested
+            if validate:
+                validation = self.validate_config(config, updates)
+                if validation["errors"]:
+                    logger.error(f"Configuration validation failed: {validation['errors']}")
+                    return {
+                        "success": False,
+                        "errors": validation["errors"],
+                        "warnings": validation["warnings"]
+                    }
+                elif validation["warnings"]:
+                    logger.warning(f"Configuration warnings: {validation['warnings']}")
 
             # Track all changes
             changes = []
@@ -361,11 +502,18 @@ class ConfigLoader:
             self.reload()
 
             logger.info(f"Configuration updated: {len(changes)} changes applied")
-            return success
+            return {
+                "success": success,
+                "changes": len(changes),
+                "warnings": validation.get("warnings", []) if validate else []
+            }
 
         except Exception as e:
             logger.error(f"Error updating configuration: {e}")
-            return False
+            return {
+                "success": False,
+                "errors": [str(e)]
+            }
 
     def _increment_version(self, version: str) -> str:
         """Increment version number (e.g., 1.0.0 -> 1.0.1)"""
