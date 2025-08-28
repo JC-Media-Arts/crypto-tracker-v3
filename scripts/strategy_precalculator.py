@@ -23,25 +23,18 @@ class StrategyPreCalculator:
 
     def __init__(self):
         self.db = SupabaseClient()
-        # Load proper config from paper_trading_config
-        from configs.paper_trading_config import PAPER_TRADING_CONFIG
+        # Load proper config using ConfigLoader
+        from src.config.config_loader import ConfigLoader
+        
+        config_loader = ConfigLoader()
+        unified_config = config_loader.load()
 
         config = {
-            "dca_drop_threshold": PAPER_TRADING_CONFIG["strategies"]["DCA"].get(
-                "drop_threshold", -2.5
-            ),
-            "swing_breakout_threshold": PAPER_TRADING_CONFIG["strategies"]["SWING"].get(
-                "breakout_threshold", 1.010
-            ),
-            "channel_position_threshold": PAPER_TRADING_CONFIG["strategies"][
-                "CHANNEL"
-            ].get("buy_zone", 0.10),
-            "swing_volume_surge": PAPER_TRADING_CONFIG["strategies"]["SWING"].get(
-                "volume_surge", 1.3
-            ),
-            "channel_touches": PAPER_TRADING_CONFIG["strategies"]["CHANNEL"].get(
-                "channel_touches", 3
-            ),
+            "dca_drop_threshold": unified_config.get("strategies", {}).get("DCA", {}).get("detection_thresholds", {}).get("drop_threshold", -2.5),
+            "swing_breakout_threshold": unified_config.get("strategies", {}).get("SWING", {}).get("detection_thresholds", {}).get("breakout_threshold", 1.010),
+            "channel_position_threshold": unified_config.get("strategies", {}).get("CHANNEL", {}).get("detection_thresholds", {}).get("buy_zone", 0.10),
+            "swing_volume_surge": unified_config.get("strategies", {}).get("SWING", {}).get("detection_thresholds", {}).get("volume_surge", 1.3),
+            "channel_touches": unified_config.get("strategies", {}).get("CHANNEL", {}).get("detection_thresholds", {}).get("channel_touches", 3),
         }
         self.simple_rules = SimpleRules(config)
 

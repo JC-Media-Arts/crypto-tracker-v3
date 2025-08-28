@@ -9,6 +9,7 @@ import json
 import os
 from pathlib import Path
 from loguru import logger
+from src.config.config_loader import ConfigLoader
 
 
 class TradeLimiter:
@@ -19,7 +20,7 @@ class TradeLimiter:
 
     def __init__(
         self,
-        config_path: str = "configs/paper_trading.json",
+        config_path: str = "configs/paper_trading_config_unified.json",
         state_file: str = "data/trade_limiter_state.json",
     ):
         """
@@ -29,8 +30,9 @@ class TradeLimiter:
             config_path: Path to configuration file
             state_file: Path to persistent state file
         """
-        # Load configuration
-        self.config = self._load_config(config_path)
+        # Load configuration using ConfigLoader
+        self.config_loader = ConfigLoader(config_path)
+        self.config = self.config_loader.load()
         self.market_protection = self.config.get("market_protection", {})
         self.limiter_config = self.market_protection.get("trade_limiter", {})
 

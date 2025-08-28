@@ -83,6 +83,12 @@ BASE_CSS = r"""
         background: rgba(59, 130, 246, 0.1);
         color: #60a5fa;
     }
+    
+    .admin-icon {
+        margin-left: auto;
+        font-size: 1.2rem;
+        padding: 0.5rem 1rem;
+    }
 
     .nav-link.active {
         background: rgba(59, 130, 246, 0.2);
@@ -290,6 +296,134 @@ BASE_CSS = r"""
         border-color: #3b82f6;
         color: #60a5fa;
     }
+.paper-trading-section {
+    border: 2px solid rgba(100, 181, 246, 0.5);
+    padding: 25px;
+    margin-bottom: 30px;
+    border-radius: 15px;
+    background: rgba(33, 150, 243, 0.05);
+}
+.section-header {
+    font-size: 1.8em;
+    color: #64b5f6;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.section-header::before {
+    content: "📊";
+    font-size: 1.2em;
+}
+.save-controls {
+    background: rgba(30, 41, 59, 0.5);
+    padding: 20px;
+    border-radius: 10px;
+    border-top: 1px solid rgba(100, 181, 246, 0.2);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    margin-top: 30px;
+}
+.save-btn, .discard-btn {
+    padding: 12px 30px;
+    font-size: 1.1em;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+.save-btn {
+    background: #4CAF50;
+    color: white;
+}
+.save-btn:hover {
+    background: #45a049;
+    transform: translateY(-2px);
+}
+.discard-btn {
+    background: #f44336;
+    color: white;
+}
+.discard-btn:hover {
+    background: #da190b;
+    transform: translateY(-2px);
+}
+.unsaved-indicator {
+    color: #ffc107;
+    font-size: 0.95em;
+    font-weight: 500;
+    margin-left: 10px;
+}
+.tier-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    border-bottom: 2px solid rgba(100, 181, 246, 0.2);
+}
+.tier-tab {
+    padding: 10px 20px;
+    background: transparent;
+    color: #94a3b8;
+    border: none;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-size: 0.95em;
+    font-weight: 500;
+}
+.tier-tab:hover {
+    color: #64b5f6;
+}
+.tier-tab.active {
+    color: #64b5f6;
+    border-bottom-color: #64b5f6;
+    background: rgba(100, 181, 246, 0.05);
+}
+.tier-content {
+    display: none;
+}
+.tier-content.active {
+    display: block;
+}
+.strategy-tabs {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+    border-bottom: 3px solid rgba(100, 181, 246, 0.3);
+}
+.strategy-tab {
+    padding: 12px 25px;
+    background: rgba(30, 41, 59, 0.5);
+    color: #94a3b8;
+    border: none;
+    border-radius: 8px 8px 0 0;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-size: 1em;
+    font-weight: 600;
+}
+.strategy-tab:hover {
+    color: #64b5f6;
+    background: rgba(100, 181, 246, 0.1);
+}
+.strategy-tab.active {
+    color: #fff;
+    background: rgba(100, 181, 246, 0.2);
+    border-bottom: 3px solid #64b5f6;
+}
+.strategy-content {
+    display: none;
+    margin-top: 20px;
+}
+.strategy-content.active {
+    display: block;
+}
+.strategy-content .tier-tabs {
+    margin-top: 10px;
+    border-bottom: 2px solid rgba(100, 181, 246, 0.15);
+}
 """
 
 BASE_TEMPLATE = r"""
@@ -323,6 +457,9 @@ BASE_TEMPLATE = r"""
                 </a>
                 <a href="/rd" class="nav-link {{ 'active' if active_page == 'rd' else '' }}">
                     🔬 R&D
+                </a>
+                <a href="/admin" class="nav-link admin-icon {{ 'active' if active_page == 'admin' else '' }}" title="Admin Panel">
+                    ⚙️
                 </a>
             </div>
         </div>
@@ -1641,6 +1778,962 @@ setInterval(fetchMLPredictions, 30000); // Every 30 seconds
 """
 
 
+# Admin Panel Templates
+ADMIN_TEMPLATE = r"""
+<h1 class="page-title">Admin Panel</h1>
+<p class="subtitle">Configuration Management & Control Center</p>
+
+<!-- Paper Trading Configuration Section -->
+<div class="paper-trading-section">
+    <div class="section-header">Paper Trading Configuration</div>
+    
+    <!-- Paper Trading Status (formerly Kill Switch) -->
+    <div class="stats-container">
+        <div class="stat-card kill-switch-card">
+            <div class="stat-label">Paper Trading Status</div>
+            <div class="kill-switch-container">
+                <label class="switch">
+                    <input type="checkbox" id="killSwitch" onchange="markUnsaved()">
+                    <span class="slider round"></span>
+                </label>
+                <span id="killSwitchStatus" class="status-text">Loading...</span>
+            </div>
+        </div>
+    </div>
+
+<!-- Configuration Sections -->
+<div class="config-sections">
+    <!-- Strategy Thresholds -->
+    <div class="config-section">
+        <h2>Strategy Thresholds</h2>
+        
+        <div class="config-group">
+            <h3>DCA Strategy</h3>
+            <div class="config-row">
+                <label>Drop Threshold (%)</label>
+                <input type="number" id="dca_drop_threshold" step="0.1" min="-20" max="0" onchange="markUnsaved()">
+
+            </div>
+            <div class="config-row">
+                <label>Min Confidence</label>
+                <input type="number" id="dca_min_confidence" step="0.01" min="0" max="1" onchange="markUnsaved()">
+
+            </div>
+        </div>
+        
+        <div class="config-group">
+            <h3>SWING Strategy</h3>
+            <div class="config-row">
+                <label>Breakout Threshold</label>
+                <input type="number" id="swing_breakout" step="0.001" min="1" max="1.1" onchange="markUnsaved()">
+
+            </div>
+            <div class="config-row">
+                <label>Volume Surge</label>
+                <input type="number" id="swing_volume" step="0.1" min="1" max="5" onchange="markUnsaved()">
+
+            </div>
+        </div>
+        
+        <div class="config-group">
+            <h3>CHANNEL Strategy</h3>
+            <div class="config-row">
+                <label>Buy Zone</label>
+                <input type="number" id="channel_buy_zone" step="0.01" min="0" max="0.5" onchange="markUnsaved()">
+            </div>
+            <div class="config-row">
+                <label>Sell Zone</label>
+                <input type="number" id="channel_sell_zone" step="0.01" min="0.5" max="1" onchange="markUnsaved()">
+            </div>
+            <div class="config-row">
+                <label>Channel Strength</label>
+                <input type="number" id="channel_strength" step="0.01" min="0" max="1" onchange="markUnsaved()">
+            </div>
+        </div>
+    </div>
+    
+    <!-- Position Management -->
+    <div class="config-section">
+        <h2>Position Management</h2>
+        <div class="config-group">
+            <div class="config-row">
+                <label>Base Position Size ($)</label>
+                <input type="number" id="base_position_size" step="10" min="10" max="1000" onchange="markUnsaved()">
+            </div>
+            <div class="config-row">
+                <label>Max Total Positions</label>
+                <input type="number" id="max_positions" step="1" min="1" max="100" onchange="markUnsaved()">
+            </div>
+            <div class="config-row">
+                <label>Max Hold Hours</label>
+                <input type="number" id="max_hold_hours" step="1" min="1" max="168" onchange="markUnsaved()">
+            </div>
+        </div>
+    </div>
+    
+    <!-- Exit Parameters -->
+    <div class="config-section">
+        <h2>Exit Parameters by Strategy and Market Cap</h2>
+        
+        <!-- Strategy Tabs -->
+        <div class="strategy-tabs">
+            <button class="strategy-tab active" onclick="showStrategy('DCA')">DCA</button>
+            <button class="strategy-tab" onclick="showStrategy('SWING')">SWING</button>
+            <button class="strategy-tab" onclick="showStrategy('CHANNEL')">CHANNEL</button>
+        </div>
+        
+        <!-- DCA Strategy -->
+        <div id="DCA_strategy" class="strategy-content active">
+            <!-- Tier Tabs for DCA -->
+            <div class="tier-tabs">
+                <button class="tier-tab active" onclick="showTier('DCA', 'large_cap')">Large Cap</button>
+                <button class="tier-tab" onclick="showTier('DCA', 'mid_cap')">Mid Cap</button>
+                <button class="tier-tab" onclick="showTier('DCA', 'small_cap')">Small Cap</button>
+                <button class="tier-tab" onclick="showTier('DCA', 'memecoin')">Memecoin</button>
+            </div>
+            
+            <!-- DCA Large Cap -->
+            <div id="DCA_large_cap" class="tier-content active">
+                <div class="config-group">
+                    <div class="config-row">
+                        <label>Take Profit (%)</label>
+                        <input type="number" id="tp_dca_large" step="0.1" min="1" max="50" onchange="markUnsaved()">
+                    </div>
+                    <div class="config-row">
+                        <label>Stop Loss (%)</label>
+                        <input type="number" id="sl_dca_large" step="0.1" min="1" max="20" onchange="markUnsaved()">
+                    </div>
+                    <div class="config-row">
+                        <label>Trailing Stop (%)</label>
+                        <input type="number" id="trail_dca_large" step="0.1" min="1" max="10" onchange="markUnsaved()">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- DCA Mid Cap -->
+            <div id="DCA_mid_cap" class="tier-content">
+                <div class="config-group">
+                    <div class="config-row">
+                        <label>Take Profit (%)</label>
+                        <input type="number" id="tp_dca_mid" step="0.1" min="1" max="50" onchange="markUnsaved()">
+                    </div>
+                    <div class="config-row">
+                        <label>Stop Loss (%)</label>
+                        <input type="number" id="sl_dca_mid" step="0.1" min="1" max="20" onchange="markUnsaved()">
+                    </div>
+                    <div class="config-row">
+                        <label>Trailing Stop (%)</label>
+                        <input type="number" id="trail_dca_mid" step="0.1" min="1" max="10" onchange="markUnsaved()">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- DCA Small Cap -->
+            <div id="DCA_small_cap" class="tier-content">
+                <div class="config-group">
+                    <div class="config-row">
+                        <label>Take Profit (%)</label>
+                        <input type="number" id="tp_dca_small" step="0.1" min="1" max="50" onchange="markUnsaved()">
+                    </div>
+                    <div class="config-row">
+                        <label>Stop Loss (%)</label>
+                        <input type="number" id="sl_dca_small" step="0.1" min="1" max="20" onchange="markUnsaved()">
+                    </div>
+                    <div class="config-row">
+                        <label>Trailing Stop (%)</label>
+                        <input type="number" id="trail_dca_small" step="0.1" min="1" max="10" onchange="markUnsaved()">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- DCA Memecoin -->
+            <div id="DCA_memecoin" class="tier-content">
+                <div class="config-group">
+                    <div class="config-row">
+                        <label>Take Profit (%)</label>
+                        <input type="number" id="tp_dca_meme" step="0.1" min="1" max="100" onchange="markUnsaved()">
+                    </div>
+                    <div class="config-row">
+                        <label>Stop Loss (%)</label>
+                        <input type="number" id="sl_dca_meme" step="0.1" min="1" max="30" onchange="markUnsaved()">
+                    </div>
+                    <div class="config-row">
+                        <label>Trailing Stop (%)</label>
+                        <input type="number" id="trail_dca_meme" step="0.1" min="1" max="20" onchange="markUnsaved()">
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- SWING Strategy -->
+        <div id="SWING_strategy" class="strategy-content">
+            <!-- Tier Tabs for SWING -->
+            <div class="tier-tabs">
+                <button class="tier-tab active" onclick="showTier('SWING', 'large_cap')">Large Cap</button>
+                <button class="tier-tab" onclick="showTier('SWING', 'mid_cap')">Mid Cap</button>
+                <button class="tier-tab" onclick="showTier('SWING', 'small_cap')">Small Cap</button>
+                <button class="tier-tab" onclick="showTier('SWING', 'memecoin')">Memecoin</button>
+            </div>
+            
+            <!-- SWING Large Cap -->
+            <div id="SWING_large_cap" class="tier-content active">
+                <div class="config-group">
+                    <div class="config-row">
+                        <label>Take Profit (%)</label>
+                        <input type="number" id="tp_swing_large" step="0.1" min="1" max="50" onchange="markUnsaved()">
+                    </div>
+                    <div class="config-row">
+                        <label>Stop Loss (%)</label>
+                        <input type="number" id="sl_swing_large" step="0.1" min="1" max="20" onchange="markUnsaved()">
+                    </div>
+                    <div class="config-row">
+                        <label>Trailing Stop (%)</label>
+                        <input type="number" id="trail_swing_large" step="0.1" min="1" max="10" onchange="markUnsaved()">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- SWING Mid Cap -->
+            <div id="SWING_mid_cap" class="tier-content">
+                <div class="config-group">
+                    <div class="config-row">
+                        <label>Take Profit (%)</label>
+                        <input type="number" id="tp_swing_mid" step="0.1" min="1" max="50" onchange="markUnsaved()">
+                    </div>
+                    <div class="config-row">
+                        <label>Stop Loss (%)</label>
+                        <input type="number" id="sl_swing_mid" step="0.1" min="1" max="20" onchange="markUnsaved()">
+                    </div>
+                    <div class="config-row">
+                        <label>Trailing Stop (%)</label>
+                        <input type="number" id="trail_swing_mid" step="0.1" min="1" max="10" onchange="markUnsaved()">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- SWING Small Cap -->
+            <div id="SWING_small_cap" class="tier-content">
+                <div class="config-group">
+                    <div class="config-row">
+                        <label>Take Profit (%)</label>
+                        <input type="number" id="tp_swing_small" step="0.1" min="1" max="50" onchange="markUnsaved()">
+                    </div>
+                    <div class="config-row">
+                        <label>Stop Loss (%)</label>
+                        <input type="number" id="sl_swing_small" step="0.1" min="1" max="20" onchange="markUnsaved()">
+                    </div>
+                    <div class="config-row">
+                        <label>Trailing Stop (%)</label>
+                        <input type="number" id="trail_swing_small" step="0.1" min="1" max="10" onchange="markUnsaved()">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- SWING Memecoin -->
+            <div id="SWING_memecoin" class="tier-content">
+                <div class="config-group">
+                    <div class="config-row">
+                        <label>Take Profit (%)</label>
+                        <input type="number" id="tp_swing_meme" step="0.1" min="1" max="100" onchange="markUnsaved()">
+                    </div>
+                    <div class="config-row">
+                        <label>Stop Loss (%)</label>
+                        <input type="number" id="sl_swing_meme" step="0.1" min="1" max="30" onchange="markUnsaved()">
+                    </div>
+                    <div class="config-row">
+                        <label>Trailing Stop (%)</label>
+                        <input type="number" id="trail_swing_meme" step="0.1" min="1" max="20" onchange="markUnsaved()">
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- CHANNEL Strategy -->
+        <div id="CHANNEL_strategy" class="strategy-content">
+            <!-- Tier Tabs for CHANNEL -->
+            <div class="tier-tabs">
+                <button class="tier-tab active" onclick="showTier('CHANNEL', 'large_cap')">Large Cap</button>
+                <button class="tier-tab" onclick="showTier('CHANNEL', 'mid_cap')">Mid Cap</button>
+                <button class="tier-tab" onclick="showTier('CHANNEL', 'small_cap')">Small Cap</button>
+                <button class="tier-tab" onclick="showTier('CHANNEL', 'memecoin')">Memecoin</button>
+            </div>
+            
+            <!-- CHANNEL Large Cap -->
+            <div id="CHANNEL_large_cap" class="tier-content active">
+                <div class="config-group">
+                    <div class="config-row">
+                        <label>Take Profit (%)</label>
+                        <input type="number" id="tp_channel_large" step="0.1" min="1" max="50" onchange="markUnsaved()">
+                    </div>
+                    <div class="config-row">
+                        <label>Stop Loss (%)</label>
+                        <input type="number" id="sl_channel_large" step="0.1" min="1" max="20" onchange="markUnsaved()">
+                    </div>
+                    <div class="config-row">
+                        <label>Trailing Stop (%)</label>
+                        <input type="number" id="trail_channel_large" step="0.1" min="1" max="10" onchange="markUnsaved()">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- CHANNEL Mid Cap -->
+            <div id="CHANNEL_mid_cap" class="tier-content">
+                <div class="config-group">
+                    <div class="config-row">
+                        <label>Take Profit (%)</label>
+                        <input type="number" id="tp_channel_mid" step="0.1" min="1" max="50" onchange="markUnsaved()">
+                    </div>
+                    <div class="config-row">
+                        <label>Stop Loss (%)</label>
+                        <input type="number" id="sl_channel_mid" step="0.1" min="1" max="20" onchange="markUnsaved()">
+                    </div>
+                    <div class="config-row">
+                        <label>Trailing Stop (%)</label>
+                        <input type="number" id="trail_channel_mid" step="0.1" min="1" max="10" onchange="markUnsaved()">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- CHANNEL Small Cap -->
+            <div id="CHANNEL_small_cap" class="tier-content">
+                <div class="config-group">
+                    <div class="config-row">
+                        <label>Take Profit (%)</label>
+                        <input type="number" id="tp_channel_small" step="0.1" min="1" max="50" onchange="markUnsaved()">
+                    </div>
+                    <div class="config-row">
+                        <label>Stop Loss (%)</label>
+                        <input type="number" id="sl_channel_small" step="0.1" min="1" max="20" onchange="markUnsaved()">
+                    </div>
+                    <div class="config-row">
+                        <label>Trailing Stop (%)</label>
+                        <input type="number" id="trail_channel_small" step="0.1" min="1" max="10" onchange="markUnsaved()">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- CHANNEL Memecoin -->
+            <div id="CHANNEL_memecoin" class="tier-content">
+                <div class="config-group">
+                    <div class="config-row">
+                        <label>Take Profit (%)</label>
+                        <input type="number" id="tp_channel_meme" step="0.1" min="1" max="100" onchange="markUnsaved()">
+                    </div>
+                    <div class="config-row">
+                        <label>Stop Loss (%)</label>
+                        <input type="number" id="sl_channel_meme" step="0.1" min="1" max="30" onchange="markUnsaved()">
+                    </div>
+                    <div class="config-row">
+                        <label>Trailing Stop (%)</label>
+                        <input type="number" id="trail_channel_meme" step="0.1" min="1" max="20" onchange="markUnsaved()">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Save/Discard Controls for Paper Trading -->
+<div class="save-controls">
+    <button class="save-btn" onclick="saveAllChanges()">💾 Save All Changes</button>
+    <button class="discard-btn" onclick="discardChanges()">🔄 Discard Changes</button>
+    <span id="unsavedIndicator" style="display: none;" class="unsaved-indicator">Settings have been modified, click Save All Changes to save</span>
+</div>
+
+</div> <!-- End of Paper Trading Configuration Section -->
+
+<!-- Configuration History -->
+<div class="config-history">
+    <h2>Recent Configuration Changes</h2>
+    <div id="configHistoryTable">
+        <table>
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Section</th>
+                    <th>Field</th>
+                    <th>Old Value</th>
+                    <th>New Value</th>
+                    <th>Changed By</th>
+                </tr>
+            </thead>
+            <tbody id="configHistoryBody">
+                <!-- Will be populated by JavaScript -->
+            </tbody>
+        </table>
+    </div>
+</div>
+"""
+
+ADMIN_CSS = r"""
+<style>
+.kill-switch-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.kill-switch-container {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-top: 10px;
+}
+
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+}
+
+input:checked + .slider {
+    background-color: #2196F3;
+}
+
+input:checked + .slider:before {
+    transform: translateX(26px);
+}
+
+.slider.round {
+    border-radius: 34px;
+}
+
+.slider.round:before {
+    border-radius: 50%;
+}
+
+.status-text {
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+.config-sections {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 20px;
+    margin-top: 30px;
+}
+
+.config-section {
+    background: rgba(30, 41, 59, 0.5);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 12px;
+    padding: 20px;
+}
+
+.config-section h2 {
+    color: #60a5fa;
+    margin-bottom: 20px;
+    font-size: 1.3rem;
+}
+
+.config-group {
+    margin-bottom: 20px;
+}
+
+.config-group h3 {
+    color: #94a3b8;
+    margin-bottom: 15px;
+    font-size: 1.1rem;
+}
+
+.config-row {
+    display: grid;
+    grid-template-columns: 200px 150px 100px;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.config-row label {
+    color: #cbd5e1;
+}
+
+.config-row input {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    color: #e2e8f0;
+    padding: 8px;
+    border-radius: 6px;
+}
+
+.config-row button {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.config-row button:hover {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+}
+
+.config-history {
+    margin-top: 40px;
+    background: rgba(30, 41, 59, 0.5);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 12px;
+    padding: 20px;
+}
+
+.config-history h2 {
+    color: #60a5fa;
+    margin-bottom: 20px;
+}
+
+.config-history table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.config-history th {
+    background: rgba(59, 130, 246, 0.2);
+    color: #60a5fa;
+    padding: 10px;
+    text-align: left;
+    border-bottom: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.config-history td {
+    color: #cbd5e1;
+    padding: 10px;
+    border-bottom: 1px solid rgba(59, 130, 246, 0.1);
+}
+</style>
+"""
+
+ADMIN_SCRIPTS = r"""
+<script>
+let originalConfig = {};
+let currentConfig = {};
+let hasUnsavedChanges = false;
+
+// Mark configuration as having unsaved changes
+function markUnsaved() {
+    hasUnsavedChanges = true;
+    updateUnsavedIndicator();
+}
+
+// Update unsaved indicator
+function updateUnsavedIndicator() {
+    const indicator = document.getElementById('unsavedIndicator');
+    if (indicator) {
+        indicator.style.display = hasUnsavedChanges ? 'inline-block' : 'none';
+    }
+}
+
+// Load current configuration
+async function loadConfig() {
+    try {
+        const response = await fetch('/api/config');
+        originalConfig = await response.json();
+        currentConfig = JSON.parse(JSON.stringify(originalConfig));
+        
+        // Populate form fields
+        document.getElementById('killSwitch').checked = currentConfig.global_settings?.trading_enabled || false;
+        document.getElementById('killSwitchStatus').textContent = currentConfig.global_settings?.trading_enabled ? 'ENABLED' : 'DISABLED';
+        document.getElementById('killSwitchStatus').style.color = currentConfig.global_settings?.trading_enabled ? '#10b981' : '#ef4444';
+        
+        // Populate strategy thresholds
+        document.getElementById('dca_drop_threshold').value = currentConfig.strategies?.DCA?.drop_threshold || -4;
+        document.getElementById('dca_min_confidence').value = currentConfig.strategies?.DCA?.min_confidence || 0.45;
+        document.getElementById('swing_breakout').value = currentConfig.strategies?.SWING?.breakout_threshold || 1.015;
+        document.getElementById('swing_volume').value = currentConfig.strategies?.SWING?.volume_surge || 1.5;
+        document.getElementById('channel_buy_zone').value = currentConfig.strategies?.CHANNEL?.detection_thresholds?.buy_zone || 0.15;
+        document.getElementById('channel_sell_zone').value = currentConfig.strategies?.CHANNEL?.detection_thresholds?.sell_zone || 0.85;
+        document.getElementById('channel_strength').value = currentConfig.strategies?.CHANNEL?.detection_thresholds?.channel_strength_min || 0.9;
+        
+        // Populate position management
+        document.getElementById('base_position_size').value = currentConfig.position_management?.position_sizing?.base_position_size_usd || 50;
+        document.getElementById('max_positions').value = currentConfig.position_management?.max_positions_total || 50;
+        document.getElementById('max_hold_hours').value = currentConfig.position_management?.max_hold_hours || 72;
+        
+        // Populate exit parameters for all strategies and tiers
+        const strategies = ['DCA', 'SWING', 'CHANNEL'];
+        const tiers = ['large_cap', 'mid_cap', 'small_cap', 'memecoin'];
+        
+        strategies.forEach(strategy => {
+            const strategyExits = currentConfig.strategies?.[strategy]?.exits_by_tier || {};
+            const prefix = strategy.toLowerCase();
+            
+            // Large Cap
+            const tpLarge = document.getElementById(`tp_${prefix}_large`);
+            const slLarge = document.getElementById(`sl_${prefix}_large`);
+            const trailLarge = document.getElementById(`trail_${prefix}_large`);
+            if (tpLarge) tpLarge.value = Math.round((strategyExits.large_cap?.take_profit || 0.05) * 1000) / 10;
+            if (slLarge) slLarge.value = Math.round((strategyExits.large_cap?.stop_loss || 0.05) * 1000) / 10;
+            if (trailLarge) trailLarge.value = Math.round((strategyExits.large_cap?.trailing_stop || 0.03) * 1000) / 10;
+            
+            // Mid Cap
+            const tpMid = document.getElementById(`tp_${prefix}_mid`);
+            const slMid = document.getElementById(`sl_${prefix}_mid`);
+            const trailMid = document.getElementById(`trail_${prefix}_mid`);
+            if (tpMid) tpMid.value = Math.round((strategyExits.mid_cap?.take_profit || 0.08) * 1000) / 10;
+            if (slMid) slMid.value = Math.round((strategyExits.mid_cap?.stop_loss || 0.06) * 1000) / 10;
+            if (trailMid) trailMid.value = Math.round((strategyExits.mid_cap?.trailing_stop || 0.04) * 1000) / 10;
+            
+            // Small Cap
+            const tpSmall = document.getElementById(`tp_${prefix}_small`);
+            const slSmall = document.getElementById(`sl_${prefix}_small`);
+            const trailSmall = document.getElementById(`trail_${prefix}_small`);
+            if (tpSmall) tpSmall.value = Math.round((strategyExits.small_cap?.take_profit || 0.12) * 1000) / 10;
+            if (slSmall) slSmall.value = Math.round((strategyExits.small_cap?.stop_loss || 0.08) * 1000) / 10;
+            if (trailSmall) trailSmall.value = Math.round((strategyExits.small_cap?.trailing_stop || 0.05) * 1000) / 10;
+            
+            // Memecoin
+            const tpMeme = document.getElementById(`tp_${prefix}_meme`);
+            const slMeme = document.getElementById(`sl_${prefix}_meme`);
+            const trailMeme = document.getElementById(`trail_${prefix}_meme`);
+            if (tpMeme) tpMeme.value = Math.round((strategyExits.memecoin?.take_profit || 0.15) * 1000) / 10;
+            if (slMeme) slMeme.value = Math.round((strategyExits.memecoin?.stop_loss || 0.12) * 1000) / 10;
+            if (trailMeme) trailMeme.value = Math.round((strategyExits.memecoin?.trailing_stop || 0.08) * 1000) / 10;
+        });
+        
+        hasUnsavedChanges = false;
+        updateUnsavedIndicator();
+        
+    } catch (error) {
+        console.error('Error loading config:', error);
+    }
+}
+
+// Toggle kill switch
+async function toggleKillSwitch() {
+    const isEnabled = document.getElementById('killSwitch').checked;
+    
+    try {
+        const response = await fetch('/api/config/update', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                updates: {'global_settings.trading_enabled': isEnabled},
+                change_type: 'admin_panel',
+                changed_by: 'admin',
+                description: `Trading ${isEnabled ? 'enabled' : 'disabled'} via admin panel`
+            })
+        });
+        
+        if (response.ok) {
+            document.getElementById('killSwitchStatus').textContent = isEnabled ? 'ENABLED' : 'DISABLED';
+            document.getElementById('killSwitchStatus').style.color = isEnabled ? '#10b981' : '#ef4444';
+            showNotification(`Trading ${isEnabled ? 'enabled' : 'disabled'} successfully`, 'success');
+            loadConfigHistory();
+        } else {
+            showNotification('Failed to update kill switch', 'error');
+            document.getElementById('killSwitch').checked = !isEnabled; // Revert
+        }
+    } catch (error) {
+        console.error('Error toggling kill switch:', error);
+        showNotification('Error updating kill switch', 'error');
+        document.getElementById('killSwitch').checked = !isEnabled; // Revert
+    }
+}
+
+// Update configuration value
+async function updateConfig(path, inputId) {
+    const input = document.getElementById(inputId);
+    const value = parseFloat(input.value);
+    
+    try {
+        const response = await fetch('/api/config/update', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                updates: {[path]: value},
+                change_type: 'admin_panel',
+                changed_by: 'admin',
+                description: `Updated ${path} to ${value}`
+            })
+        });
+        
+        if (response.ok) {
+            showNotification(`Updated ${path} successfully`, 'success');
+            loadConfigHistory();
+        } else {
+            showNotification(`Failed to update ${path}`, 'error');
+        }
+    } catch (error) {
+        console.error('Error updating config:', error);
+        showNotification('Error updating configuration', 'error');
+    }
+}
+
+// Load configuration history
+// Collect all changes
+function collectChanges() {
+    const changes = {};
+    
+    // Kill switch
+    const killSwitch = document.getElementById('killSwitch').checked;
+    if (killSwitch !== originalConfig.global_settings?.trading_enabled) {
+        changes['global_settings.trading_enabled'] = killSwitch;
+    }
+    
+    // Strategy thresholds
+    checkChange(changes, 'strategies.DCA.drop_threshold', 'dca_drop_threshold');
+    checkChange(changes, 'strategies.DCA.min_confidence', 'dca_min_confidence');
+    checkChange(changes, 'strategies.SWING.breakout_threshold', 'swing_breakout');
+    checkChange(changes, 'strategies.SWING.volume_surge', 'swing_volume');
+    checkChange(changes, 'strategies.CHANNEL.detection_thresholds.buy_zone', 'channel_buy_zone');
+    checkChange(changes, 'strategies.CHANNEL.detection_thresholds.sell_zone', 'channel_sell_zone');
+    checkChange(changes, 'strategies.CHANNEL.detection_thresholds.channel_strength_min', 'channel_strength');
+    
+    // Position management
+    checkChange(changes, 'position_management.position_sizing.base_position_size_usd', 'base_position_size');
+    checkChange(changes, 'position_management.max_positions_total', 'max_positions');
+    checkChange(changes, 'position_management.max_hold_hours', 'max_hold_hours');
+    
+    // Exit parameters for all strategies and tiers
+    const strategies = ['DCA', 'SWING', 'CHANNEL'];
+    const tierNames = [
+        {tier: 'large_cap', suffix: 'large'},
+        {tier: 'mid_cap', suffix: 'mid'},
+        {tier: 'small_cap', suffix: 'small'},
+        {tier: 'memecoin', suffix: 'meme'}
+    ];
+    
+    strategies.forEach(strategy => {
+        const prefix = strategy.toLowerCase();
+        tierNames.forEach(({tier, suffix}) => {
+            // Get the input elements for this strategy and tier
+            const tpInput = document.getElementById(`tp_${prefix}_${suffix}`);
+            const slInput = document.getElementById(`sl_${prefix}_${suffix}`);
+            const trailInput = document.getElementById(`trail_${prefix}_${suffix}`);
+            
+            if (tpInput && slInput && trailInput) {
+                // Convert percentage to decimal when saving
+                const tpValue = parseFloat(tpInput.value) / 100;
+                const slValue = parseFloat(slInput.value) / 100;
+                const trailValue = parseFloat(trailInput.value) / 100;
+                
+                const currentTp = currentConfig.strategies?.[strategy]?.exits_by_tier?.[tier]?.take_profit;
+                const currentSl = currentConfig.strategies?.[strategy]?.exits_by_tier?.[tier]?.stop_loss;
+                const currentTrail = currentConfig.strategies?.[strategy]?.exits_by_tier?.[tier]?.trailing_stop;
+                
+                if (currentTp !== tpValue && !isNaN(tpValue)) {
+                    changes.push({path: `strategies.${strategy}.exits_by_tier.${tier}.take_profit`, value: tpValue});
+                }
+                if (currentSl !== slValue && !isNaN(slValue)) {
+                    changes.push({path: `strategies.${strategy}.exits_by_tier.${tier}.stop_loss`, value: slValue});
+                }
+                if (currentTrail !== trailValue && !isNaN(trailValue)) {
+                    changes.push({path: `strategies.${strategy}.exits_by_tier.${tier}.trailing_stop`, value: trailValue});
+                }
+            }
+        });
+    });
+    
+    return changes;
+}
+
+// Helper to check if a value changed
+function checkChange(changes, path, elementId) {
+    const element = document.getElementById(elementId);
+    if (!element) return;
+    
+    const newValue = element.value ? parseFloat(element.value) : null;
+    const oldValue = getNestedValue(originalConfig, path);
+    
+    if (newValue !== oldValue && newValue !== null) {
+        changes[path] = newValue;
+    }
+}
+
+// Get nested value from object
+function getNestedValue(obj, path) {
+    const keys = path.split('.');
+    let value = obj;
+    for (const key of keys) {
+        value = value?.[key];
+    }
+    return value;
+}
+
+// Save all changes
+async function saveAllChanges() {
+    const changes = collectChanges();
+    
+    if (Object.keys(changes).length === 0) {
+        showNotification('No changes to save', 'info');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/config/update', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                updates: changes,
+                change_type: 'admin_panel',
+                changed_by: 'admin',
+                description: `Bulk update: ${Object.keys(changes).length} fields changed`
+            })
+        });
+        
+        if (response.ok) {
+            showNotification(`Saved ${Object.keys(changes).length} configuration changes`, 'success');
+            hasUnsavedChanges = false;
+            updateUnsavedIndicator();
+            await loadConfig();  // Reload to get new version
+            await loadConfigHistory();
+        } else {
+            throw new Error('Failed to save configuration');
+        }
+    } catch (error) {
+        console.error('Error saving config:', error);
+        showNotification('Failed to save configuration', 'error');
+    }
+}
+
+// Discard changes
+function discardChanges() {
+    if (confirm('Are you sure you want to discard all unsaved changes?')) {
+        loadConfig();  // Reload original values
+        hasUnsavedChanges = false;
+        updateUnsavedIndicator();
+        showNotification('Changes discarded', 'info');
+    }
+}
+
+async function loadConfigHistory() {
+    try {
+        const response = await fetch('/api/config/history');
+        const history = await response.json();
+        
+        const tbody = document.getElementById('configHistoryBody');
+        tbody.innerHTML = '';
+        
+        history.slice(0, 10).forEach(change => {
+            const row = tbody.insertRow();
+            row.innerHTML = `
+                <td>${new Date(change.change_timestamp).toLocaleString()}</td>
+                <td>${change.config_section}</td>
+                <td>${change.field_name}</td>
+                <td>${change.old_value || 'N/A'}</td>
+                <td>${change.new_value || 'N/A'}</td>
+                <td>${change.changed_by || 'System'}</td>
+            `;
+        });
+    } catch (error) {
+        console.error('Error loading config history:', error);
+    }
+}
+
+// Show strategy tab
+function showStrategy(strategy) {
+    // Hide all strategy contents
+    document.querySelectorAll('.strategy-content').forEach(content => {
+        content.classList.remove('active');
+    });
+    
+    // Remove active class from all strategy tabs
+    document.querySelectorAll('.strategy-tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    
+    // Show selected strategy content
+    document.getElementById(strategy + '_strategy').classList.add('active');
+    
+    // Add active class to clicked tab
+    event.target.classList.add('active');
+    
+    // Reset tier tabs for this strategy to show Large Cap by default
+    const strategyDiv = document.getElementById(strategy + '_strategy');
+    strategyDiv.querySelectorAll('.tier-content').forEach(content => {
+        content.classList.remove('active');
+    });
+    strategyDiv.querySelectorAll('.tier-tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    strategyDiv.querySelector('.tier-tab').classList.add('active');
+    strategyDiv.querySelector('.tier-content').classList.add('active');
+}
+
+// Show tier tab within a strategy
+function showTier(strategy, tier) {
+    const strategyDiv = document.getElementById(strategy + '_strategy');
+    
+    // Hide all tier contents within this strategy
+    strategyDiv.querySelectorAll('.tier-content').forEach(content => {
+        content.classList.remove('active');
+    });
+    
+    // Remove active class from all tier tabs within this strategy
+    strategyDiv.querySelectorAll('.tier-tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    
+    // Show selected tier content
+    document.getElementById(strategy + '_' + tier).classList.add('active');
+    
+    // Add active class to clicked tab
+    event.target.classList.add('active');
+}
+
+// Show notification
+function showNotification(message, type) {
+    // Simple notification - you can enhance this
+    const color = type === 'success' ? '#10b981' : '#ef4444';
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${color};
+        color: white;
+        padding: 15px 20px;
+        border-radius: 8px;
+        z-index: 1000;
+    `;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => notification.remove(), 3000);
+}
+
+// Initialize on load
+loadConfig();
+loadConfigHistory();
+
+// Refresh periodically
+setInterval(loadConfig, 30000);
+setInterval(loadConfigHistory, 60000);
+</script>
+"""
+
+
 @app.route("/rd")
 def rd():
     """R&D page for ML insights and recommendations"""
@@ -1652,6 +2745,20 @@ def rd():
         page_css="",
         content=RD_TEMPLATE,
         page_scripts=RD_SCRIPTS,
+    )
+
+
+@app.route("/admin")
+def admin():
+    """Admin panel for configuration management"""
+    return render_template_string(
+        BASE_TEMPLATE,
+        title="Admin Panel",
+        active_page="admin",
+        base_css=BASE_CSS,
+        page_css=ADMIN_CSS,
+        content=ADMIN_TEMPLATE,
+        page_scripts=ADMIN_SCRIPTS,
     )
 
 
@@ -2619,6 +3726,64 @@ def get_recent_ml_predictions():
     except Exception as e:
         logger.error(f"Error getting ML predictions: {e}")
         return jsonify({"predictions": []})
+
+
+@app.route("/api/config")
+def get_config():
+    """Get current configuration"""
+    try:
+        from src.config.config_loader import ConfigLoader
+        loader = ConfigLoader()
+        config = loader.load()
+        return jsonify(config)
+    except Exception as e:
+        logger.error(f"Error loading config: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/config/update", methods=["POST"])
+def update_config():
+    """Update configuration values"""
+    try:
+        from src.config.config_loader import ConfigLoader
+        
+        data = request.json
+        updates = data.get("updates", {})
+        change_type = data.get("change_type", "admin_panel")
+        changed_by = data.get("changed_by", "admin")
+        description = data.get("description", "Configuration update via admin panel")
+        
+        loader = ConfigLoader()
+        success = loader.update_config(
+            updates=updates,
+            change_type=change_type,
+            changed_by=changed_by,
+            description=description
+        )
+        
+        if success:
+            return jsonify({"success": True, "message": "Configuration updated"})
+        else:
+            return jsonify({"success": False, "message": "Failed to update configuration"}), 500
+            
+    except Exception as e:
+        logger.error(f"Error updating config: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/config/history")
+def get_config_history():
+    """Get configuration change history"""
+    try:
+        from src.config.config_loader import ConfigLoader
+        
+        loader = ConfigLoader()
+        history = loader.get_config_history(limit=50)
+        return jsonify(history)
+        
+    except Exception as e:
+        logger.error(f"Error loading config history: {e}")
+        return jsonify([])
 
 
 if __name__ == "__main__":

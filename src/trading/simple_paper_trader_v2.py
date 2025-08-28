@@ -14,6 +14,7 @@ from pathlib import Path
 from src.data.supabase_client import SupabaseClient
 from src.notifications.paper_trading_notifier import PaperTradingNotifier
 from src.strategies.regime_detector import RegimeDetector, MarketRegime
+from src.config.config_loader import ConfigLoader
 
 
 @dataclass
@@ -74,13 +75,22 @@ class SimplePaperTraderV2:
 
     def __init__(
         self,
-        initial_balance: float = 10000.0,
-        max_positions: int = 50,
-        max_positions_per_strategy: int = 50,
-        config_path: str = "configs/paper_trading.json",
+        initial_balance: float = None,
+        max_positions: int = None,
+        max_positions_per_strategy: int = None,
+        config_path: str = "configs/paper_trading_config_unified.json",
     ):
-        # Load configuration
-        self.config = self._load_config(config_path)
+        # Load configuration using the new unified config loader
+        self.config_loader = ConfigLoader(config_path)
+        self.config = self.config_loader.load()
+        
+        # Get values from config with fallbacks
+        if initial_balance is None:
+            initial_balance = self.config.get('global_settings', {}).get('initial_balance', 10000.0)
+        if max_positions is None:
+            max_positions = self.config.get('position_management', {}).get('max_positions_total', 50)
+        if max_positions_per_strategy is None:
+            max_positions_per_strategy = self.config.get('position_management', {}).get('max_positions_per_strategy', 50)
 
         self.initial_balance = initial_balance
         self.balance = initial_balance
@@ -91,7 +101,7 @@ class SimplePaperTraderV2:
         self.max_positions_per_strategy = max_positions_per_strategy  # Max per strategy
 
         # Load fee from config
-        self.base_fee_rate = self.config.get("fees", {}).get("kraken_taker", 0.0026)
+        self.base_fee_rate = self.config.get("fees_and_slippage", {}).get("exchange_fees", {}).get("kraken_taker", 0.0026)
 
         # Initialize Slack notifier
         self.notifier = None
@@ -178,12 +188,7 @@ class SimplePaperTraderV2:
 
     def get_market_cap_tier(self, symbol: str) -> str:
         """Get market cap tier for adaptive rules"""
-        if symbol in self.large_cap:
-            return "large_cap"
-        elif symbol in self.mid_cap:
-            return "mid_cap"
-        else:
-            return "small_cap"
+        return self.config_loader.get_tier_config(symbol)
 
     def get_adaptive_exits(self, symbol: str, strategy: str) -> Dict:
         """
@@ -191,12 +196,20 @@ class SimplePaperTraderV2:
 
         Returns dict with take_profit, stop_loss, and trailing_stop percentages
         """
+        # Use config loader's built-in method which handles everything
+        exit_params = self.config_loader.get_exit_params(strategy, symbol)
+        
+        # If we got valid params from config, return them
+        if exit_params and all(v > 0 for v in exit_params.values()):
+            logger.debug(f"Using config exits for {symbol}/{strategy}: {exit_params}")
+            return exit_params
+        
+        # Otherwise fall back to hardcoded defaults
         tier = self.get_market_cap_tier(symbol)
         strategy_lower = strategy.lower()
-        strategy_upper = strategy.upper()
-
-        # Try to get exits from config first
-        strategy_config = self.config.get("strategies", {}).get(strategy_upper, {})
+        
+        # Try legacy config format (for backward compatibility)
+        strategy_config = self.config.get("strategies", {}).get(strategy.upper(), {})
         if "exits_by_tier" in strategy_config:
             exits_config = strategy_config["exits_by_tier"].get(tier, {})
             if exits_config:
@@ -576,7 +589,7 @@ class SimplePaperTraderV2:
     async def check_and_close_positions(
         self,
         current_prices: Dict[str, float],
-        max_hold_hours: float = 72,  # 3 days default
+        max_hold_hours: float = None,
     ) -> List[Trade]:
         """
         Check all positions for exit conditions including trailing stops
@@ -587,6 +600,10 @@ class SimplePaperTraderV2:
         3. Take profit
         4. Time exit (3 days default)
         """
+        # Get max_hold_hours from config if not provided
+        if max_hold_hours is None:
+            max_hold_hours = self.config.get('position_management', {}).get('max_hold_hours', 72)
+        
         closed_trades = []
 
         for symbol, position in list(self.positions.items()):

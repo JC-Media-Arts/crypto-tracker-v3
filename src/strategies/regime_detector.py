@@ -12,6 +12,7 @@ import json
 import os
 import asyncio
 from src.notifications.slack_notifier import SlackNotifier, NotificationType
+from src.config.config_loader import ConfigLoader
 
 
 class MarketRegime(Enum):
@@ -32,7 +33,7 @@ class RegimeDetector:
     """
 
     def __init__(
-        self, enabled: bool = True, config_path: str = "configs/paper_trading.json"
+        self, enabled: bool = True, config_path: str = "configs/paper_trading_config_unified.json"
     ):
         """
         Initialize the regime detector with enhanced market protection
@@ -58,8 +59,9 @@ class RegimeDetector:
         )  # {strategy: {'time': timestamp, 'volatility': float}}
         self.strategy_reenable_times = {}  # {strategy: datetime}
 
-        # Load configuration
-        self.config = self._load_config(config_path)
+        # Load configuration using ConfigLoader
+        self.config_loader = ConfigLoader(config_path)
+        self.config = self.config_loader.load()
         self.market_protection = self.config.get("market_protection", {})
 
         # Initialize Slack notifier for PANIC alerts

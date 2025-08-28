@@ -24,7 +24,7 @@ import signal as sig_handler  # noqa: E402
 sys.path.append(str(Path(__file__).parent.parent))
 
 # Import configuration
-from configs.paper_trading_config import PAPER_TRADING_CONFIG  # noqa: E402
+from src.config.config_loader import ConfigLoader  # noqa: E402
 
 from src.data.hybrid_fetcher import HybridDataFetcher  # noqa: E402
 from src.trading.simple_paper_trader_v2 import SimplePaperTraderV2  # noqa: E402
@@ -160,7 +160,7 @@ class SimplifiedPaperTradingSystem:
             initial_balance=1000.0,
             max_positions=150,  # Total max positions (50 per strategy × 3 strategies)
             max_positions_per_strategy=50,  # Max 50 positions per strategy
-            config_path="configs/paper_trading.json",  # Load all thresholds from config
+            config_path="configs/paper_trading_config_unified.json",  # Use unified config
         )
 
         # Notifier is handled by SimplePaperTraderV2 internally
@@ -233,39 +233,28 @@ class SimplifiedPaperTradingSystem:
             logger.error(f"Failed to load positions from database: {e}")
             # Don't crash on this error, continue with empty positions
 
-        # Load configuration from central source
-        # Build config from PAPER_TRADING_CONFIG with backward compatibility
+        # Load configuration using unified config loader
+        self.config_loader = ConfigLoader()
+        unified_config = self.config_loader.load()
+        
+        # Build config from unified configuration
         self.config = {
             "ml_enabled": False,  # ALWAYS FALSE
             "shadow_enabled": False,  # ALWAYS FALSE
-            "base_position_usd": 50.0,
-            "max_open_positions": PAPER_TRADING_CONFIG.get("max_positions", 30),
-            # Detection thresholds from central config
-            "dca_drop_threshold": PAPER_TRADING_CONFIG["strategies"]["DCA"].get(
-                "drop_threshold", -4.0
-            ),
-            "swing_breakout_threshold": PAPER_TRADING_CONFIG["strategies"]["SWING"].get(
-                "breakout_threshold", 1.015
-            ),
-            "buy_zone": PAPER_TRADING_CONFIG["strategies"]["CHANNEL"].get(
-                "buy_zone", 0.15
-            ),
-            "sell_zone": PAPER_TRADING_CONFIG["strategies"]["CHANNEL"].get(
-                "sell_zone", 0.85
-            ),
-            "channel_strength_min": PAPER_TRADING_CONFIG["strategies"]["CHANNEL"].get(
-                "channel_strength_min", 0.75
-            ),
+            "base_position_usd": unified_config.get("position_management", {}).get("position_sizing", {}).get("base_position_size_usd", 50.0),
+            "max_open_positions": unified_config.get("position_management", {}).get("max_positions_total", 30),
+            # Detection thresholds from unified config
+            "dca_drop_threshold": unified_config.get("strategies", {}).get("DCA", {}).get("detection_thresholds", {}).get("drop_threshold", -4.0),
+            "swing_breakout_threshold": unified_config.get("strategies", {}).get("SWING", {}).get("detection_thresholds", {}).get("breakout_threshold", 1.015),
+            "buy_zone": unified_config.get("strategies", {}).get("CHANNEL", {}).get("detection_thresholds", {}).get("buy_zone", 0.15),
+            "sell_zone": unified_config.get("strategies", {}).get("CHANNEL", {}).get("detection_thresholds", {}).get("sell_zone", 0.85),
+            "channel_strength_min": unified_config.get("strategies", {}).get("CHANNEL", {}).get("detection_thresholds", {}).get("channel_strength_min", 0.75),
             # Volume and other thresholds
-            "swing_volume_surge": PAPER_TRADING_CONFIG["strategies"]["SWING"].get(
-                "volume_surge", 1.5
-            ),
-            "channel_touches": PAPER_TRADING_CONFIG["strategies"]["CHANNEL"].get(
-                "channel_touches", 3
-            ),
+            "swing_volume_surge": unified_config.get("strategies", {}).get("SWING", {}).get("detection_thresholds", {}).get("volume_surge", 1.5),
+            "channel_touches": unified_config.get("strategies", {}).get("CHANNEL", {}).get("detection_thresholds", {}).get("channel_touches", 3),
             # Basic risk management
-            "min_confidence": 0.45,  # Lower threshold for rule-based (no ML)
-            "scan_interval": 60,  # Scan every minute
+            "min_confidence": unified_config.get("ml_confidence", {}).get("min_signal_strength", 0.45),
+            "scan_interval": unified_config.get("global_settings", {}).get("trading_cycle_seconds", 300),  # Default 5 minutes
             "position_size": 50.0,
             "max_position_duration_hours": 72,
         }
@@ -1324,6 +1313,11 @@ class SimplifiedPaperTradingSystem:
 
         while not self.shutdown:
             try:
+                # Check kill switch
+                if not self.config_loader.is_trading_enabled():
+                    logger.warning("Trading is globally disabled via kill switch. Waiting...")
+                    await asyncio.sleep(60)  # Check every minute
+                    continue
                 # Update heartbeat to show service is running
                 await self.update_heartbeat()
 
