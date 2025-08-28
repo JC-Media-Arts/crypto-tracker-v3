@@ -1087,6 +1087,13 @@ class SimplifiedPaperTradingSystem:
             symbol = trading_signal["symbol"]
             strategy = trading_signal.get("strategy", "unknown")
 
+            # CRITICAL: Check if we already have a position for this symbol
+            if symbol in self.paper_trader.positions:
+                logger.warning(
+                    f"⚠️ Already have position for {symbol}, skipping new signal"
+                )
+                return False
+
             # Calculate position size
             position_size = self.config["position_size"]
 

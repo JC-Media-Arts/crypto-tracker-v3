@@ -37,14 +37,14 @@ PAPER_TRADING_CONFIG = {
         },
         "CHANNEL": {
             "enabled": True,
-            "min_confidence": 0.65,  # Keep selective confidence threshold
+            "min_confidence": 0.75,  # Increased from 0.65 to be VERY selective
             "entry_threshold": 0.9,
             "exit_threshold": 0.1,
-            "channel_width_min": 0.02,
-            "channel_touches": 3,  # Require multiple touches for valid channel
-            "buy_zone": 0.05,  # Changed from 0.10 to be much more selective (50% reduction)
-            "sell_zone": 0.95,  # Changed from 0.90 to focus on extreme tops
-            "channel_strength_min": 0.80,  # Changed from 0.75 for higher quality signals only
+            "channel_width_min": 0.03,  # Increased from 0.02 - wider channels only
+            "channel_touches": 5,  # Increased from 3 - need more confirmations
+            "buy_zone": 0.02,  # Changed from 0.05 to 0.02 - only bottom 2% of channel!
+            "sell_zone": 0.98,  # Changed from 0.95 to 0.98 - only extreme tops
+            "channel_strength_min": 0.90,  # Increased from 0.80 to 0.90 - only strongest channels
         },
     },
     "timeframes": {"primary": "15m", "confirmation": "1h", "trend": "4h"},
@@ -55,5 +55,5 @@ PAPER_TRADING_CONFIG = {
         "avoid_news_hours": False,
         "trade_weekends": True,
     },
-    "updated_at": "2025-08-27T12:40:00.000000",  # CHANNEL optimized: buy_zone 5%, strength 0.80
+    "updated_at": "2025-12-27T16:58:00.000000",  # CHANNEL EMERGENCY FIX: buy_zone 2%, strength 0.90, confidence 0.75
 }
