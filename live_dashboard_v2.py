@@ -386,10 +386,6 @@ PAPER_TRADING_TEMPLATE = r"""
         <span style="color: #e2e8f0;">Open Trades Only</span>
     </label>
     <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-        <input type="radio" name="tradeFilter" value="all" id="filterAll">
-        <span style="color: #e2e8f0;">Open & Closed Trades</span>
-    </label>
-    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
         <input type="radio" name="tradeFilter" value="closed" id="filterClosed">
         <span style="color: #e2e8f0;">Closed Trades Only</span>
     </label>
@@ -431,6 +427,7 @@ PAPER_TRADING_TEMPLATE = r"""
     <table>
         <thead>
             <tr>
+                <th>Date/Time</th>
                 <th>Symbol</th>
                 <th>Strategy</th>
                 <th>Amount</th>
@@ -447,7 +444,7 @@ PAPER_TRADING_TEMPLATE = r"""
             </tr>
         </thead>
         <tbody id="openPositionsTable">
-            <tr><td colspan="13" style="text-align: center;">Loading positions...</td></tr>
+            <tr><td colspan="14" style="text-align: center;">Loading positions...</td></tr>
         </tbody>
     </table>
     <!-- Pagination controls for open positions -->
@@ -482,6 +479,7 @@ PAPER_TRADING_TEMPLATE = r"""
     <table>
         <thead>
             <tr>
+                <th>Date/Time</th>
                 <th>Symbol</th>
                 <th>Strategy</th>
                 <th>Entry</th>
@@ -493,7 +491,7 @@ PAPER_TRADING_TEMPLATE = r"""
             </tr>
         </thead>
         <tbody id="closedTradesTable">
-            <tr><td colspan="8" style="text-align: center;">Loading trades...</td></tr>
+            <tr><td colspan="9" style="text-align: center;">Loading trades...</td></tr>
         </tbody>
     </table>
     <!-- Pagination controls for closed trades -->
@@ -758,13 +756,20 @@ async function fetchTrades(page = 1, isManualNavigation = false) {
         const data = await response.json();
         allTradesData = data;
 
+        // Calculate total unrealized P&L from open trades
+        let totalUnrealizedPnl = 0;
+        if (data.open_trades) {
+            data.open_trades.forEach(trade => {
+                totalUnrealizedPnl += trade.unrealized_pnl || 0;
+            });
+        }
+
+        // Current balance = starting capital + realized P&L (from closed trades) + unrealized P&L
+        const currentBalance = data.stats.starting_capital + data.stats.total_pnl_dollar + totalUnrealizedPnl;
+
         // Always update constant stats
-        document.getElementById('currentBalance').textContent =
-            `$${(data.stats.starting_capital + data.stats.total_pnl_dollar).toFixed(2)}`;
-
-        document.getElementById('totalInvestment').textContent =
-            `$${data.stats.starting_capital.toFixed(2)}`;
-
+        document.getElementById('currentBalance').textContent = `$${currentBalance.toFixed(2)}`;
+        document.getElementById('totalInvestment').textContent = `$${data.stats.starting_capital.toFixed(2)}`;
         document.getElementById('openPositions').textContent = data.stats.open_count;
 
         // Update filtered view
@@ -826,11 +831,32 @@ function updateFilteredView() {
     let lossCount = 0;
     let totalTrades = 0;
 
-    if (currentFilter === 'open' || currentFilter === 'all') {
+    // Calculate total unrealized P&L from open trades
+    let totalUnrealizedPnl = 0;
+    if (data.open_trades) {
+        data.open_trades.forEach(trade => {
+            totalUnrealizedPnl += trade.unrealized_pnl || 0;
+        });
+    }
+
+    if (currentFilter === 'open') {
         // Show open positions
         if (data.open_trades && data.open_trades.length > 0) {
-            openTable.innerHTML = data.open_trades.map(trade => `
+            openTable.innerHTML = data.open_trades.map(trade => {
+                // Format date to LA timezone
+                const entryDate = new Date(trade.entry_time);
+                const laDate = entryDate.toLocaleString('en-US', {
+                    timeZone: 'America/Los_Angeles',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true
+                });
+
+                return `
                 <tr>
+                    <td style="white-space: nowrap;">${laDate}</td>
                     <td style="font-weight: 600;">${trade.symbol}</td>
                     <td><span class="badge badge-strategy">${trade.strategy}</span></td>
                     <td>${trade.amount ? trade.amount.toFixed(6) : 'N/A'}</td>
@@ -849,27 +875,40 @@ function updateFilteredView() {
                     <td>${trade.ts_display || '<span style="color: #6b7280;">Not Set</span>'}</td>
                     <td>${trade.exit_reason || '—'}</td>
                 </tr>
-            `).join('');
+            `}).join('');
 
             // Add unrealized P&L to stats if showing open
             data.open_trades.forEach(trade => {
                 filteredPnl += trade.unrealized_pnl || 0;
             });
         } else {
-            openTable.innerHTML = '<tr><td colspan="13" style="text-align: center;">No open positions</td></tr>';
+            openTable.innerHTML = '<tr><td colspan="14" style="text-align: center;">No open positions</td></tr>';
         }
         document.getElementById('openPositionsContainer').style.display = 'block';
     } else {
         document.getElementById('openPositionsContainer').style.display = 'none';
     }
 
-    if (currentFilter === 'closed' || currentFilter === 'all') {
+    if (currentFilter === 'closed') {
         // Show closed trades
         const closedTrades = data.trades ? data.trades.filter(t => t.status === 'closed') : [];
 
         if (closedTrades.length > 0) {
-            closedTable.innerHTML = closedTrades.map(trade => `
+            closedTable.innerHTML = closedTrades.map(trade => {
+                // Format date to LA timezone
+                const exitDate = new Date(trade.exit_time);
+                const laDate = exitDate.toLocaleString('en-US', {
+                    timeZone: 'America/Los_Angeles',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true
+                });
+
+                return `
                 <tr>
+                    <td style="white-space: nowrap;">${laDate}</td>
                     <td style="font-weight: 600;">${trade.symbol}</td>
                     <td><span class="badge badge-strategy">${trade.strategy}</span></td>
                     <td>$${trade.entry_price.toFixed(4)}</td>
@@ -883,7 +922,7 @@ function updateFilteredView() {
                     <td>${trade.exit_reason || 'manual'}</td>
                     <td>${trade.hold_time}</td>
                 </tr>
-            `).join('');
+            `}).join('');
 
             // Calculate stats for closed trades
             closedTrades.forEach(trade => {
@@ -893,7 +932,7 @@ function updateFilteredView() {
                 else lossCount++;
             });
         } else {
-            closedTable.innerHTML = '<tr><td colspan="8" style="text-align: center;">No closed trades yet</td></tr>';
+            closedTable.innerHTML = '<tr><td colspan="9" style="text-align: center;">No closed trades yet</td></tr>';
         }
         document.getElementById('closedTradesContainer').style.display = 'block';
     } else {
@@ -902,15 +941,26 @@ function updateFilteredView() {
 
     // Update dynamic stats based on filter
     const pnlElement = document.getElementById('totalPnl');
-    const pnlToShow = currentFilter === 'open' ? filteredPnl :
-                      currentFilter === 'closed' ? filteredPnl :
-                      data.stats.total_pnl_dollar + (filteredPnl || 0);
-    pnlElement.textContent = `$${pnlToShow.toFixed(2)}`;
-    pnlElement.className = `stat-value ${pnlToShow >= 0 ? 'positive' : 'negative'}`;
+    let pnlToShow;
+
+    if (currentFilter === 'open') {
+        // For open positions, show unrealized P&L
+        pnlToShow = filteredPnl;
+    } else if (currentFilter === 'closed') {
+        // For closed positions, show realized P&L only
+        pnlToShow = data.stats.total_pnl_dollar;
+    }
+
+    // Total P&L should always be realized + unrealized (matching current balance calculation)
+    const totalPnl = data.stats.total_pnl_dollar + totalUnrealizedPnl;
+
+    // Use the total for display
+    pnlElement.textContent = `$${totalPnl.toFixed(2)}`;
+    pnlElement.className = `stat-value ${totalPnl >= 0 ? 'positive' : 'negative'}`;
 
     // Calculate P&L %
     const pnlPctElement = document.getElementById('totalPnlPct');
-    const pnlPct = (pnlToShow / data.stats.starting_capital) * 100;
+    const pnlPct = (totalPnl / data.stats.starting_capital) * 100;
     pnlPctElement.textContent = `${pnlPct.toFixed(2)}%`;
     pnlPctElement.className = `stat-value ${pnlPct >= 0 ? 'positive' : 'negative'}`;
 
@@ -919,8 +969,6 @@ function updateFilteredView() {
     let winRate = 0;
     if (currentFilter === 'closed' && totalTrades > 0) {
         winRate = (winCount / totalTrades) * 100;
-    } else if (currentFilter === 'all') {
-        winRate = data.stats.win_rate || 0;
     } else if (currentFilter === 'open') {
         winRate = 0; // No win rate for open positions
     }
@@ -2035,6 +2083,8 @@ def get_trades():
                                 "status": "closed",
                                 "entry_price": avg_entry_price,
                                 "exit_price": exit_price,
+                                "entry_time": earliest_buy["created_at"],
+                                "exit_time": exit_trade["created_at"],
                                 "pnl": pnl,
                                 "pnl_pct": pnl_pct,
                                 "hold_time": hold_time,
@@ -2122,6 +2172,7 @@ def get_trades():
                                 "strategy": strategy,
                                 "amount": total_amount,
                                 "entry_price": avg_entry_price,
+                                "entry_time": earliest_buy["created_at"],
                                 "dca_status": dca_status,
                                 "current_price": current_price,
                                 "unrealized_pnl": unrealized_pnl,
