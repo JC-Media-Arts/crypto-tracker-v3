@@ -194,24 +194,34 @@ class SimplifiedPaperTradingSystem:
         try:
             logger.info("Loading open positions from database...")
 
-            # Get all open positions from database
-            open_trades = (
+            # Get all BUY trades from database
+            buy_trades = (
                 self.supabase.client.table("paper_trades")
                 .select("*")
+                .eq("side", "BUY")
                 .eq("status", "FILLED")
-                .is_("exit_price", "null")
                 .execute()
             )
 
-            if not open_trades.data:
-                logger.info("No open positions found in database")
+            if not buy_trades.data:
+                logger.info("No trades found in database")
                 return
 
-            # Group trades by trade_group_id to identify unique positions
+            # Get all SELL trades to identify closed positions
+            sell_trades = (
+                self.supabase.client.table("paper_trades")
+                .select("trade_group_id")
+                .eq("side", "SELL")
+                .execute()
+            )
+            
+            closed_groups = {trade["trade_group_id"] for trade in sell_trades.data if trade.get("trade_group_id")}
+
+            # Group open trades by trade_group_id
             positions_by_group = {}
-            for trade in open_trades.data:
+            for trade in buy_trades.data:
                 group_id = trade.get("trade_group_id")
-                if group_id:
+                if group_id and group_id not in closed_groups:
                     if group_id not in positions_by_group:
                         positions_by_group[group_id] = []
                     positions_by_group[group_id].append(trade)
@@ -1176,39 +1186,69 @@ class SimplifiedPaperTradingSystem:
             db = SupabaseClient()
 
             # Check if we already have an open position for this symbol
-            existing = (
+            # Get all BUY trades for this symbol
+            buys = (
                 db.client.table("paper_trades")
                 .select("trade_group_id, strategy_name")
                 .eq("symbol", symbol)
+                .eq("side", "BUY")
                 .eq("status", "FILLED")
-                .is_("exit_price", "null")
                 .execute()
             )
 
-            if existing.data:
-                # Group by trade_group_id to count unique positions
-                unique_groups = set(trade["trade_group_id"] for trade in existing.data)
-                if unique_groups:
+            if buys.data:
+                # Get all SELL trades for this symbol
+                sells = (
+                    db.client.table("paper_trades")
+                    .select("trade_group_id")
+                    .eq("symbol", symbol)
+                    .eq("side", "SELL")
+                    .execute()
+                )
+                
+                sell_groups = {trade["trade_group_id"] for trade in sells.data if trade.get("trade_group_id")}
+                
+                # Find BUY groups without matching SELLs (open positions)
+                open_groups = set()
+                for buy in buys.data:
+                    if buy.get("trade_group_id") and buy["trade_group_id"] not in sell_groups:
+                        open_groups.add(buy["trade_group_id"])
+                
+                if open_groups:
                     logger.warning(
-                        f"⚠️ Database shows {len(unique_groups)} open position(s) for {symbol}, skipping new signal"
+                        f"⚠️ Database shows {len(open_groups)} open position(s) for {symbol}, skipping new signal"
                     )
                     return False
 
             # Check strategy position count in database
-            strategy_result = (
+            # Get all BUY trades for this strategy
+            strategy_buys = (
                 db.client.table("paper_trades")
                 .select("trade_group_id")
                 .eq("strategy_name", strategy.upper())
+                .eq("side", "BUY")
                 .eq("status", "FILLED")
-                .is_("exit_price", "null")
                 .execute()
             )
 
-            # Count unique trade groups for this strategy
-            if strategy_result.data:
-                unique_strategy_groups = set(
-                    trade["trade_group_id"] for trade in strategy_result.data
+            # Count unique open positions for this strategy
+            unique_strategy_groups = set()
+            if strategy_buys.data:
+                # Get all SELL trades for this strategy
+                strategy_sells = (
+                    db.client.table("paper_trades")
+                    .select("trade_group_id")
+                    .eq("strategy_name", strategy.upper())
+                    .eq("side", "SELL")
+                    .execute()
                 )
+                
+                strategy_sell_groups = {trade["trade_group_id"] for trade in strategy_sells.data if trade.get("trade_group_id")}
+                
+                # Find BUY groups without matching SELLs (open positions)
+                for buy in strategy_buys.data:
+                    if buy.get("trade_group_id") and buy["trade_group_id"] not in strategy_sell_groups:
+                        unique_strategy_groups.add(buy["trade_group_id"])
                 strategy_count = len(unique_strategy_groups)
 
                 if strategy_count >= 50:
@@ -1334,25 +1374,8 @@ class SimplifiedPaperTradingSystem:
                         take_profit_target,
                     )
 
-                # Log outcome for research
-                try:
-                    self.supabase.client.table("trade_logs").insert(
-                        {
-                            "timestamp": datetime.now(timezone.utc).isoformat(),
-                            "symbol": trade.symbol,
-                            "strategy_name": trade.strategy,
-                            "action": "CLOSE",
-                            "price": trade.exit_price,
-                            "quantity": trade.amount,
-                            "position_size": trade.entry_price * trade.amount,
-                            "pnl": trade.pnl_usd,
-                            "exit_reason": trade.exit_reason,
-                            "ml_confidence": None,  # No ML
-                            "hold_duration_hours": (trade.exit_time - trade.entry_time).total_seconds() / 3600,
-                        }
-                    ).execute()
-                except Exception as e:
-                    logger.debug(f"Could not log trade: {e}")
+                # Trade outcome is already logged to paper_trades table by SimplePaperTraderV2
+                # No need for duplicate logging to trade_logs (table doesn't exist)
 
                 # Notification handled by SimplePaperTraderV2 based on config
 
