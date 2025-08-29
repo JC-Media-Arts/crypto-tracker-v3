@@ -21,6 +21,7 @@ from src.trading.threshold_manager import ThresholdManager
 from src.ml.shadow_enhanced_retrainer import ShadowEnhancedRetrainer
 from src.notifications.slack_notifier import SlackNotifier, NotificationType
 from scripts.shadow_slack_reporter import ShadowSlackReporter
+from scripts.shadow_scan_monitor import ShadowScanMonitor
 
 
 class ShadowServicesRunner:

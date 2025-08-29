@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Admin Config</title>
+</head>
+<body>
+    <h1>Testing Admin Config API</h1>
+    <div id="result"></div>
+    <script>
+        // Test if the API is accessible
+        fetch('http://localhost:8080/api/config')
+            .then(response => {
+                console.log('Response status:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                console.log('Config data:', data);
+                document.getElementById('result').innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('result').innerHTML = 'Error: ' + error;
+            });
+    </script>
+</body>
+</html>

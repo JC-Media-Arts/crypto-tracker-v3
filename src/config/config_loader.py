@@ -157,6 +157,27 @@ class ConfigLoader:
             "trailing_stop": tier_exits.get("trailing_stop", 0.02),
             "trailing_activation": tier_exits.get("trailing_activation", 0.02),
         }
+    
+    def get_entry_thresholds(self, strategy: str, symbol: str) -> Dict[str, Any]:
+        """Get entry/detection thresholds for a strategy and symbol.
+        
+        Args:
+            strategy: Strategy name (DCA, SWING, CHANNEL)
+            symbol: Trading symbol
+            
+        Returns:
+            Dictionary with tier-specific detection thresholds
+        """
+        tier = self.get_tier_config(symbol)
+        strategy_config = self.get_strategy_config(strategy)
+        
+        # Check for tier-specific thresholds first
+        thresholds_by_tier = strategy_config.get("detection_thresholds_by_tier", {})
+        if thresholds_by_tier and tier in thresholds_by_tier:
+            return thresholds_by_tier[tier]
+        
+        # Fall back to global detection thresholds
+        return strategy_config.get("detection_thresholds", {})
 
     def is_trading_enabled(self) -> bool:
         """Check if trading is globally enabled (kill switch)."""

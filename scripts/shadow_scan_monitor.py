@@ -78,14 +78,18 @@ class ShadowScanMonitor:
             # Parse features and predictions
             import json
 
-            features = (
-                json.loads(scan.get("features", "{}")) if scan.get("features") else {}
-            )
-            ml_predictions = (
-                json.loads(scan.get("ml_predictions", "{}"))
-                if scan.get("ml_predictions")
-                else {}
-            )
+            # Handle both dict and string formats (database might return either)
+            features = scan.get("features", {})
+            if isinstance(features, str):
+                features = json.loads(features) if features else {}
+            elif features is None:
+                features = {}
+            
+            ml_predictions = scan.get("ml_predictions", {})
+            if isinstance(ml_predictions, str):
+                ml_predictions = json.loads(ml_predictions) if ml_predictions else {}
+            elif ml_predictions is None:
+                ml_predictions = {}
 
             # Get current price from features
             current_price = features.get("close", 0)
