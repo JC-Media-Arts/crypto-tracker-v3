@@ -39,10 +39,6 @@ RUN mkdir -p user_data/logs user_data/data/kraken
 ENV PYTHONUNBUFFERED=1
 ENV TZ=UTC
 
-# Health check endpoint
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8080/api/v1/ping || exit 1
-
 # Make startup script executable
 RUN chmod +x start.sh
 
