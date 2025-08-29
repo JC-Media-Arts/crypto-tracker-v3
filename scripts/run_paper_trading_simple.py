@@ -1338,11 +1338,11 @@ class SimplifiedPaperTradingSystem:
                             "action": "CLOSE",
                             "price": trade.exit_price,
                             "quantity": trade.amount,
-                            "position_size": trade.entry_value,
-                            "pnl": trade.pnl,
+                            "position_size": trade.entry_price * trade.amount,
+                            "pnl": trade.pnl_usd,
                             "exit_reason": trade.exit_reason,
                             "ml_confidence": None,  # No ML
-                            "hold_duration_hours": trade.hold_duration_hours,
+                            "hold_duration_hours": (trade.exit_time - trade.entry_time).total_seconds() / 3600,
                         }
                     ).execute()
                 except Exception as e:
