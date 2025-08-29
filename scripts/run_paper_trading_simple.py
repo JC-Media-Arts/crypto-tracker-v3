@@ -1197,6 +1197,9 @@ class SimplifiedPaperTradingSystem:
             )
 
             if buys.data:
+                # Get unique BUY groups (handles multiple BUYs per group like DCA)
+                buy_groups = {buy["trade_group_id"] for buy in buys.data if buy.get("trade_group_id")}
+                
                 # Get all SELL trades for this symbol
                 sells = (
                     db.client.table("paper_trades")
@@ -1206,13 +1209,11 @@ class SimplifiedPaperTradingSystem:
                     .execute()
                 )
                 
+                # Get unique SELL groups (handles duplicate SELLs)
                 sell_groups = {trade["trade_group_id"] for trade in sells.data if trade.get("trade_group_id")}
                 
-                # Find BUY groups without matching SELLs (open positions)
-                open_groups = set()
-                for buy in buys.data:
-                    if buy.get("trade_group_id") and buy["trade_group_id"] not in sell_groups:
-                        open_groups.add(buy["trade_group_id"])
+                # Open positions = BUY groups with NO matching SELL group
+                open_groups = buy_groups - sell_groups
                 
                 if open_groups:
                     logger.warning(
@@ -1232,8 +1233,10 @@ class SimplifiedPaperTradingSystem:
             )
 
             # Count unique open positions for this strategy
-            unique_strategy_groups = set()
             if strategy_buys.data:
+                # Get unique BUY groups (handles multiple BUYs per group)
+                strategy_buy_groups = {buy["trade_group_id"] for buy in strategy_buys.data if buy.get("trade_group_id")}
+                
                 # Get all SELL trades for this strategy
                 strategy_sells = (
                     db.client.table("paper_trades")
@@ -1243,23 +1246,25 @@ class SimplifiedPaperTradingSystem:
                     .execute()
                 )
                 
+                # Get unique SELL groups (handles duplicate SELLs)
                 strategy_sell_groups = {trade["trade_group_id"] for trade in strategy_sells.data if trade.get("trade_group_id")}
                 
-                # Find BUY groups without matching SELLs (open positions)
-                for buy in strategy_buys.data:
-                    if buy.get("trade_group_id") and buy["trade_group_id"] not in strategy_sell_groups:
-                        unique_strategy_groups.add(buy["trade_group_id"])
+                # Open positions = BUY groups with NO matching SELL group
+                unique_strategy_groups = strategy_buy_groups - strategy_sell_groups
                 strategy_count = len(unique_strategy_groups)
+            else:
+                strategy_count = 0
+                unique_strategy_groups = set()
 
-                if strategy_count >= 50:
-                    logger.error(
-                        f"❌ {strategy} has {strategy_count} positions in database (limit: 50), skipping"
-                    )
-                    return False
-                else:
-                    logger.debug(
-                        f"{strategy} has {strategy_count}/50 positions in database"
-                    )
+            if strategy_count >= 50:
+                logger.error(
+                    f"❌ {strategy} has {strategy_count} positions in database (limit: 50), skipping"
+                )
+                return False
+            else:
+                logger.debug(
+                    f"{strategy} has {strategy_count}/50 positions in database"
+                )
 
             # Calculate position size
             position_size = self.config["position_size"]

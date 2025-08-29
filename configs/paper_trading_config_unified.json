@@ -39,7 +39,7 @@
         }
       }
     },
-    "max_hold_hours": 72
+    "max_hold_hours": 96
   },
   "ml_confidence": {
     "ml_confidence_threshold": 0.55,
