@@ -44,6 +44,12 @@ class ChannelStrategyV1(IStrategy):
 
     # Stop loss - will be overridden by custom logic
     stoploss = -0.10  # Default 10% stop loss
+    
+    # Enable trailing stop loss
+    trailing_stop = True
+    trailing_stop_positive = 0.01  # Start trailing at 1% profit
+    trailing_stop_positive_offset = 0.02  # Trail 2% behind peak
+    trailing_only_offset_is_reached = True  # Only trail after offset is reached
 
     # Optimal timeframe for the strategy
     timeframe = "1h"
@@ -212,19 +218,28 @@ class ChannelStrategyV1(IStrategy):
         **kwargs,
     ) -> float:
         """
-        Custom stop loss based on market cap tier
+        Custom stop loss and trailing stop based on market cap tier
         """
-
+        
         # Get market cap tier for the symbol
-        # This will need to be fetched from our database
-        # For now, using default medium tier
-        market_cap = 1000  # placeholder
-
-        # Determine tier
-        tier = self._get_market_cap_tier(market_cap)
-
-        # Return the stop loss for this tier
-        return -self.market_cap_tiers[tier]["sl"]
+        symbol = pair.replace("/USDT", "")
+        tier = self._get_market_cap_tier(symbol)
+        
+        # Get exit parameters for this tier
+        exit_params = self.config_bridge.get_exit_params("CHANNEL", symbol)
+        
+        # Get stop loss and trailing stop values
+        stop_loss = exit_params.get("stop_loss", 0.10)
+        trailing_stop = exit_params.get("trailing_stop", 0.02)
+        trailing_activation = exit_params.get("trailing_activation", 0.02)
+        
+        # If we're in profit and above activation threshold, use trailing stop
+        if current_profit >= trailing_activation:
+            # Return trailing stop distance (negative value)
+            return -trailing_stop
+        
+        # Otherwise use fixed stop loss
+        return -stop_loss
 
     def custom_exit(
         self,
@@ -340,3 +355,37 @@ class ChannelStrategyV1(IStrategy):
         Customize leverage for each new trade. We don't use leverage.
         """
         return 1.0
+    
+    def confirm_trade_exit(
+        self,
+        pair: str,
+        trade,  # Trade object
+        order_type: str,
+        amount: float,
+        rate: float,
+        time_in_force: str,
+        exit_reason: str,
+        current_time: datetime,
+        **kwargs,
+    ) -> bool:
+        """
+        Called right before placing an exit order.
+        Triggers trade sync to Supabase for ML training.
+        """
+        logger.info(
+            f"Exit confirmed for {pair}: {exit_reason} at {rate}"
+        )
+        
+        # Trigger trade sync after exit (runs in background)
+        try:
+            import subprocess
+            subprocess.Popen(
+                ["python", "/freqtrade/trade_sync.py", "--once"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+            logger.debug("Trade sync triggered")
+        except Exception as e:
+            logger.warning(f"Trade sync not available: {e}")
+        
+        return True

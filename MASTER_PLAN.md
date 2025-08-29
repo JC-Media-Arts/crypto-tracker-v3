@@ -5003,6 +5003,650 @@ SYSTEM_TYPE=TRADING|RESEARCH|MAINTENANCE
 - Monitoring: Extensive logging at each step
 - Documentation: Every change documented in MASTER_PLAN
 
+## 🚀 **Freqtrade Integration Architecture** (January 2025)
+
+### **Overview**
+Complete architectural transformation to use Freqtrade as the core trading engine while maintaining our ML/Shadow Testing research layer, custom dashboard, and admin control system. This represents a strategic shift from maintaining our own trading engine to leveraging a battle-tested open-source solution.
+
+### **Strategic Rationale**
+- **Problem**: Spending 80% of time maintaining trading infrastructure, 20% on strategy development
+- **Solution**: Use Freqtrade for execution, focus our efforts on strategy optimization and ML research
+- **Benefits**: 
+  - 85% reduction in code maintenance (3,500 lines → 500 lines)
+  - Seamless paper → live trading transition
+  - Community-tested reliability
+  - Professional backtesting capabilities
+  - Built-in risk management features
+
+### **New System Architecture**
+
+```
+┌──────────────────────────────────────────────────────────┐
+│              CUSTOM DASHBOARD (Railway)                   │
+│  • Trade Performance View (reads Freqtrade DB)           │
+│  • ML/Shadow Recommendations Display                     │
+│  • Admin Panel (Full Strategy Control)                   │
+│  • Configuration History & Audit Trail                   │
+└────────────┬─────────────────────────┬───────────────────┘
+             │                         │
+             ▼                         ▼
+┌──────────────────────┐   ┌──────────────────────────────┐
+│   CONFIG BRIDGE      │   │   ML/SHADOW RESEARCH LAYER   │
+│  • Sync Admin → FT   │   │  • Scan Logger (from FT)     │
+│  • Parameter Updates │   │  • Shadow Testing (8 vars)   │
+│  • Risk Management   │   │  • ML Training Pipeline      │
+└──────────┬───────────┘   │  • Recommendations Engine    │
+           │                └──────────┬───────────────────┘
+           ▼                           │
+┌──────────────────────────────────────▼───────────────────┐
+│                    FREQTRADE CORE                        │
+│  • Strategy Execution (DCA, SWING, CHANNEL)              │
+│  • Paper & Live Trading on Kraken                        │
+│  • Position Management                                   │
+│  • Order Execution                                       │
+│  • Built-in Risk Management                              │
+│  • Database (SQLite/PostgreSQL)                          │
+└───────────────────────────────────────────────────────────┘
+```
+
+### **Implementation Timeline (9 Days)**
+
+#### **Phase 1: Freqtrade Foundation (Days 1-3)**
+- Day 1: Freqtrade setup & CHANNEL strategy port
+- Day 2: Scan logger & database integration
+- Day 3: Dashboard integration
+
+#### **Phase 2: ML/Shadow Integration (Days 4-6)**
+- Day 4: ML analyzer integration
+- Day 5: Shadow testing integration
+- Day 6: Risk manager service
+
+#### **Phase 3: Production Deployment (Days 7-9)**
+- Day 7: Docker setup
+- Day 8: Testing & validation
+- Day 9: Railway deployment
+
+### **Key Integration Components**
+
+#### **1. Freqtrade Strategy Adapter**
+```python
+class ChannelStrategyV1(IStrategy):
+    # Dynamic parameters loaded from unified config
+    # Scan logging for ML training
+    # Custom stop loss by market cap tier
+    # Real-time parameter updates via API
+```
+
+#### **2. Config Bridge**
+- Translates unified config → Freqtrade format
+- Enables real-time parameter updates
+- Maintains configuration history
+
+#### **3. Scan Logger**
+- Captures every Freqtrade decision
+- Maintains scan_history for ML training
+- Batch inserts (500 records/5 min)
+
+#### **4. Risk Manager Service**
+- External service monitoring market conditions
+- Adjusts Freqtrade via REST API
+- Implements our market protection logic
+
+### **What Changes**
+
+#### **Trading Execution**
+- **Before**: SimplePaperTraderV2 (1,133 lines)
+- **After**: Freqtrade + custom strategies (~300 lines)
+
+#### **Configuration**
+- **Before**: Direct database updates
+- **After**: Config bridge syncs to Freqtrade
+
+#### **Dashboard**
+- **Before**: Reads from paper_trades table
+- **After**: Reads from Freqtrade database
+
+#### **ML Pipeline**
+- **Before**: Reads from scan_history
+- **After**: Still reads from scan_history (populated by Freqtrade)
+
+### **What Stays The Same**
+- Admin panel interface
+- ML training pipeline
+- Shadow testing system
+- Configuration history
+- Unified config structure
+- Railway deployment
+
+### **Migration Safety**
+- Start with CHANNEL strategy only
+- Keep old system in parallel initially
+- Gradual migration of strategies
+- Complete rollback capability
+- Extensive logging and monitoring
+
+### **Technical Implementation Details**
+
+#### **How Freqtrade Uses Our Data**
+
+**Data Flow:**
+1. **Polygon.io** → **Supabase** (raw OHLC: open, high, low, close, volume)
+2. **Freqtrade** fetches raw OHLC from Supabase via custom data provider
+3. **Freqtrade** calculates technical indicators using TA-Lib
+4. **Freqtrade** makes trading decisions based on strategy logic
+
+**Custom Data Provider:**
+```python
+# freqtrade/data/supabase_dataprovider.py
+class SupabaseDataProvider:
+    """Connects Freqtrade to existing Polygon data in Supabase"""
+    def get_pair_dataframe(self, pair: str, timeframe: str) -> DataFrame:
+        # Query ohlc_data table
+        # Return DataFrame in Freqtrade's expected format
+```
+
+#### **Indicator Calculation**
+
+**Freqtrade calculates all indicators from raw OHLC data:**
+```python
+def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+    """Freqtrade calls this with raw OHLC data"""
+    # Built-in indicators via TA-Lib
+    dataframe['rsi'] = ta.RSI(dataframe, timeperiod=14)
+    dataframe['bb_upper'], dataframe['bb_middle'], dataframe['bb_lower'] = ta.BBANDS(
+        dataframe['close'], timeperiod=20
+    )
+    
+    # Custom indicators
+    dataframe['price_drop_pct'] = (
+        (dataframe['close'] - dataframe['high'].rolling(24).max()) / 
+        dataframe['high'].rolling(24).max() * 100
+    )
+    return dataframe
+```
+
+**Why Freqtrade needs historical data:**
+- Bollinger Bands require 20+ candles of history
+- RSI requires 14+ candles
+- Moving averages need their full period
+- Custom drop calculations need 24-hour lookback
+
+#### **Scan Logging Implementation**
+
+**Method 1: Strategy Callbacks (Recommended)**
+```python
+class ChannelStrategyV1(IStrategy):
+    def confirm_trade_entry(self, pair: str, order_type: str, amount: float, 
+                           rate: float, time_in_force: str, **kwargs) -> bool:
+        """Called before placing buy order - log to scan_history here"""
+        self.log_scan_decision(
+            symbol=pair,
+            strategy='CHANNEL',
+            decision='TAKE',
+            features=self.get_current_indicators(pair)
+        )
+        return True
+    
+    def log_scan_decision(self, symbol, strategy, decision, features):
+        """Log to scan_history table for ML training"""
+        supabase.table('scan_history').insert({
+            'timestamp': datetime.now(timezone.utc),
+            'symbol': symbol,
+            'strategy': strategy,
+            'decision': decision,
+            'features': json.dumps(features)
+        }).execute()
+```
+
+**Method 2: Webhook Integration**
+```json
+{
+    "webhook": {
+        "enabled": true,
+        "url": "http://localhost:8001/scan-logger",
+        "webhookbuy": {
+            "pair": "{pair}",
+            "indicators": "{indicators}"
+        }
+    }
+}
+```
+
+#### **Backtesting with Our Data**
+
+**Using Polygon data for backtesting:**
+```bash
+# Freqtrade uses our Supabase data provider
+freqtrade backtesting \
+    --strategy ChannelStrategyV1 \
+    --timerange 20240101-20241231 \
+    --timeframe 15m \
+    --datadir user_data/data  # Points to our custom data provider
+```
+
+#### **Admin Panel Integration**
+
+**Dynamic Strategy Parameters:**
+```python
+class ChannelStrategyV1(IStrategy):
+    # Parameters controllable from admin panel
+    buy_channel_position = DecimalParameter(0.1, 0.3, default=0.15, load=True)
+    buy_rsi_max = IntParameter(20, 40, default=30, load=True)
+    
+    def __init__(self, config: dict) -> None:
+        super().__init__(config)
+        # Load parameters from our unified config
+        self.load_unified_config()
+    
+    def load_unified_config(self):
+        """Sync with our admin panel settings"""
+        config = load_paper_trading_config()
+        self.buy_channel_position.value = config['strategies']['channel']['thresholds']['channel_position']
+```
+
+**Config Bridge Service:**
+```python
+# integrations/config_bridge.py
+class ConfigBridge:
+    """Syncs admin panel changes to Freqtrade"""
+    
+    async def sync_config_to_freqtrade(self):
+        # Read from unified config
+        config = load_paper_trading_config()
+        
+        # Update Freqtrade via REST API
+        requests.post(
+            "http://freqtrade:8080/api/v1/config",
+            json=self.translate_to_freqtrade_format(config)
+        )
+```
+
+#### **Risk Manager Service Integration**
+
+**External Risk Manager controlling Freqtrade:**
+```python
+# risk_manager/service.py
+class RiskManagerService:
+    """Monitor market conditions and adjust Freqtrade"""
+    
+    async def monitor_market(self):
+        btc_volatility = self.calculate_btc_volatility()
+        
+        if btc_volatility > 8.0:  # High volatility
+            # Reduce non-volatility strategy positions
+            self.freqtrade_api.post("/forceexit", {
+                "tradeid": "all",
+                "ordertype": "market"
+            })
+            
+            # Update strategy parameters for volatility
+            self.freqtrade_api.post("/config", {
+                "max_open_trades": 3,  # Reduce from 10
+                "stake_amount": 50     # Reduce from 100
+            })
+```
+
+#### **Deployment on Railway**
+
+**Railway Service Configuration:**
+```yaml
+# railway.json
+{
+  "services": {
+    "freqtrade": {
+      "build": {
+        "dockerfilePath": "Dockerfile.freqtrade"
+      },
+      "startCommand": "freqtrade trade --strategy ChannelStrategyV1 --config config.json",
+      "healthcheck": {
+        "path": "/api/v1/ping",
+        "port": 8080
+      },
+      "envVars": {
+        "FREQTRADE_API_SERVER_ENABLED": "true",
+        "FREQTRADE_API_SERVER_LISTEN_PORT": "8080"
+      }
+    }
+  }
+}
+```
+
+**Dockerfile for Freqtrade:**
+```dockerfile
+# Dockerfile.freqtrade
+FROM freqtradeorg/freqtrade:stable
+
+# Install custom dependencies
+RUN pip install supabase
+
+# Copy strategies
+COPY freqtrade/strategies /freqtrade/user_data/strategies
+
+# Copy custom data provider
+COPY freqtrade/data /freqtrade/user_data/data
+
+# Copy config
+COPY freqtrade/config.json /freqtrade/user_data/config.json
+```
+
+**Development vs Production:**
+- **Local Development**: Test strategies, backtest, debug
+- **Railway Production**: 24/7 paper trading, no local computer needed
+- **Deployment**: Git push → Railway auto-deploys → Freqtrade runs continuously
+
+#### **Freqtrade Scanning Process**
+
+**How Freqtrade handles scanning:**
+1. **Every 5 minutes** (configurable): Freqtrade wakes up
+2. **Data fetch**: Downloads latest candles for all 90 symbols
+3. **For each symbol**:
+   - Calculates indicators (RSI, Bollinger Bands, etc.)
+   - Checks entry conditions from strategy
+   - If conditions met → places trade
+   - Logs decision to scan_history
+4. **Position management**: Checks all open positions for exits
+5. **Sleep**: Returns to idle until next cycle
+
+**What you write (simple):**
+```python
+def populate_entry_trend(self, dataframe, metadata):
+    """Define when to buy - Freqtrade handles the rest"""
+    dataframe.loc[
+        (dataframe['channel_position'] < 0.15) &  # In lower 15% of channel
+        (dataframe['rsi'] < 30) &                 # Oversold
+        (dataframe['volume'] > 0),                # Has volume
+        'enter_long'] = 1
+    return dataframe
+```
+
+**What Freqtrade does (complex):**
+- Manages scan loops
+- Handles API connections
+- Executes trades
+- Manages positions
+- Handles errors
+- Logs everything
+- Provides REST API
+- Sends notifications
+
+---
+
+## 📋 **System Components Inventory** (January 2025)
+
+### **COMPONENTS TO KEEP (Active in New System)**
+
+#### **Core Services**
+| Component | Purpose | Status |
+|-----------|---------|--------|
+| `live_dashboard_v2.py` | Dashboard with admin panel | ✅ KEEP - Modified for Freqtrade |
+| `src/config/config_loader.py` | Unified configuration | ✅ KEEP - Essential |
+| `configs/paper_trading_config_unified.json` | Configuration file | ✅ KEEP - Single source of truth |
+
+#### **ML/Research Components**
+| Component | Purpose | Status |
+|-----------|---------|--------|
+| `src/ml/ml_predictor.py` | ML predictions | ✅ KEEP - Research layer |
+| `src/ml/simple_retrainer.py` | Model retraining | ✅ KEEP - Continuous learning |
+| `models/channel/` | CHANNEL ML models | ✅ KEEP - ML assets |
+| `models/dca/` | DCA ML models | ✅ KEEP - ML assets |
+| `models/swing/` | SWING ML models | ✅ KEEP - ML assets |
+
+#### **Database Tables**
+| Table | Purpose | Status |
+|-------|---------|--------|
+| `scan_history` | ML training data | ✅ KEEP - Essential for ML |
+| `ml_predictions` | ML predictions | ✅ KEEP - Research output |
+| `shadow_variations` | Shadow testing | ✅ KEEP - Research data |
+| `shadow_outcomes` | Shadow results | ✅ KEEP - Research data |
+| `config_history` | Configuration audit | ✅ KEEP - Audit trail |
+| `ohlc_data` | Market data | ✅ KEEP - Data source |
+| `strategy_status_cache` | Dashboard cache | ✅ KEEP - Performance |
+| `market_summary_cache` | Market analysis | ✅ KEEP - Performance |
+
+#### **Railway Services (Modified)**
+| Service | New Purpose | Status |
+|---------|------------|--------|
+| Trading - Dashboard | Dashboard UI | ✅ KEEP - Points to Freqtrade |
+| System - Data Scheduler | OHLC updates | ✅ KEEP - Data pipeline |
+| Research - ML Analyzer | ML predictions | ✅ KEEP - Research |
+| Research - Shadow Testing | Shadow variations | ✅ KEEP - Research |
+
+### **NEW COMPONENTS TO ADD**
+
+#### **Freqtrade Core**
+| Component | Purpose | Location |
+|-----------|---------|----------|
+| `freqtrade/` | Main trading engine | `/freqtrade/` |
+| `ChannelStrategyV1.py` | CHANNEL strategy | `/freqtrade/user_data/strategies/` |
+| `DCAStrategy.py` | DCA strategy (future) | `/freqtrade/user_data/strategies/` |
+| `SwingStrategy.py` | SWING strategy (future) | `/freqtrade/user_data/strategies/` |
+| `config.json` | Freqtrade config | `/freqtrade/user_data/` |
+
+#### **Integration Layer**
+| Component | Purpose | Location |
+|-----------|---------|----------|
+| `scan_logger.py` | Log scans from Freqtrade | `/integrations/` |
+| `config_bridge.py` | Sync configs | `/integrations/` |
+| `risk_manager.py` | External risk service | `/risk-manager/` |
+| `freqtrade_data_source.py` | Dashboard data adapter | `/integrations/` |
+
+#### **Docker Configuration**
+| Component | Purpose | Location |
+|-----------|---------|----------|
+| `docker-compose.yml` | Service orchestration | `/` |
+| `Dockerfile.freqtrade` | Freqtrade container | `/docker/` |
+| `Dockerfile.dashboard` | Dashboard container | `/docker/` |
+| `Dockerfile.risk-manager` | Risk manager container | `/docker/` |
+
+#### **New Database**
+| Database | Purpose | Location |
+|----------|---------|----------|
+| `tradesv3.sqlite` | Freqtrade trades | `/freqtrade/user_data/` |
+
+### **COMPONENTS TO DEPRECATE (Remove After Migration)**
+
+#### **⚠️ DEPRECATION STATUS TRACKER**
+**DO NOT DELETE UNTIL PHASE 4 (Day 10+)**
+
+| Status | Meaning |
+|--------|---------|
+| 🔴 **ACTIVE** | Still in use, do not delete |
+| 🟡 **DEPRECATED** | No longer needed but keep for rollback |
+| 🟢 **SAFE TO DELETE** | Verified not needed, can delete |
+| ✅ **DELETED** | Already removed from system |
+
+#### **Trading Engine Components** ❌
+| Status | Component | Reason for Removal | Delete After |
+|--------|-----------|-------------------|--------------|
+| 🔴 | `src/trading/simple_paper_trader_v2.py` | Replaced by Freqtrade | Phase 4 |
+| 🔴 | `scripts/run_paper_trading_simple.py` | Replaced by Freqtrade | Phase 4 |
+| 🟢 | `scripts/run_paper_trading_v2.py` | Old version | Immediate |
+| 🟢 | `scripts/run_paper_trading.py` | Old version | Immediate |
+| 🟢 | `src/trading/paper_trader.py` | Unused | Immediate |
+| 🔴 | `src/trading/position_sizer.py` | Freqtrade handles | Phase 4 |
+| 🔴 | `src/trading/trade_limiter.py` | Moved to risk_manager | Phase 4 |
+
+#### **Strategy Detection Components** ❌
+| Status | Component | Reason for Removal | Delete After |
+|--------|-----------|-------------------|--------------|
+| 🔴 | `src/strategies/dca/detector.py` | Logic in Freqtrade strategy | Phase 4 |
+| 🔴 | `src/strategies/swing/detector.py` | Logic in Freqtrade strategy | Phase 4 |
+| 🔴 | `src/strategies/channel/detector.py` | Logic in Freqtrade strategy | Phase 4 |
+| 🔴 | `src/strategies/dca/executor.py` | Freqtrade handles | Phase 4 |
+| 🔴 | `src/strategies/swing/executor.py` | Freqtrade handles | Phase 4 |
+| 🔴 | `src/strategies/channel/executor.py` | Freqtrade handles | Phase 4 |
+| 🔴 | `src/strategies/manager.py` | Freqtrade handles | Phase 4 |
+| 🔴 | `src/strategies/simple_rules.py` | Integrated in strategies | Phase 4 |
+
+#### **Database Tables** ❌
+| Status | Table | Reason for Removal | Delete After |
+|--------|-------|-------------------|--------------|
+| 🔴 | `paper_trades` | Replaced by Freqtrade DB | Phase 4 (after archiving) |
+| 🔴 | `paper_performance` | Replaced by Freqtrade DB | Phase 4 (after archiving) |
+| 🟢 | `trade_logs` | Redundant | Immediate |
+| 🟢 | `hummingbot_trades` | Never used | Immediate |
+| 🟢 | `strategy_setups` | Replaced by Freqtrade | Immediate |
+| 🟢 | `dca_grids` | Freqtrade handles | Immediate |
+| 🔴 | `market_regimes` | Simplified approach | Phase 4 |
+
+#### **Railway Services** ❌
+| Status | Service | Reason for Removal | Delete After |
+|--------|---------|-------------------|--------------|
+| 🔴 | Trading - Paper Engine | Replaced by Freqtrade | Phase 4 |
+| 🔴 | System - Pre-Calculator | Freqtrade provides data | Phase 4 |
+| 🔴 | System - Health Reporter | Simplified monitoring | Phase 4 |
+
+#### **Utility Scripts** ❌
+| Status | Script | Reason for Removal | Delete After |
+|--------|--------|-------------------|--------------|
+| 🟢 | `scripts/close_worst_positions.py` | Freqtrade handles | Immediate |
+| 🟢 | `scripts/close_channel_positions_simple.py` | Freqtrade handles | Immediate |
+| 🟢 | `scripts/close_oldest_channel_positions.py` | Freqtrade handles | Immediate |
+| 🟢 | `scripts/test_*.py` | Old test scripts | Immediate |
+| 🟡 | `scripts/check_*.py` | Old check scripts | After validation |
+| 🟡 | `scripts/analyze_*.py` | Keep only essential | After review |
+
+#### **Old Configurations** ❌
+| Status | File | Reason for Removal | Delete After |
+|--------|------|-------------------|--------------|
+| 🟢 | `configs/paper_trading.json` | Replaced by unified | Immediate |
+| 🟢 | `configs/paper_trading_config.py` | Replaced by unified | Immediate |
+| 🟢 | `configs/railway-*.json` | Old Railway configs | Immediate |
+
+### **Immediate Safe Cleanup (Can Do Now)**
+
+These items are safe to delete immediately as they're not in use:
+
+```bash
+# 1. Delete unused scripts (already confirmed not in use)
+rm -f scripts/run_paper_trading_v2.py  # Old version
+rm -f scripts/run_paper_trading.py     # Old version
+rm -f src/trading/paper_trader.py      # Unused
+rm -f scripts/close_worst_positions.py # Not needed
+rm -f scripts/close_channel_positions_simple.py  # Not needed
+rm -f scripts/close_oldest_channel_positions.py  # Not needed
+
+# 2. Delete old config files
+rm -f configs/paper_trading.json
+rm -f configs/paper_trading_config.py
+rm -f configs/railway-*.json
+
+# 3. Drop unused database tables
+# Run this SQL in Supabase:
+DROP TABLE IF EXISTS hummingbot_trades;
+DROP TABLE IF EXISTS trade_logs;
+DROP TABLE IF EXISTS strategy_setups;
+DROP TABLE IF EXISTS dca_grids;
+
+# 4. Clean old test scripts
+rm -f scripts/test_*.py
+
+# 5. Commit these deletions
+git add -A
+git commit -m "Pre-migration cleanup: Remove unused components"
+git push
+```
+
+### **Data Cleanup Plan**
+
+#### **Phase 1: Immediate Cleanup**
+```sql
+-- Drop unused tables
+DROP TABLE IF EXISTS hummingbot_trades;
+DROP TABLE IF EXISTS trade_logs;
+DROP TABLE IF EXISTS strategy_setups;
+DROP TABLE IF EXISTS dca_grids;
+
+-- Clean old data (>30 days)
+DELETE FROM scan_history WHERE timestamp < NOW() - INTERVAL '30 days';
+DELETE FROM ml_predictions WHERE timestamp < NOW() - INTERVAL '30 days';
+```
+
+#### **Phase 2: After Migration**
+```sql
+-- Archive paper_trades before dropping
+CREATE TABLE paper_trades_archive AS SELECT * FROM paper_trades;
+
+-- Drop old trading tables
+DROP TABLE paper_trades;
+DROP TABLE paper_performance;
+DROP TABLE market_regimes;
+```
+
+### **File System Cleanup**
+
+```bash
+# Create cleanup script
+#!/bin/bash
+
+# Archive old components
+mkdir -p _archive_pre_freqtrade
+mv src/trading/simple_paper_trader_v2.py _archive_pre_freqtrade/
+mv scripts/run_paper_trading*.py _archive_pre_freqtrade/
+
+# Remove test scripts
+rm -f scripts/test_*.py
+rm -f scripts/check_*.py
+
+# Remove old configs
+rm -f configs/paper_trading.json
+rm -f configs/paper_trading_config.py
+rm -f configs/railway-*.json
+
+# Clean __pycache__
+find . -type d -name __pycache__ -exec rm -rf {} +
+
+# Remove old logs
+find logs/ -type f -mtime +7 -delete
+```
+
+### **Migration Checklist**
+
+#### **Before Starting**
+- [ ] Full database backup
+- [ ] Git commit all changes
+- [ ] Document current performance metrics
+- [ ] Archive current configuration
+
+#### **Phase 1 Complete (Days 1-3)**
+- [ ] Freqtrade running with CHANNEL
+- [ ] Scan logging operational
+- [ ] Dashboard reading Freqtrade data
+- [ ] Admin panel controlling Freqtrade
+- [ ] ⚠️ READY TO DELETE: Paper trading scripts (but wait for Phase 3)
+
+#### **Phase 2 Complete (Days 4-6)**
+- [ ] DCA and SWING strategies ported
+- [ ] ML analyzer integrated
+- [ ] Shadow testing operational
+- [ ] Risk manager deployed
+- [ ] ⚠️ READY TO DELETE: Strategy components (but wait for Phase 3)
+
+#### **Phase 3 Complete (Days 7-9)**
+- [ ] All services on Railway
+- [ ] Parallel validation complete (both systems running)
+- [ ] Performance metrics match or exceed old system
+- [ ] 24-hour stability test passed
+- [ ] Team trained on new system
+
+#### **Phase 4: CLEANUP (Day 10+)**
+**Only proceed after Phase 3 is stable for 24 hours**
+- [ ] Archive paper_trades table to paper_trades_archive
+- [ ] Delete paper trading scripts (see list below)
+- [ ] Delete old strategy components
+- [ ] Remove deprecated Railway services
+- [ ] Clean up database tables
+- [ ] Remove old configuration files
+- [ ] Delete test/check scripts
+- [ ] Final git commit with clean structure
+
+### **Success Metrics**
+- Code reduction: 3,500 lines → 500 lines (85% reduction)
+- Services: 8 Railway services → 4 services (50% reduction)
+- Database tables: 25 tables → 12 tables (52% reduction)
+- Maintenance time: 80% → 20% (75% reduction)
+- Strategy development time: 20% → 80% (4x increase)
+
 ---
 
 *End of Master Document*
