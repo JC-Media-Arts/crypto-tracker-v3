@@ -921,6 +921,7 @@ class SimplePaperTraderV2:
                     "take_profit": p.take_profit,
                     "trailing_stop_pct": p.trailing_stop_pct,
                     "highest_price": p.highest_price,
+                    "trade_group_id": p.trade_group_id,  # Save trade group ID
                     "fees_paid": p.fees_paid,
                 }
                 for symbol, p in self.positions.items()
@@ -972,6 +973,7 @@ class SimplePaperTraderV2:
                     highest_price=pos_data.get(
                         "highest_price", pos_data["entry_price"]
                     ),
+                    trade_group_id=pos_data.get("trade_group_id"),  # Preserve trade group ID
                     fees_paid=pos_data.get("fees_paid", 0),
                 )
 
@@ -1072,6 +1074,7 @@ class SimplePaperTraderV2:
                         fees_paid=sum(
                             float(b.get("fees", 0)) for b in group_data["buys"]
                         ),
+                        trade_group_id=group_id,  # CRITICAL: Preserve the trade group ID!
                     )
 
         # Set balance based on database P&L (matching dashboard logic)
