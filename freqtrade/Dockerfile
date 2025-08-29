@@ -3,7 +3,7 @@ FROM python:3.11-slim-bullseye
 
 # Install system dependencies
 RUN apt-get update \
-    && apt-get -y install curl build-essential git wget \
+    && apt-get -y install curl build-essential git wget bash \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 

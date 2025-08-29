@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 # Startup script for Freqtrade on Railway
 
 echo "Starting Freqtrade..."
