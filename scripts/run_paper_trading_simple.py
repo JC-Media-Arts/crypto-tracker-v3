@@ -1178,7 +1178,7 @@ class SimplifiedPaperTradingSystem:
             # Check if we already have an open position for this symbol
             existing = (
                 db.client.table("paper_trades")
-                .select("trade_group_id, strategy")
+                .select("trade_group_id, strategy_name")
                 .eq("symbol", symbol)
                 .eq("status", "FILLED")
                 .is_("exit_price", "null")
@@ -1198,7 +1198,7 @@ class SimplifiedPaperTradingSystem:
             strategy_result = (
                 db.client.table("paper_trades")
                 .select("trade_group_id")
-                .eq("strategy", strategy.upper())
+                .eq("strategy_name", strategy.upper())
                 .eq("status", "FILLED")
                 .is_("exit_price", "null")
                 .execute()
