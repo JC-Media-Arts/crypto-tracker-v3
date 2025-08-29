@@ -173,7 +173,7 @@ class SimpleRetrainer:
             logger.error(f"Error during retraining: {e}")
             return f"Retraining failed: {str(e)}"
 
-        def _get_all_training_data(self, strategy: str) -> pd.DataFrame:
+    def _get_all_training_data(self, strategy: str) -> pd.DataFrame:
         """Get all training data from synced Freqtrade trades"""
         
         try:
