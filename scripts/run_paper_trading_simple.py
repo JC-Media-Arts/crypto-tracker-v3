@@ -156,10 +156,18 @@ class SimplifiedPaperTradingSystem:
 
         # Initialize components
         self.data_fetcher = HybridDataFetcher()
+        
+        # Load initial balance from unified config
+        self.config_loader = ConfigLoader()
+        unified_config = self.config_loader.load()
+        initial_balance = unified_config.get("global_settings", {}).get("initial_balance", 10000.0)
+        max_positions = unified_config.get("position_management", {}).get("max_positions_total", 150)
+        max_per_strategy = unified_config.get("position_management", {}).get("max_positions_per_strategy", 50)
+        
         self.paper_trader = SimplePaperTraderV2(
-            initial_balance=1000.0,
-            max_positions=150,  # Total max positions (50 per strategy × 3 strategies)
-            max_positions_per_strategy=50,  # Max 50 positions per strategy
+            initial_balance=initial_balance,  # Use config value (10000.0)
+            max_positions=max_positions,  # Use config value (150)
+            max_positions_per_strategy=max_per_strategy,  # Use config value (50)
             config_path="configs/paper_trading_config_unified.json",  # Use unified config
         )
 
