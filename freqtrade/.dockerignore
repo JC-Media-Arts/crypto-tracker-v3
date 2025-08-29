@@ -1,0 +1,32 @@
+# Ignore virtual environment
+venv/
+*.pyc
+__pycache__/
+
+# Ignore logs
+user_data/logs/*
+*.log
+
+# Ignore local database
+*.sqlite
+*.db
+
+# Ignore backtest results
+user_data/backtest_results/*
+
+# Ignore downloaded data (will fetch fresh)
+user_data/data/kraken/*.json
+
+# Ignore environment files with secrets
+.env
+.env.local
+
+# Ignore git
+.git/
+.gitignore
+
+# Ignore macOS files
+.DS_Store
+
+# Ignore nohup output
+nohup.out
