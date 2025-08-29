@@ -1,6 +1,6 @@
 {
-  "version": "1.0.15",
-  "last_updated": "2025-08-28T20:10:57.269963",
+  "version": "1.0.17",
+  "last_updated": "2025-08-28T20:50:39.507996",
   "description": "Unified paper trading configuration - single source of truth",
   "global_settings": {
     "trading_enabled": true,
@@ -51,7 +51,7 @@
       "enabled": true,
       "min_confidence": 0.5,
       "detection_thresholds": {
-        "drop_threshold": -2.5,
+        "drop_threshold": -2.25,
         "volume_requirement": 0.85,
         "volume_threshold": 100000
       },
@@ -89,29 +89,29 @@
       "drop_threshold": -4,
       "detection_thresholds_by_tier": {
         "large_cap": {
-          "drop_threshold": -3.1,
-          "volume_requirement": 0.85,
+          "drop_threshold": -1.75,
+          "volume_requirement": 0.75,
           "volume_threshold": 100000,
           "grid_levels": 3,
           "grid_spacing": 0.02
         },
         "mid_cap": {
-          "drop_threshold": -4.0,
+          "drop_threshold": -2.25,
           "volume_requirement": 0.85,
           "volume_threshold": 75000,
           "grid_levels": 4,
           "grid_spacing": 0.025
         },
         "small_cap": {
-          "drop_threshold": -4.5,
-          "volume_requirement": 0.8,
+          "drop_threshold": -3.0,
+          "volume_requirement": 0.9,
           "volume_threshold": 50000,
           "grid_levels": 5,
           "grid_spacing": 0.03
         },
         "memecoin": {
-          "drop_threshold": -5.0,
-          "volume_requirement": 0.75,
+          "drop_threshold": -4.0,
+          "volume_requirement": 1.1,
           "volume_threshold": 25000,
           "grid_levels": 5,
           "grid_spacing": 0.04
@@ -232,36 +232,36 @@
       },
       "detection_thresholds_by_tier": {
         "large_cap": {
-          "entry_threshold": 0.85,
-          "exit_threshold": 0.15,
+          "entry_threshold": 0.88,
+          "exit_threshold": 0.12,
           "channel_width_min": 0.02,
           "channel_width_max": 0.08,
-          "channel_strength_min": 0.8,
-          "buy_zone": 0.03
+          "channel_strength_min": 0.82,
+          "buy_zone": 0.025
         },
         "mid_cap": {
-          "entry_threshold": 0.85,
-          "exit_threshold": 0.1,
+          "entry_threshold": 0.87,
+          "exit_threshold": 0.13,
           "channel_width_min": 0.03,
           "channel_width_max": 0.1,
-          "channel_strength_min": 0.75,
-          "buy_zone": 0.05
+          "channel_strength_min": 0.77,
+          "buy_zone": 0.04
         },
         "small_cap": {
           "entry_threshold": 0.85,
-          "exit_threshold": 0.1,
+          "exit_threshold": 0.15,
           "channel_width_min": 0.04,
           "channel_width_max": 0.12,
-          "channel_strength_min": 0.7,
-          "buy_zone": 0.07
+          "channel_strength_min": 0.72,
+          "buy_zone": 0.06
         },
         "memecoin": {
-          "entry_threshold": 0.95,
-          "exit_threshold": 0.05,
+          "entry_threshold": 0.92,
+          "exit_threshold": 0.08,
           "channel_width_min": 0.05,
           "channel_width_max": 0.15,
-          "channel_strength_min": 0.65,
-          "buy_zone": 0.1
+          "channel_strength_min": 0.6,
+          "buy_zone": 0.12
         }
       }
     }
