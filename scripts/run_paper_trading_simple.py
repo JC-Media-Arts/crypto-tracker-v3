@@ -291,10 +291,8 @@ class SimplifiedPaperTradingSystem:
             .get("CHANNEL", {})
             .get("detection_thresholds", {})
             .get("channel_touches", 3),
-            # Basic risk management
-            "min_confidence": unified_config.get("ml_confidence", {}).get(
-                "min_signal_strength", 0.45
-            ),
+            # ML confidence removed - paper trading is rule-based only
+            # "min_confidence" check has been disabled
             "scan_interval": unified_config.get("global_settings", {}).get(
                 "trading_cycle_seconds", 300
             ),  # Default 5 minutes
@@ -919,58 +917,58 @@ class SimplifiedPaperTradingSystem:
             if available_slots <= 0:
                 break
 
-            if trading_signal["confidence"] >= self.config["min_confidence"]:
-                strategy = trading_signal["strategy"]
-                symbol = trading_signal["symbol"]
+            # ML confidence check removed - paper trading is rule-based only
+            strategy = trading_signal["strategy"]
+            symbol = trading_signal["symbol"]
 
-                # Check if strategy is at limit (Scenario 2)
-                if (
-                    strategy_positions_count.get(strategy, 0)
-                    >= self.paper_trader.max_positions_per_strategy
-                ):
-                    # Close worst performer to make room (Scenario 2C)
-                    logger.info(
-                        f"{strategy} at limit - closing worst position to make room"
+            # Check if strategy is at limit (Scenario 2)
+            if (
+                strategy_positions_count.get(strategy, 0)
+                >= self.paper_trader.max_positions_per_strategy
+            ):
+                # Close worst performer to make room (Scenario 2C)
+                logger.info(
+                    f"{strategy} at limit - closing worst position to make room"
+                )
+                closed = await self.close_worst_positions(strategy, 1)
+                if closed > 0:
+                    strategy_positions_count[strategy] -= closed
+                else:
+                    logger.warning(
+                        f"Could not close positions for {strategy}, skipping signal"
                     )
-                    closed = await self.close_worst_positions(strategy, 1)
-                    if closed > 0:
-                        strategy_positions_count[strategy] -= closed
-                    else:
-                        logger.warning(
-                            f"Could not close positions for {strategy}, skipping signal"
-                        )
-                        continue
-
-                # Check trade limiter
-                can_trade, reason = self.trade_limiter.can_trade_symbol(symbol)
-                if not can_trade:
-                    logger.warning(f"⛔ Skipping {symbol}: {reason}")
                     continue
 
-                # Execute trade
-                result = await self.execute_trade(trading_signal)
-                if result:
-                    executed += 1
-                    available_slots -= 1
-                    strategy_positions_count[strategy] = (
-                        strategy_positions_count.get(strategy, 0) + 1
-                    )
+            # Check trade limiter
+            can_trade, reason = self.trade_limiter.can_trade_symbol(symbol)
+            if not can_trade:
+                logger.warning(f"⛔ Skipping {symbol}: {reason}")
+                continue
 
-                    # Log successful execution with market context
-                    if best_strategy:
-                        if strategy == best_strategy:
-                            logger.info(
-                                f"✅ Executed {strategy} trade (market recommended)"
-                            )
-                        else:
-                            logger.info(
-                                f"✅ Executed {strategy} trade (fallback from {best_strategy})"
-                            )
+            # Execute trade
+            result = await self.execute_trade(trading_signal)
+            if result:
+                executed += 1
+                available_slots -= 1
+                strategy_positions_count[strategy] = (
+                    strategy_positions_count.get(strategy, 0) + 1
+                )
+
+                # Log successful execution with market context
+                if best_strategy:
+                    if strategy == best_strategy:
+                        logger.info(
+                            f"✅ Executed {strategy} trade (market recommended)"
+                        )
+                    else:
+                        logger.info(
+                            f"✅ Executed {strategy} trade (fallback from {best_strategy})"
+                        )
 
         if executed > 0:
             logger.info(f"Executed {executed} trades this scan")
         elif total_signals > 0:
-            logger.info("No trades executed despite signals (confidence/limits)")
+            logger.info("No trades executed despite signals (position/trade limits)")
         else:
             logger.info("No trading opportunities found")
 
