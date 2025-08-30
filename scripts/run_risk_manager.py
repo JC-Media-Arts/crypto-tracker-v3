@@ -36,10 +36,12 @@ class RiskManagerService:
         # Service settings
         self.check_interval = 60  # Check risk every minute
         self.report_interval = 3600  # Report every hour
+        self.config_reload_interval = 300  # Reload config every 5 minutes
         self.running = True
         
         # Track state
         self.last_report = datetime.now(timezone.utc)
+        self.last_config_reload = datetime.now(timezone.utc)
         self.consecutive_violations = 0
         self.last_violations = []
         
@@ -58,6 +60,14 @@ class RiskManagerService:
         
         while self.running:
             try:
+                # Reload config periodically to pick up admin panel changes
+                now = datetime.now(timezone.utc)
+                if (now - self.last_config_reload).total_seconds() >= self.config_reload_interval:
+                    logger.info("Reloading configuration from unified config...")
+                    self.config.reload()  # Reload the config loader
+                    self.risk_manager.reload_config()  # Reload risk limits
+                    self.last_config_reload = now
+                
                 # Calculate current risk metrics
                 metrics = self.risk_manager.calculate_risk_metrics()
                 

@@ -55,7 +55,9 @@ class RiskManager:
         self.supabase = supabase_client
         self.config = config_loader
         self.initial_balance = initial_balance
-        self.risk_limits = RiskLimits()
+        
+        # Load risk limits from unified config
+        self.risk_limits = self._load_risk_limits()
         
         # Track risk events
         self.risk_events = []
@@ -64,6 +66,39 @@ class RiskManager:
         # Freqtrade control flags
         self.trading_enabled = True
         self.emergency_stop = False
+        
+    def _load_risk_limits(self) -> RiskLimits:
+        """Load risk limits from unified config file"""
+        try:
+            # Get config from the config loader
+            config = self.config.load()
+            
+            # Get risk management settings
+            risk_config = config.get('risk_management', {})
+            position_config = config.get('position_management', {})
+            
+            # Map config values to RiskLimits
+            return RiskLimits(
+                max_positions=position_config.get('max_positions_total', 10),
+                max_position_size_pct=position_config.get('position_sizing', {}).get('max_percent_of_balance', 0.10),
+                max_total_exposure_pct=position_config.get('position_sizing', {}).get('max_percent_of_balance', 0.50),
+                max_daily_loss_pct=risk_config.get('max_daily_loss_pct', 15) / 100.0,  # Convert percentage to decimal
+                max_weekly_loss_pct=risk_config.get('max_daily_loss', 0.10),  # Using daily loss * 2 for weekly
+                max_drawdown_pct=risk_config.get('max_drawdown', 0.20),
+                min_win_rate=0.40,  # Not in config yet, using default
+                emergency_stop_loss_pct=risk_config.get('emergency_stop_loss', 0.30)
+            )
+            
+        except Exception as e:
+            logger.warning(f"Failed to load risk limits from config: {e}")
+            logger.info("Using default risk limits")
+            return RiskLimits()  # Return defaults if config load fails
+    
+    def reload_config(self):
+        """Reload risk limits from config (can be called when config changes)"""
+        logger.info("Reloading risk limits from config")
+        self.risk_limits = self._load_risk_limits()
+        logger.info(f"Updated risk limits: {self.risk_limits}")
         
     def calculate_risk_metrics(self) -> RiskMetrics:
         """Calculate current risk metrics from Freqtrade trades"""
