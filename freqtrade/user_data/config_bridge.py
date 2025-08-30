@@ -43,6 +43,11 @@ class ConfigBridge:
         except Exception as e:
             logger.error(f"Error loading unified config: {e}")
             return {}
+    
+    def get_config(self) -> Dict[str, Any]:
+        """Get the full unified config (reloads to get latest)"""
+        self.config = self.load_unified_config()
+        return self.config
 
     def get_strategy_config(self, strategy_name: str = "CHANNEL") -> Dict[str, Any]:
         """
@@ -54,26 +59,33 @@ class ConfigBridge:
         Returns:
             Strategy configuration dict
         """
-        strategy_configs = self.config.get("strategy_configs", {})
+        # Updated to read from correct location in unified config
+        strategies = self.config.get("strategies", {})
 
-        if strategy_name not in strategy_configs:
+        if strategy_name not in strategies:
             logger.warning(f"Strategy {strategy_name} not found in config")
             return {}
 
-        return strategy_configs[strategy_name]
+        return strategies[strategy_name]
 
     def get_channel_thresholds(self) -> Dict[str, float]:
         """Get CHANNEL strategy thresholds"""
+        # Reload config to get latest values
+        self.config = self.load_unified_config()
         channel_config = self.get_strategy_config("CHANNEL")
-        thresholds = channel_config.get("thresholds", {})
-
+        
+        # Get detection thresholds (where the actual values are)
+        detection = channel_config.get("detection_thresholds", {})
+        
+        # Map from unified config structure to strategy thresholds
         return {
-            "entry_threshold": thresholds.get("channel_position_min", 0.15),
-            "exit_threshold": thresholds.get("channel_position_max", 0.85),
-            "rsi_min": thresholds.get("rsi_min", 25),
-            "rsi_max": thresholds.get("rsi_max", 70),
-            "volume_ratio_min": thresholds.get("volume_ratio_min", 0.5),
-            "volatility_max": thresholds.get("volatility_max", 10),
+            "entry_threshold": detection.get("buy_zone", 0.05),  # Channel position for entry
+            "exit_threshold": detection.get("sell_zone", 0.95),  # Channel position for exit
+            "rsi_min": detection.get("rsi_oversold", 30),  # RSI oversold threshold
+            "rsi_max": detection.get("rsi_overbought", 70),  # RSI overbought threshold
+            "volume_ratio_min": detection.get("volume_ratio_min", 1.0),
+            "volatility_max": detection.get("volatility_max", 10),
+            "channel_strength_min": detection.get("channel_strength_min", 0.90),
         }
 
     def get_market_cap_tiers(self) -> Dict[str, Dict[str, float]]:
