@@ -4,8 +4,8 @@
 *Phase 1 MVP - Using ML to Optimize Proven Trading Strategies*
 *Created: January 2025*
 *Location: Los Angeles, CA*
-*Latest Update: August 29, 2025 - Freqtrade Migration Complete*
-*Key Achievement: 85% code reduction, professional-grade trading engine deployed*
+*Latest Update: August 30, 2025 - Freqtrade Deployment & Dashboard Separation*
+*Key Achievement: Dashboard and Freqtrade services separated, scan logging fixed for ML pipeline*
 
 ---
 
@@ -77,24 +77,32 @@ black --exclude="~/.*|venv/.*" --check .
 This section lists the currently active production files and their deprecated versions.
 Last Updated: August 27, 2025
 
-### Paper Trading System (Freqtrade Migration - August 29, 2025)
+### Paper Trading System (Freqtrade Migration - August 30, 2025)
 - **ACTIVE**: **Freqtrade Trading Engine** ✅ 🚀
   - Deployed to Railway as "Freqtrade - Trading Engine" Docker service
-  - Running freqtradeorg/freqtrade:stable
+  - Running freqtradeorg/freqtrade:stable with custom Dockerfile
   - **MIGRATED 8/29**: Replaced SimplePaperTraderV2 with Freqtrade
     - 85% code reduction (3,500 → 500 lines)
     - Professional-grade trading engine
     - Full backtesting capabilities
     - Built-in position management
+  - **UPDATED 8/30**: Fixed deployment issues and scan logging
+    - Dockerfile moved to freqtrade/ directory for proper service separation
+    - Dashboard service separated using Nixpacks builder
+    - Scan logging fixed to log ALL scans (not just entry signals) for ML training
+    - Config bridge updated to read buy_zone/sell_zone (correct fields)
+    - Dashboard adapter fixed to use Supabase in production
+    - Added error handling for scan_logger initialization
   - **Features**:
-    - CHANNEL strategy ported (ChannelStrategyV1)
-    - Scan logging to scan_history table
+    - CHANNEL strategy ported (ChannelStrategyV1) with proper threshold mapping
+    - Scan logging to scan_history table (ALL scans for ML training)
     - Trade sync to freqtrade_trades table
-    - Config bridge for real-time updates
+    - Config bridge for real-time updates from unified config
     - Kill switch via Risk Manager
-    - Dashboard adapted to Freqtrade data
+    - Dashboard adapted to Freqtrade data (uses Supabase in production)
   - Configuration: `configs/paper_trading_config_unified.json` (single source of truth)
   - Related: `/freqtrade/user_data/strategies/ChannelStrategyV1.py`
+  - **Known Issues**: Config file access in Docker container needs resolution for real-time updates
 
 - **DEPRECATED** (as of August 29, 2025):
   - `scripts/run_paper_trading_simple.py` ❌ (Replaced by Freqtrade)
@@ -2932,6 +2940,42 @@ railway run python scripts/run_daily_retraining.py --check
 ---
 
 ## Deployment Architecture
+
+### August 30, 2025 Update - Service Separation Fix
+
+**Critical Railway Deployment Changes:**
+
+#### Freqtrade - Trading Engine Service
+- **Root Directory**: `freqtrade`
+- **Builder**: Dockerfile (auto-detected from `freqtrade/Dockerfile`)
+- **Start Command**: Leave empty (uses Dockerfile CMD)
+- **Environment Variables**:
+  ```
+  SUPABASE_URL=<your_url>
+  SUPABASE_KEY=<your_key>
+  RAILWAY_ENVIRONMENT=production
+  ```
+- **Known Issue**: Cannot access live `configs/paper_trading_config_unified.json` for real-time updates
+
+#### Trading Dashboard Service (Freqtrade Dashboard)
+- **Root Directory**: `/` or empty
+- **Builder**: Nixpacks (auto-detected, no Dockerfile in root)
+- **Start Command**: `python freqtrade_dashboard.py`
+- **Configuration**: Uses `nixpacks.toml` in root
+- **Environment Variables**:
+  ```
+  PORT=8080
+  ENVIRONMENT=production
+  RAILWAY_ENVIRONMENT=production
+  SUPABASE_URL=<your_url>
+  SUPABASE_KEY=<your_key>
+  ```
+
+#### Key Configuration Files
+1. **`railway.json`**: Main service configuration (no global builder setting)
+2. **`nixpacks.toml`**: Python environment for dashboard
+3. **`freqtrade/Dockerfile`**: Custom Docker image with loguru, supabase dependencies
+4. **`freqtrade/user_data/config_bridge.py`**: Updated to handle multiple config locations
 
 ### Railway.app Configuration
 
