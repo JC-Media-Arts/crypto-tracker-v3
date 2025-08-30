@@ -1,6 +1,6 @@
 {
-  "version": "1.0.35",
-  "last_updated": "2025-08-30T06:20:16.871235",
+  "version": "1.0.37",
+  "last_updated": "2025-08-30T06:22:06.379569",
   "description": "Unified paper trading configuration - single source of truth",
   "global_settings": {
     "trading_enabled": true,
