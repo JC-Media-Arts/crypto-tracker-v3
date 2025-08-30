@@ -11,6 +11,7 @@ from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Optional, Any
 import pandas as pd
 from pathlib import Path
+import sys
 
 
 class FreqtradeDashboardAdapter:
@@ -31,8 +32,6 @@ class FreqtradeDashboardAdapter:
         
         if self.use_supabase:
             # In production, use Supabase freqtrade_trades table
-            import sys
-            from pathlib import Path
             # Add both possible paths for imports
             sys.path.insert(0, str(Path(__file__).parent.parent))
             sys.path.insert(0, '/app')  # Railway's working directory
@@ -54,8 +53,6 @@ class FreqtradeDashboardAdapter:
             if not self.db_path.exists():
                 # If local database doesn't exist, fall back to Supabase
                 print("⚠️ Local Freqtrade database not found, using Supabase instead")
-                import sys
-                from pathlib import Path
                 sys.path.append(str(Path(__file__).parent.parent))
                 from src.data.supabase_client import SupabaseClient
                 self.supabase = SupabaseClient()
