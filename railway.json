@@ -9,6 +9,14 @@
     "restartPolicyMaxRetries": 3
   },
   "services": {
+    "Freqtrade - Trading Engine": {
+      "builder": "DOCKERFILE",
+      "dockerfilePath": "./Dockerfile",
+      "startCommand": "freqtrade trade --config /freqtrade/user_data/config.json --strategy ChannelStrategyV1 --dry-run",
+      "healthcheckTimeout": 30,
+      "restartPolicyType": "ON_FAILURE",
+      "restartPolicyMaxRetries": 3
+    },
     "Paper Trading": {
       "startCommand": "python scripts/run_paper_trading_simple.py",
       "healthcheckPath": "/health",
