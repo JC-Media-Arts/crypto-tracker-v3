@@ -64,9 +64,17 @@ class RiskManagerService:
                 now = datetime.now(timezone.utc)
                 if (now - self.last_config_reload).total_seconds() >= self.config_reload_interval:
                     logger.info("Reloading configuration from unified config...")
+                    
+                    # Store previous kill switch state
+                    prev_state = self.risk_manager.last_kill_switch_state
+                    
                     self.config.reload()  # Reload the config loader
-                    self.risk_manager.reload_config()  # Reload risk limits
+                    self.risk_manager.reload_config()  # Reload risk limits and check kill switch
                     self.last_config_reload = now
+                    
+                    # Send notification if kill switch state changed
+                    if prev_state is not None and prev_state != self.risk_manager.last_kill_switch_state:
+                        await self.send_kill_switch_notification(self.risk_manager.last_kill_switch_state)
                 
                 # Calculate current risk metrics
                 metrics = self.risk_manager.calculate_risk_metrics()
@@ -189,6 +197,31 @@ class RiskManagerService:
                 )
             except Exception as e:
                 logger.error(f"Error sending notification: {e}")
+    
+    async def send_kill_switch_notification(self, enabled: bool):
+        """Send notification when kill switch state changes"""
+        
+        if enabled:
+            title = "✅ Trading Enabled via Kill Switch"
+            message = "Paper trading has been ENABLED from the admin panel"
+            color = "good"
+            emoji = "🟢"
+        else:
+            title = "🛑 Trading Disabled via Kill Switch"
+            message = "Paper trading has been DISABLED from the admin panel"
+            color = "danger"
+            emoji = "🔴"
+        
+        details = {
+            "Status": f"{emoji} {'ENABLED' if enabled else 'DISABLED'}",
+            "Source": "Admin Panel",
+            "Time": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC"),
+            "Action": "Freqtrade max_open_trades updated"
+        }
+        
+        await self.send_notification(title, message, details, color)
+        
+        logger.info(f"Kill switch notification sent - Trading {'enabled' if enabled else 'disabled'}")
     
     async def update_freqtrade_control(self, enabled: bool):
         """Update Freqtrade control status"""

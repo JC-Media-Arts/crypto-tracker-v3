@@ -4,6 +4,7 @@ Monitors portfolio risk and can control Freqtrade trading
 """
 
 import os
+import json
 import sqlite3
 from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Optional, Tuple
@@ -67,6 +68,10 @@ class RiskManager:
         self.trading_enabled = True
         self.emergency_stop = False
         
+        # Kill switch state tracking
+        self.last_kill_switch_state = None
+        self.freqtrade_config_path = self._get_freqtrade_config_path()
+        
     def _load_risk_limits(self) -> RiskLimits:
         """Load risk limits from unified config file"""
         try:
@@ -99,6 +104,9 @@ class RiskManager:
         logger.info("Reloading risk limits from config")
         self.risk_limits = self._load_risk_limits()
         logger.info(f"Updated risk limits: {self.risk_limits}")
+        
+        # Also check kill switch state
+        self.check_kill_switch()
         
     def calculate_risk_metrics(self) -> RiskMetrics:
         """Calculate current risk metrics from Freqtrade trades"""
@@ -482,3 +490,100 @@ class RiskManager:
             return False, f"Position too large ({position_pct:.1%} > {self.risk_limits.max_position_size_pct:.0%})"
         
         return True, "Trade allowed"
+    
+    def _get_freqtrade_config_path(self) -> Path:
+        """Get the path to Freqtrade's config file"""
+        # Check if running in Docker/Railway
+        if os.path.exists("/freqtrade/config/config.json"):
+            return Path("/freqtrade/config/config.json")
+        
+        # Local development path
+        project_root = Path(__file__).parent.parent.parent
+        local_path = project_root / "freqtrade" / "config" / "config.json"
+        if local_path.exists():
+            return local_path
+            
+        logger.warning("Freqtrade config not found, kill switch will not control Freqtrade")
+        return None
+    
+    def check_kill_switch(self):
+        """Check kill switch state and update Freqtrade config if needed"""
+        try:
+            # Load current unified config
+            config = self.config.load()
+            
+            # Check if trading is enabled
+            trading_enabled = config.get('global_settings', {}).get('trading_enabled', True)
+            
+            # Check if state changed
+            if self.last_kill_switch_state is not None and self.last_kill_switch_state != trading_enabled:
+                logger.info(f"Kill switch state changed: {'ENABLED' if trading_enabled else 'DISABLED'}")
+                self.update_freqtrade_trading(trading_enabled)
+                
+                # Log the event
+                self.log_risk_event(
+                    "KILL_SWITCH",
+                    {
+                        "trading_enabled": trading_enabled,
+                        "source": "admin_panel"
+                    }
+                )
+            
+            self.last_kill_switch_state = trading_enabled
+            
+        except Exception as e:
+            logger.error(f"Error checking kill switch: {e}")
+    
+    def update_freqtrade_trading(self, enabled: bool):
+        """Update Freqtrade's config to enable/disable trading"""
+        
+        if not self.freqtrade_config_path or not self.freqtrade_config_path.exists():
+            logger.warning("Cannot update Freqtrade config - file not found")
+            return False
+            
+        try:
+            # Read current Freqtrade config
+            with open(self.freqtrade_config_path, 'r') as f:
+                freqtrade_config = json.load(f)
+            
+            # Update max_open_trades based on kill switch
+            if enabled:
+                # Enable trading - restore normal max_open_trades
+                freqtrade_config['max_open_trades'] = 10  # Or get from unified config
+                logger.info("Freqtrade trading ENABLED - max_open_trades set to 10")
+            else:
+                # Disable trading - set max_open_trades to 0
+                freqtrade_config['max_open_trades'] = 0
+                logger.info("Freqtrade trading DISABLED - max_open_trades set to 0")
+            
+            # Write updated config back
+            with open(self.freqtrade_config_path, 'w') as f:
+                json.dump(freqtrade_config, f, indent=4)
+            
+            logger.info(f"Freqtrade config updated successfully - trading {'enabled' if enabled else 'disabled'}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error updating Freqtrade config: {e}")
+            return False
+    
+    def override_trading(self, enabled: bool, reason: str):
+        """Override trading state (used by risk violations)"""
+        
+        # Update internal state
+        self.trading_enabled = enabled
+        
+        # Update Freqtrade config
+        success = self.update_freqtrade_trading(enabled)
+        
+        # Log the event
+        self.log_risk_event(
+            "TRADING_OVERRIDE",
+            {
+                "trading_enabled": enabled,
+                "reason": reason,
+                "success": success
+            }
+        )
+        
+        return success
