@@ -553,8 +553,10 @@ class ConfigLoader:
             if daily_loss_pct <= 0 or daily_loss_pct > 50:
                 errors.append("Max daily loss % must be between 0% and 50%")
                 
-            drawdown = risk_mgmt.get("max_drawdown", 20)
-            if drawdown <= daily_loss_pct:
+            drawdown = risk_mgmt.get("max_drawdown", 0.2)
+            daily_loss = risk_mgmt.get("max_daily_loss", 0.1)
+            # Compare drawdown with daily_loss (both as decimals), not daily_loss_pct
+            if drawdown <= daily_loss:
                 warnings.append("Max drawdown should typically exceed daily loss limit")
                 
             risk_per_trade = risk_mgmt.get("risk_per_trade", 2)
