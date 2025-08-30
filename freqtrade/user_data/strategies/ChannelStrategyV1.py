@@ -53,8 +53,9 @@ class ChannelStrategyV1(IStrategy):
     trailing_only_offset_is_reached = True  # Only trail after offset is reached
 
     # Optimal timeframe for the strategy
-    # Using 15m for more frequent signal evaluation while maintaining good technical analysis
-    timeframe = "15m"
+    # Using 5m for maximum responsiveness - good for paper trading to see more action
+    # Note: May generate more false signals but allows quick reaction to market moves
+    timeframe = "5m"
 
     # Run "populate_indicators()" for all tickers in whitelist
     process_only_new_candles = False
