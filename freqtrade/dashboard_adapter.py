@@ -138,27 +138,44 @@ class FreqtradeDashboardAdapter:
         Returns:
             DataFrame with open positions
         """
-        query = """
-        SELECT 
-            id,
-            pair as symbol,
-            open_rate as entry_price,
-            stake_amount,
-            amount,
-            open_date as entry_time,
-            stop_loss,
-            initial_stop_loss,
-            max_rate,
-            min_rate,
-            strategy,
-            enter_tag
-        FROM trades
-        WHERE is_open = 1
-        ORDER BY open_date DESC
-        """
-        
-        with self.get_connection() as conn:
-            df = pd.read_sql_query(query, conn)
+        if self.use_supabase:
+            # Get open positions from Supabase
+            response = self.supabase.client.table("freqtrade_trades").select("*").eq("is_open", True).order("open_date", desc=True).execute()
+            
+            if response.data:
+                df = pd.DataFrame(response.data)
+                # Rename columns to match expected format
+                df = df.rename(columns={
+                    'pair': 'symbol',
+                    'open_rate': 'entry_price',
+                    'open_date': 'entry_time'
+                })
+            else:
+                # Return empty DataFrame with expected columns
+                df = pd.DataFrame(columns=['id', 'symbol', 'entry_price', 'stake_amount',
+                                          'amount', 'entry_time', 'strategy'])
+        else:
+            query = """
+            SELECT 
+                id,
+                pair as symbol,
+                open_rate as entry_price,
+                stake_amount,
+                amount,
+                open_date as entry_time,
+                stop_loss,
+                initial_stop_loss,
+                max_rate,
+                min_rate,
+                strategy,
+                enter_tag
+            FROM trades
+            WHERE is_open = 1
+            ORDER BY open_date DESC
+            """
+            
+            with self.get_connection() as conn:
+                df = pd.read_sql_query(query, conn)
             
         if not df.empty:
             df['symbol'] = df['symbol'].str.replace('/USDT', '')

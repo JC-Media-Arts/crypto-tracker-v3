@@ -19,10 +19,8 @@ def get_freqtrade_trades_data(page=1, per_page=100, filter_type='all'):
     
     Returns data in the same format as the original paper_trades API
     """
-    # Initialize adapter
-    adapter = FreqtradeDashboardAdapter(
-        db_path=Path(__file__).parent / "freqtrade" / "tradesv3.dryrun.sqlite"
-    )
+    # Initialize adapter (will use Supabase in production automatically)
+    adapter = FreqtradeDashboardAdapter()
     
     # Get data from Freqtrade
     all_trades_df = adapter.get_all_trades()

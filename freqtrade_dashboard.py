@@ -23,10 +23,8 @@ from dashboard_adapter import FreqtradeDashboardAdapter  # noqa: E402
 
 app = Flask(__name__)
 
-# Initialize Freqtrade adapter
-freqtrade_adapter = FreqtradeDashboardAdapter(
-    db_path=Path(__file__).parent / "freqtrade" / "tradesv3.dryrun.sqlite"
-)
+# Initialize Freqtrade adapter (will use Supabase in production automatically)
+freqtrade_adapter = FreqtradeDashboardAdapter()
 
 # Initialize market protection components
 regime_detector = RegimeDetector(enabled=True)
