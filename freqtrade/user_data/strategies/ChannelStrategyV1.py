@@ -19,6 +19,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 from freqtrade.strategy import IStrategy, informative
 from freqtrade.strategy.interface import IStrategy
 from freqtrade.persistence import Trade
+from loguru import logger
 
 # Import our custom modules
 from config_bridge import ConfigBridge
@@ -286,11 +287,68 @@ class ChannelStrategyV1(IStrategy):
     ) -> bool:
         """
         Called right before placing a buy order.
-        Can be used to log scan decisions for ML training.
+        Enforces position limits and logs scan decisions for ML training.
         """
+        
+        # Get position limits from config
+        config = self.config_bridge.get_config()
+        position_mgmt = config.get('position_management', {})
+        max_per_strategy = position_mgmt.get('max_positions_per_strategy', 50)
+        max_per_symbol = position_mgmt.get('max_positions_per_symbol', 3)
+        
+        # Check per-strategy limit
+        # Count all open trades for this strategy
+        open_trades = Trade.get_open_trades()
+        strategy_trades = [t for t in open_trades if t.strategy == 'ChannelStrategyV1']
+        
+        if len(strategy_trades) >= max_per_strategy:
+            logger.info(
+                f"Rejecting {pair} entry: Strategy limit reached "
+                f"({len(strategy_trades)}/{max_per_strategy})"
+            )
+            # Log as SKIP for ML training
+            self._log_scan_decision(
+                symbol=pair,
+                strategy="CHANNEL",
+                decision="SKIP",
+                timestamp=current_time,
+                features={
+                    "channel_position": kwargs.get("channel_position", 0),
+                    "rsi": kwargs.get("rsi", 50),
+                    "volume_ratio": kwargs.get("volume_ratio", 1),
+                    "volatility": kwargs.get("volatility", 0),
+                    "price_drop_pct": kwargs.get("price_drop_pct", 0),
+                    "skip_reason": "strategy_limit",
+                },
+            )
+            return False
+        
+        # Check per-symbol limit
+        symbol_trades = [t for t in open_trades if t.pair == pair]
+        
+        if len(symbol_trades) >= max_per_symbol:
+            logger.info(
+                f"Rejecting {pair} entry: Symbol limit reached "
+                f"({len(symbol_trades)}/{max_per_symbol})"
+            )
+            # Log as SKIP for ML training
+            self._log_scan_decision(
+                symbol=pair,
+                strategy="CHANNEL",
+                decision="SKIP",
+                timestamp=current_time,
+                features={
+                    "channel_position": kwargs.get("channel_position", 0),
+                    "rsi": kwargs.get("rsi", 50),
+                    "volume_ratio": kwargs.get("volume_ratio", 1),
+                    "volatility": kwargs.get("volatility", 0),
+                    "price_drop_pct": kwargs.get("price_drop_pct", 0),
+                    "skip_reason": "symbol_limit",
+                },
+            )
+            return False
 
-        # Log scan decision for ML training
-        # This will be implemented to write to scan_history table
+        # All limits passed, log as TAKE
         self._log_scan_decision(
             symbol=pair,
             strategy="CHANNEL",
@@ -305,6 +363,12 @@ class ChannelStrategyV1(IStrategy):
             },
         )
 
+        logger.info(
+            f"Accepting {pair} entry: "
+            f"Strategy {len(strategy_trades)}/{max_per_strategy}, "
+            f"Symbol {len(symbol_trades)}/{max_per_symbol}"
+        )
+        
         return True
 
     def _get_market_cap_tier(self, symbol: str) -> str:
