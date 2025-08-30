@@ -9,12 +9,6 @@
     "restartPolicyMaxRetries": 3
   },
   "services": {
-    "Freqtrade - Trading Engine": {
-      "startCommand": "python scripts/run_freqtrade.py",
-      "healthcheckTimeout": 30,
-      "restartPolicyType": "ON_FAILURE",
-      "restartPolicyMaxRetries": 3
-    },
     "Paper Trading": {
       "startCommand": "python scripts/run_paper_trading_simple.py",
       "healthcheckPath": "/health",
