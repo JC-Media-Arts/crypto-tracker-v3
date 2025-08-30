@@ -1,46 +1,31 @@
-# Freqtrade Docker image for Railway deployment
-FROM python:3.11-slim-bullseye
+# Use the official Freqtrade image as base
+FROM freqtradeorg/freqtrade:stable
 
-# Install system dependencies
-RUN apt-get update \
-    && apt-get -y install curl build-essential git wget bash \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+# Switch to root to install packages
+USER root
 
-# Install TA-Lib
-RUN wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz \
-    && tar -xvzf ta-lib-0.4.0-src.tar.gz \
-    && cd ta-lib/ \
-    && ./configure --prefix=/usr \
-    && make \
-    && make install \
-    && cd .. \
-    && rm -rf ta-lib ta-lib-0.4.0-src.tar.gz
+# Install additional Python packages needed for our custom strategy
+RUN pip install --no-cache-dir \
+    loguru==0.7.2 \
+    supabase==2.10.0 \
+    python-dotenv==1.0.0
+
+# Copy our custom strategy and modules
+COPY user_data/strategies/ /freqtrade/user_data/strategies/
+COPY user_data/config_bridge.py /freqtrade/user_data/
+COPY user_data/scan_logger.py /freqtrade/user_data/
+COPY user_data/data/ /freqtrade/user_data/data/
+
+# Copy our configuration files
+COPY user_data/config.json /freqtrade/user_data/
+
+# Ensure proper permissions
+RUN chown -R ftuser:ftuser /freqtrade/user_data
+
+# Switch back to non-root user
+USER ftuser
 
 # Set working directory
 WORKDIR /freqtrade
 
-# Copy requirements first for better caching
-COPY requirements.txt .
-
-# Install Python dependencies
-RUN pip install --upgrade pip \
-    && pip install numpy \
-    && pip install TA-Lib \
-    && pip install -r requirements.txt
-
-# Copy the entire freqtrade directory
-COPY . .
-
-# Create necessary directories
-RUN mkdir -p user_data/logs user_data/data/kraken
-
-# Set environment variables for Railway
-ENV PYTHONUNBUFFERED=1
-ENV TZ=UTC
-
-# Make startup script executable
-RUN chmod +x start.sh
-
-# Run Freqtrade via startup script
-CMD ["./start.sh"]
+# The entrypoint is inherited from the base image

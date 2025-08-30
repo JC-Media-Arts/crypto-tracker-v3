@@ -19,15 +19,12 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 from freqtrade.strategy import IStrategy, informative
 from freqtrade.strategy.interface import IStrategy
 from freqtrade.persistence import Trade
-import logging
-
-logger = logging.getLogger(__name__)
+from loguru import logger
 
 # Import our custom modules
 from config_bridge import ConfigBridge
-# Commented out - not available in Docker container
-# from scan_logger import get_scan_logger
-# from data.supabase_dataprovider import SupabaseDataProvider
+from scan_logger import get_scan_logger
+from data.supabase_dataprovider import SupabaseDataProvider
 
 
 class ChannelStrategyV1(IStrategy):
@@ -70,11 +67,11 @@ class ChannelStrategyV1(IStrategy):
         # Initialize configuration bridge
         self.config_bridge = ConfigBridge()
 
-        # Initialize scan logger - commented out for Docker
-        # self.scan_logger = get_scan_logger()
+        # Initialize scan logger
+        self.scan_logger = get_scan_logger()
 
-        # Initialize data provider - commented out for Docker
-        # self.data_provider_supabase = SupabaseDataProvider()
+        # Initialize data provider
+        self.data_provider_supabase = SupabaseDataProvider()
 
         # Load configuration from unified config
         self._load_configuration()
@@ -181,16 +178,16 @@ class ChannelStrategyV1(IStrategy):
 
         dataframe.loc[conditions, "enter_long"] = 1
 
-        # Log scan decisions for the latest candle - commented out for Docker
-        # if len(dataframe) > 0:
-        #     latest_row = dataframe.iloc[-1]
-        #     if not pd.isna(latest_row.get("enter_long", 0)):
-        #         self.scan_logger.log_entry_analysis(
-        #             pair=metadata.get("pair", "UNKNOWN"),
-        #             dataframe_row=latest_row.to_dict(),
-        #             entry_signal=bool(latest_row.get("enter_long", 0)),
-        #             strategy="CHANNEL",
-        #         )
+        # Log scan decisions for the latest candle
+        if len(dataframe) > 0:
+            latest_row = dataframe.iloc[-1]
+            if not pd.isna(latest_row.get("enter_long", 0)):
+                self.scan_logger.log_entry_analysis(
+                    pair=metadata.get("pair", "UNKNOWN"),
+                    dataframe_row=latest_row.to_dict(),
+                    entry_signal=bool(latest_row.get("enter_long", 0)),
+                    strategy="CHANNEL",
+                )
 
         return dataframe
 
