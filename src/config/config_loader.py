@@ -638,9 +638,14 @@ class ConfigLoader:
             config["version"] = self._increment_version(config.get("version", "1.0.0"))
             config["last_updated"] = datetime.now().isoformat()
 
-            # Save to file
-            with open(self._config_path, "w") as f:
-                json.dump(config, f, indent=2)
+            # Save to both file and Supabase using the save method
+            if not self.save(config):
+                logger.error("Failed to save configuration")
+                return {
+                    "success": False,
+                    "errors": ["Failed to save configuration to storage"],
+                    "warnings": validation.get("warnings", []) if validate else []
+                }
 
             # Log each change to database
             success = True
