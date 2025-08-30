@@ -4613,9 +4613,8 @@ document.addEventListener('DOMContentLoaded', function() {
     loadConfig();
     loadConfigHistory();
     
-    // Refresh periodically
-    setInterval(loadConfig, 30000);
-    setInterval(loadConfigHistory, 60000);
+    // No auto-refresh on Admin page to prevent losing unsaved changes
+    // Users can manually refresh if needed
 });
 </script>
 """
