@@ -33,10 +33,16 @@ class FreqtradeDashboardAdapter:
             # In production, use Supabase freqtrade_trades table
             import sys
             from pathlib import Path
-            sys.path.append(str(Path(__file__).parent.parent))
-            from src.data.supabase_client import SupabaseClient
-            self.supabase = SupabaseClient()
-            print("✅ Connected to Supabase for Freqtrade trades (production)")
+            # Add both possible paths for imports
+            sys.path.insert(0, str(Path(__file__).parent.parent))
+            sys.path.insert(0, '/app')  # Railway's working directory
+            try:
+                from src.data.supabase_client import SupabaseClient
+                self.supabase = SupabaseClient()
+                print("✅ Connected to Supabase for Freqtrade trades (production)")
+            except ImportError as e:
+                print(f"❌ Failed to import SupabaseClient: {e}")
+                raise
         else:
             # Local development - use SQLite
             if db_path is None:

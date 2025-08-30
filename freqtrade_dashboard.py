@@ -10,7 +10,9 @@ import os
 from datetime import datetime, timedelta, timezone
 import pandas as pd
 
-sys.path.append(str(Path(__file__).parent))
+# Ensure we can import from the project root
+sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.data.supabase_client import SupabaseClient  # noqa: E402
 from loguru import logger  # noqa: E402
