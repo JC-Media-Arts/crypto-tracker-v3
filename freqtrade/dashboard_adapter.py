@@ -26,19 +26,41 @@ class FreqtradeDashboardAdapter:
             db_path: Path to Freqtrade's SQLite database
                     Defaults to ./tradesv3.dryrun.sqlite
         """
-        if db_path is None:
-            # Default path for dry-run database
-            self.db_path = Path(__file__).parent / "tradesv3.dryrun.sqlite"
+        # Check if we're in production (Railway) or local
+        self.use_supabase = os.environ.get("RAILWAY_ENVIRONMENT") is not None
+        
+        if self.use_supabase:
+            # In production, use Supabase freqtrade_trades table
+            import sys
+            from pathlib import Path
+            sys.path.append(str(Path(__file__).parent.parent))
+            from src.data.supabase_client import SupabaseClient
+            self.supabase = SupabaseClient()
+            print("✅ Connected to Supabase for Freqtrade trades (production)")
         else:
-            self.db_path = Path(db_path)
-            
-        if not self.db_path.exists():
-            raise FileNotFoundError(f"Freqtrade database not found at {self.db_path}")
-            
-        print(f"✅ Connected to Freqtrade database: {self.db_path}")
+            # Local development - use SQLite
+            if db_path is None:
+                # Default path for dry-run database
+                self.db_path = Path(__file__).parent / "tradesv3.dryrun.sqlite"
+            else:
+                self.db_path = Path(db_path)
+                
+            if not self.db_path.exists():
+                # If local database doesn't exist, fall back to Supabase
+                print("⚠️ Local Freqtrade database not found, using Supabase instead")
+                import sys
+                from pathlib import Path
+                sys.path.append(str(Path(__file__).parent.parent))
+                from src.data.supabase_client import SupabaseClient
+                self.supabase = SupabaseClient()
+                self.use_supabase = True
+            else:
+                print(f"✅ Connected to local Freqtrade database: {self.db_path}")
         
     def get_connection(self):
         """Get a connection to the SQLite database"""
+        if self.use_supabase:
+            raise NotImplementedError("Use Supabase client directly, not SQLite connection")
         return sqlite3.connect(self.db_path, timeout=10.0)
         
     def get_all_trades(self) -> pd.DataFrame:
@@ -48,34 +70,57 @@ class FreqtradeDashboardAdapter:
         Returns:
             DataFrame with trade data
         """
-        query = """
-        SELECT 
-            id,
-            pair as symbol,
-            is_open,
-            fee_open,
-            fee_close,
-            open_rate as entry_price,
-            close_rate as exit_price,
-            stake_amount,
-            amount,
-            open_date as entry_time,
-            close_date as exit_time,
-            close_profit as profit_pct,
-            close_profit_abs as profit_abs,
-            exit_reason,
-            strategy,
-            enter_tag,
-            stop_loss,
-            initial_stop_loss,
-            max_rate,
-            min_rate
-        FROM trades
-        ORDER BY id DESC
-        """
-        
-        with self.get_connection() as conn:
-            df = pd.read_sql_query(query, conn)
+        if self.use_supabase:
+            # Get trades from Supabase freqtrade_trades table
+            response = self.supabase.client.table("freqtrade_trades").select("*").order("id", desc=True).execute()
+            
+            if response.data:
+                df = pd.DataFrame(response.data)
+                # Rename columns to match expected format
+                df = df.rename(columns={
+                    'pair': 'symbol',
+                    'open_rate': 'entry_price',
+                    'close_rate': 'exit_price',
+                    'open_date': 'entry_time',
+                    'close_date': 'exit_time',
+                    'close_profit': 'profit_pct',
+                    'close_profit_abs': 'profit_abs'
+                })
+            else:
+                # Return empty DataFrame with expected columns
+                df = pd.DataFrame(columns=['id', 'symbol', 'is_open', 'entry_price', 
+                                          'exit_price', 'entry_time', 'exit_time', 
+                                          'profit_pct', 'profit_abs', 'strategy'])
+        else:
+            # Use SQLite for local development
+            query = """
+            SELECT 
+                id,
+                pair as symbol,
+                is_open,
+                fee_open,
+                fee_close,
+                open_rate as entry_price,
+                close_rate as exit_price,
+                stake_amount,
+                amount,
+                open_date as entry_time,
+                close_date as exit_time,
+                close_profit as profit_pct,
+                close_profit_abs as profit_abs,
+                exit_reason,
+                strategy,
+                enter_tag,
+                stop_loss,
+                initial_stop_loss,
+                max_rate,
+                min_rate
+            FROM trades
+            ORDER BY id DESC
+            """
+            
+            with self.get_connection() as conn:
+                df = pd.read_sql_query(query, conn)
             
         # Clean up symbol names (remove /USDT)
         df['symbol'] = df['symbol'].str.replace('/USDT', '')
