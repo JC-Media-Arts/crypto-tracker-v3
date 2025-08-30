@@ -1,0 +1,3 @@
+# Ignore the Dockerfile for dashboard service
+Dockerfile
+Dockerfile.*
