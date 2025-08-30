@@ -1,0 +1,2 @@
+# Force Nixpacks for dashboard service
+# This file tells Railway to use Nixpacks instead of looking for a Dockerfile
