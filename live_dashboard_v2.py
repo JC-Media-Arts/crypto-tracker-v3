@@ -2769,7 +2769,7 @@ ADMIN_TEMPLATE = r"""
             <div class="stat-label">Paper Trading Status</div>
             <div class="kill-switch-container">
                 <label class="switch">
-                    <input type="checkbox" id="killSwitch" onchange="markUnsaved()">
+                    <input type="checkbox" id="killSwitch" onchange="markUnsaved(this)">
                     <span class="slider round"></span>
                 </label>
                 <span id="killSwitchStatus" class="status-text">Loading...</span>
@@ -2805,19 +2805,19 @@ ADMIN_TEMPLATE = r"""
                     <h3>Large Cap DCA Thresholds</h3>
                     <div class="config-row">
                         <label>Drop Threshold (%)</label>
-                        <input type="number" id="dca_large_cap_drop" step="0.1" min="-20" max="0" onchange="markUnsaved()">
+                        <input type="number" id="dca_large_cap_drop" step="0.1" min="-20" max="0" onchange="markUnsaved(this)">
                     </div>
                     <div class="config-row">
                         <label>Volume Requirement</label>
-                        <input type="number" id="dca_large_cap_volume_req" step="0.05" min="0" max="2" onchange="markUnsaved()">
+                        <input type="number" id="dca_large_cap_volume_req" step="0.05" min="0" max="2" onchange="markUnsaved(this)">
                     </div>
                     <div class="config-row">
                         <label>Grid Levels</label>
-                        <input type="number" id="dca_large_cap_grid_levels" step="1" min="1" max="10" onchange="markUnsaved()">
+                        <input type="number" id="dca_large_cap_grid_levels" step="1" min="1" max="10" onchange="markUnsaved(this)">
                     </div>
                     <div class="config-row">
                         <label>Grid Spacing (%)</label>
-                        <input type="number" id="dca_large_cap_grid_spacing" step="0.005" min="0.01" max="0.1" onchange="markUnsaved()">
+                        <input type="number" id="dca_large_cap_grid_spacing" step="0.005" min="0.01" max="0.1" onchange="markUnsaved(this)">
                     </div>
                 </div>
             </div>
@@ -2828,19 +2828,19 @@ ADMIN_TEMPLATE = r"""
                     <h3>Mid Cap DCA Thresholds</h3>
                     <div class="config-row">
                         <label>Drop Threshold (%)</label>
-                        <input type="number" id="dca_mid_cap_drop" step="0.1" min="-20" max="0" onchange="markUnsaved()">
+                        <input type="number" id="dca_mid_cap_drop" step="0.1" min="-20" max="0" onchange="markUnsaved(this)">
                     </div>
                     <div class="config-row">
                         <label>Volume Requirement</label>
-                        <input type="number" id="dca_mid_cap_volume_req" step="0.05" min="0" max="2" onchange="markUnsaved()">
+                        <input type="number" id="dca_mid_cap_volume_req" step="0.05" min="0" max="2" onchange="markUnsaved(this)">
                     </div>
                     <div class="config-row">
                         <label>Grid Levels</label>
-                        <input type="number" id="dca_mid_cap_grid_levels" step="1" min="1" max="10" onchange="markUnsaved()">
+                        <input type="number" id="dca_mid_cap_grid_levels" step="1" min="1" max="10" onchange="markUnsaved(this)">
                     </div>
                     <div class="config-row">
                         <label>Grid Spacing (%)</label>
-                        <input type="number" id="dca_mid_cap_grid_spacing" step="0.005" min="0.01" max="0.1" onchange="markUnsaved()">
+                        <input type="number" id="dca_mid_cap_grid_spacing" step="0.005" min="0.01" max="0.1" onchange="markUnsaved(this)">
                     </div>
                 </div>
             </div>
@@ -2851,19 +2851,19 @@ ADMIN_TEMPLATE = r"""
                     <h3>Small Cap DCA Thresholds</h3>
                     <div class="config-row">
                         <label>Drop Threshold (%)</label>
-                        <input type="number" id="dca_small_cap_drop" step="0.1" min="-20" max="0" onchange="markUnsaved()">
+                        <input type="number" id="dca_small_cap_drop" step="0.1" min="-20" max="0" onchange="markUnsaved(this)">
                     </div>
                     <div class="config-row">
                         <label>Volume Requirement</label>
-                        <input type="number" id="dca_small_cap_volume_req" step="0.05" min="0" max="2" onchange="markUnsaved()">
+                        <input type="number" id="dca_small_cap_volume_req" step="0.05" min="0" max="2" onchange="markUnsaved(this)">
                     </div>
                     <div class="config-row">
                         <label>Grid Levels</label>
-                        <input type="number" id="dca_small_cap_grid_levels" step="1" min="1" max="10" onchange="markUnsaved()">
+                        <input type="number" id="dca_small_cap_grid_levels" step="1" min="1" max="10" onchange="markUnsaved(this)">
                     </div>
                     <div class="config-row">
                         <label>Grid Spacing (%)</label>
-                        <input type="number" id="dca_small_cap_grid_spacing" step="0.005" min="0.01" max="0.1" onchange="markUnsaved()">
+                        <input type="number" id="dca_small_cap_grid_spacing" step="0.005" min="0.01" max="0.1" onchange="markUnsaved(this)">
                     </div>
                 </div>
             </div>
@@ -2874,19 +2874,19 @@ ADMIN_TEMPLATE = r"""
                     <h3>Memecoin DCA Thresholds</h3>
                     <div class="config-row">
                         <label>Drop Threshold (%)</label>
-                        <input type="number" id="dca_memecoin_drop" step="0.1" min="-20" max="0" onchange="markUnsaved()">
+                        <input type="number" id="dca_memecoin_drop" step="0.1" min="-20" max="0" onchange="markUnsaved(this)">
                     </div>
                     <div class="config-row">
                         <label>Volume Requirement</label>
-                        <input type="number" id="dca_memecoin_volume_req" step="0.05" min="0" max="2" onchange="markUnsaved()">
+                        <input type="number" id="dca_memecoin_volume_req" step="0.05" min="0" max="2" onchange="markUnsaved(this)">
                     </div>
                     <div class="config-row">
                         <label>Grid Levels</label>
-                        <input type="number" id="dca_memecoin_grid_levels" step="1" min="1" max="10" onchange="markUnsaved()">
+                        <input type="number" id="dca_memecoin_grid_levels" step="1" min="1" max="10" onchange="markUnsaved(this)">
                     </div>
                     <div class="config-row">
                         <label>Grid Spacing (%)</label>
-                        <input type="number" id="dca_memecoin_grid_spacing" step="0.005" min="0.01" max="0.1" onchange="markUnsaved()">
+                        <input type="number" id="dca_memecoin_grid_spacing" step="0.005" min="0.01" max="0.1" onchange="markUnsaved(this)">
                     </div>
                 </div>
             </div>
@@ -2907,19 +2907,19 @@ ADMIN_TEMPLATE = r"""
                     <h3>Large Cap SWING Thresholds</h3>
                     <div class="config-row">
                         <label>Breakout Threshold</label>
-                        <input type="number" id="swing_large_cap_breakout" step="0.001" min="1" max="1.1" onchange="markUnsaved()">
+                        <input type="number" id="swing_large_cap_breakout" step="0.001" min="1" max="1.1" onchange="markUnsaved(this)">
                     </div>
                     <div class="config-row">
                         <label>Volume Surge</label>
-                        <input type="number" id="swing_large_cap_volume" step="0.1" min="1" max="5" onchange="markUnsaved()">
+                        <input type="number" id="swing_large_cap_volume" step="0.1" min="1" max="5" onchange="markUnsaved(this)">
                     </div>
                     <div class="config-row">
                         <label>RSI Min</label>
-                        <input type="number" id="swing_large_cap_rsi_min" step="1" min="0" max="100" onchange="markUnsaved()">
+                        <input type="number" id="swing_large_cap_rsi_min" step="1" min="0" max="100" onchange="markUnsaved(this)">
                     </div>
                     <div class="config-row">
                         <label>RSI Max</label>
-                        <input type="number" id="swing_large_cap_rsi_max" step="1" min="0" max="100" onchange="markUnsaved()">
+                        <input type="number" id="swing_large_cap_rsi_max" step="1" min="0" max="100" onchange="markUnsaved(this)">
                     </div>
                 </div>
             </div>
@@ -2930,19 +2930,19 @@ ADMIN_TEMPLATE = r"""
                     <h3>Mid Cap SWING Thresholds</h3>
                     <div class="config-row">
                         <label>Breakout Threshold</label>
-                        <input type="number" id="swing_mid_cap_breakout" step="0.001" min="1" max="1.1" onchange="markUnsaved()">
+                        <input type="number" id="swing_mid_cap_breakout" step="0.001" min="1" max="1.1" onchange="markUnsaved(this)">
                     </div>
                     <div class="config-row">
                         <label>Volume Surge</label>
-                        <input type="number" id="swing_mid_cap_volume" step="0.1" min="1" max="5" onchange="markUnsaved()">
+                        <input type="number" id="swing_mid_cap_volume" step="0.1" min="1" max="5" onchange="markUnsaved(this)">
                     </div>
                     <div class="config-row">
                         <label>RSI Min</label>
-                        <input type="number" id="swing_mid_cap_rsi_min" step="1" min="0" max="100" onchange="markUnsaved()">
+                        <input type="number" id="swing_mid_cap_rsi_min" step="1" min="0" max="100" onchange="markUnsaved(this)">
                     </div>
                     <div class="config-row">
                         <label>RSI Max</label>
-                        <input type="number" id="swing_mid_cap_rsi_max" step="1" min="0" max="100" onchange="markUnsaved()">
+                        <input type="number" id="swing_mid_cap_rsi_max" step="1" min="0" max="100" onchange="markUnsaved(this)">
                     </div>
                 </div>
             </div>
@@ -2953,19 +2953,19 @@ ADMIN_TEMPLATE = r"""
                     <h3>Small Cap SWING Thresholds</h3>
                     <div class="config-row">
                         <label>Breakout Threshold</label>
-                        <input type="number" id="swing_small_cap_breakout" step="0.001" min="1" max="1.1" onchange="markUnsaved()">
+                        <input type="number" id="swing_small_cap_breakout" step="0.001" min="1" max="1.1" onchange="markUnsaved(this)">
                     </div>
                     <div class="config-row">
                         <label>Volume Surge</label>
-                        <input type="number" id="swing_small_cap_volume" step="0.1" min="1" max="5" onchange="markUnsaved()">
+                        <input type="number" id="swing_small_cap_volume" step="0.1" min="1" max="5" onchange="markUnsaved(this)">
                     </div>
                     <div class="config-row">
                         <label>RSI Min</label>
-                        <input type="number" id="swing_small_cap_rsi_min" step="1" min="0" max="100" onchange="markUnsaved()">
+                        <input type="number" id="swing_small_cap_rsi_min" step="1" min="0" max="100" onchange="markUnsaved(this)">
                     </div>
                     <div class="config-row">
                         <label>RSI Max</label>
-                        <input type="number" id="swing_small_cap_rsi_max" step="1" min="0" max="100" onchange="markUnsaved()">
+                        <input type="number" id="swing_small_cap_rsi_max" step="1" min="0" max="100" onchange="markUnsaved(this)">
                     </div>
                 </div>
             </div>
@@ -2976,19 +2976,19 @@ ADMIN_TEMPLATE = r"""
                     <h3>Memecoin SWING Thresholds</h3>
                     <div class="config-row">
                         <label>Breakout Threshold</label>
-                        <input type="number" id="swing_memecoin_breakout" step="0.001" min="1" max="1.1" onchange="markUnsaved()">
+                        <input type="number" id="swing_memecoin_breakout" step="0.001" min="1" max="1.1" onchange="markUnsaved(this)">
                     </div>
                     <div class="config-row">
                         <label>Volume Surge</label>
-                        <input type="number" id="swing_memecoin_volume" step="0.1" min="1" max="5" onchange="markUnsaved()">
+                        <input type="number" id="swing_memecoin_volume" step="0.1" min="1" max="5" onchange="markUnsaved(this)">
                     </div>
                     <div class="config-row">
                         <label>RSI Min</label>
-                        <input type="number" id="swing_memecoin_rsi_min" step="1" min="0" max="100" onchange="markUnsaved()">
+                        <input type="number" id="swing_memecoin_rsi_min" step="1" min="0" max="100" onchange="markUnsaved(this)">
                     </div>
                     <div class="config-row">
                         <label>RSI Max</label>
-                        <input type="number" id="swing_memecoin_rsi_max" step="1" min="0" max="100" onchange="markUnsaved()">
+                        <input type="number" id="swing_memecoin_rsi_max" step="1" min="0" max="100" onchange="markUnsaved(this)">
                     </div>
                 </div>
             </div>
@@ -3009,15 +3009,15 @@ ADMIN_TEMPLATE = r"""
                     <h3>Large Cap CHANNEL Thresholds</h3>
                     <div class="config-row">
                         <label>Buy Zone (%)</label>
-                        <input type="number" id="channel_large_cap_buy_zone" step="0.01" min="0" max="0.5" onchange="markUnsaved()">
+                        <input type="number" id="channel_large_cap_buy_zone" step="0.01" min="0" max="0.5" onchange="markUnsaved(this)">
                     </div>
                     <div class="config-row">
                         <label>Entry Threshold</label>
-                        <input type="number" id="channel_large_cap_entry" step="0.01" min="0" max="1" onchange="markUnsaved()">
+                        <input type="number" id="channel_large_cap_entry" step="0.01" min="0" max="1" onchange="markUnsaved(this)">
                     </div>
                     <div class="config-row">
                         <label>Channel Strength</label>
-                        <input type="number" id="channel_large_cap_strength" step="0.01" min="0" max="1" onchange="markUnsaved()">
+                        <input type="number" id="channel_large_cap_strength" step="0.01" min="0" max="1" onchange="markUnsaved(this)">
                     </div>
                 </div>
             </div>
@@ -3028,15 +3028,15 @@ ADMIN_TEMPLATE = r"""
                     <h3>Mid Cap CHANNEL Thresholds</h3>
                     <div class="config-row">
                         <label>Buy Zone (%)</label>
-                        <input type="number" id="channel_mid_cap_buy_zone" step="0.01" min="0" max="0.5" onchange="markUnsaved()">
+                        <input type="number" id="channel_mid_cap_buy_zone" step="0.01" min="0" max="0.5" onchange="markUnsaved(this)">
                     </div>
                     <div class="config-row">
                         <label>Entry Threshold</label>
-                        <input type="number" id="channel_mid_cap_entry" step="0.01" min="0" max="1" onchange="markUnsaved()">
+                        <input type="number" id="channel_mid_cap_entry" step="0.01" min="0" max="1" onchange="markUnsaved(this)">
                     </div>
                     <div class="config-row">
                         <label>Channel Strength</label>
-                        <input type="number" id="channel_mid_cap_strength" step="0.01" min="0" max="1" onchange="markUnsaved()">
+                        <input type="number" id="channel_mid_cap_strength" step="0.01" min="0" max="1" onchange="markUnsaved(this)">
                     </div>
                 </div>
             </div>
@@ -3047,15 +3047,15 @@ ADMIN_TEMPLATE = r"""
                     <h3>Small Cap CHANNEL Thresholds</h3>
                     <div class="config-row">
                         <label>Buy Zone (%)</label>
-                        <input type="number" id="channel_small_cap_buy_zone" step="0.01" min="0" max="0.5" onchange="markUnsaved()">
+                        <input type="number" id="channel_small_cap_buy_zone" step="0.01" min="0" max="0.5" onchange="markUnsaved(this)">
                     </div>
                     <div class="config-row">
                         <label>Entry Threshold</label>
-                        <input type="number" id="channel_small_cap_entry" step="0.01" min="0" max="1" onchange="markUnsaved()">
+                        <input type="number" id="channel_small_cap_entry" step="0.01" min="0" max="1" onchange="markUnsaved(this)">
                     </div>
                     <div class="config-row">
                         <label>Channel Strength</label>
-                        <input type="number" id="channel_small_cap_strength" step="0.01" min="0" max="1" onchange="markUnsaved()">
+                        <input type="number" id="channel_small_cap_strength" step="0.01" min="0" max="1" onchange="markUnsaved(this)">
                     </div>
                 </div>
             </div>
@@ -3066,15 +3066,15 @@ ADMIN_TEMPLATE = r"""
                     <h3>Memecoin CHANNEL Thresholds</h3>
                     <div class="config-row">
                         <label>Buy Zone (%)</label>
-                        <input type="number" id="channel_memecoin_buy_zone" step="0.01" min="0" max="0.5" onchange="markUnsaved()">
+                        <input type="number" id="channel_memecoin_buy_zone" step="0.01" min="0" max="0.5" onchange="markUnsaved(this)">
                     </div>
                     <div class="config-row">
                         <label>Entry Threshold</label>
-                        <input type="number" id="channel_memecoin_entry" step="0.01" min="0" max="1" onchange="markUnsaved()">
+                        <input type="number" id="channel_memecoin_entry" step="0.01" min="0" max="1" onchange="markUnsaved(this)">
                     </div>
                     <div class="config-row">
                         <label>Channel Strength</label>
-                        <input type="number" id="channel_memecoin_strength" step="0.01" min="0" max="1" onchange="markUnsaved()">
+                        <input type="number" id="channel_memecoin_strength" step="0.01" min="0" max="1" onchange="markUnsaved(this)">
                     </div>
                 </div>
             </div>
@@ -3100,34 +3100,34 @@ ADMIN_TEMPLATE = r"""
                 <h3>Position Sizing <span class="section-tooltip" data-tooltip="Controls how much capital is allocated to each trade. Base size sets the default amount, multiplier adjusts for confidence/conditions, and max % prevents oversized positions.">ⓘ</span></h3>
                 <div class="config-row">
                     <label>Base Position Size ($)</label>
-                    <input type="number" id="base_position_size" step="10" min="10" max="1000" onchange="markUnsaved()">
+                    <input type="number" id="base_position_size" step="10" min="10" max="1000" onchange="markUnsaved(this)">
                 </div>
                 <div class="config-row">
                     <label>Position Size Multiplier</label>
-                    <input type="number" id="position_multiplier" step="0.1" min="0.5" max="5" onchange="markUnsaved()">
+                    <input type="number" id="position_multiplier" step="0.1" min="0.5" max="5" onchange="markUnsaved(this)">
                 </div>
                 <div class="config-row">
                     <label>Max % of Balance per Position</label>
-                    <input type="number" id="max_percent_balance" step="1" min="1" max="50" onchange="markUnsaved()">
+                    <input type="number" id="max_percent_balance" step="1" min="1" max="50" onchange="markUnsaved(this)">
                 </div>
             </div>
             <div class="config-group">
                 <h3>Position Limits <span class="section-tooltip" data-tooltip="Maximum number of positions that can be held simultaneously. Limits can be set globally, per strategy, and per symbol to prevent overconcentration.">ⓘ</span></h3>
                 <div class="config-row">
                     <label>Max Total Positions</label>
-                    <input type="number" id="max_positions" step="1" min="1" max="100" onchange="markUnsaved()">
+                    <input type="number" id="max_positions" step="1" min="1" max="100" onchange="markUnsaved(this)">
                 </div>
                 <div class="config-row">
                     <label>Max Positions per Strategy</label>
-                    <input type="number" id="max_positions_per_strategy" step="1" min="1" max="50" onchange="markUnsaved()">
+                    <input type="number" id="max_positions_per_strategy" step="1" min="1" max="50" onchange="markUnsaved(this)">
                 </div>
                 <div class="config-row">
                     <label>Max Positions per Symbol</label>
-                    <input type="number" id="max_positions_per_symbol" step="1" min="1" max="10" onchange="markUnsaved()">
+                    <input type="number" id="max_positions_per_symbol" step="1" min="1" max="10" onchange="markUnsaved(this)">
                 </div>
                 <div class="config-row">
                     <label>Max Hold Hours</label>
-                    <input type="number" id="max_hold_hours" step="1" min="1" max="168" onchange="markUnsaved()">
+                    <input type="number" id="max_hold_hours" step="1" min="1" max="168" onchange="markUnsaved(this)">
                 </div>
             </div>
         </div>
@@ -3138,56 +3138,56 @@ ADMIN_TEMPLATE = r"""
                 <h3>Market Regime Thresholds <span class="section-tooltip" data-tooltip="Defines market conditions based on price movements. Panic indicates severe drops, Caution signals moderate declines, and Euphoria warns of potential overheating.">ⓘ</span></h3>
                 <div class="config-row">
                     <label>Panic Threshold (%)</label>
-                    <input type="number" id="panic_threshold" step="1" min="-50" max="-5" onchange="markUnsaved()">
+                    <input type="number" id="panic_threshold" step="1" min="-50" max="-5" onchange="markUnsaved(this)">
                 </div>
                 <div class="config-row">
                     <label>Caution Threshold (%)</label>
-                    <input type="number" id="caution_threshold" step="1" min="-20" max="-1" onchange="markUnsaved()">
+                    <input type="number" id="caution_threshold" step="1" min="-20" max="-1" onchange="markUnsaved(this)">
                 </div>
                 <div class="config-row">
                     <label>Euphoria Threshold (%)</label>
-                    <input type="number" id="euphoria_threshold" step="1" min="1" max="20" onchange="markUnsaved()">
+                    <input type="number" id="euphoria_threshold" step="1" min="1" max="20" onchange="markUnsaved(this)">
                 </div>
             </div>
             <div class="config-group">
                 <h3>Volatility Thresholds <span class="section-tooltip" data-tooltip="Volatility levels that trigger different trading behaviors. Higher volatility may disable certain strategies or widen stop losses for protection.">ⓘ</span></h3>
                 <div class="config-row">
                     <label>Panic Volatility (%)</label>
-                    <input type="number" id="volatility_panic" step="0.5" min="5" max="50" onchange="markUnsaved()">
+                    <input type="number" id="volatility_panic" step="0.5" min="5" max="50" onchange="markUnsaved(this)">
                 </div>
                 <div class="config-row">
                     <label>High Volatility (%)</label>
-                    <input type="number" id="volatility_high" step="0.5" min="3" max="30" onchange="markUnsaved()">
+                    <input type="number" id="volatility_high" step="0.5" min="3" max="30" onchange="markUnsaved(this)">
                 </div>
                 <div class="config-row">
                     <label>Moderate Volatility (%)</label>
-                    <input type="number" id="volatility_moderate" step="0.5" min="1" max="20" onchange="markUnsaved()">
+                    <input type="number" id="volatility_moderate" step="0.5" min="1" max="20" onchange="markUnsaved(this)">
                 </div>
             </div>
             <div class="config-group">
                 <h3>Strategy Volatility Limits <span class="section-tooltip" data-tooltip="Maximum volatility each strategy can tolerate. When exceeded, the strategy is temporarily disabled to prevent losses in unstable conditions.">ⓘ</span></h3>
                 <div class="config-row">
                     <label>CHANNEL Max Volatility (%)</label>
-                    <input type="number" id="channel_volatility_limit" step="0.5" min="1" max="30" onchange="markUnsaved()">
+                    <input type="number" id="channel_volatility_limit" step="0.5" min="1" max="30" onchange="markUnsaved(this)">
                 </div>
                 <div class="config-row">
                     <label>SWING Max Volatility (%)</label>
-                    <input type="number" id="swing_volatility_limit" step="0.5" min="1" max="30" onchange="markUnsaved()">
+                    <input type="number" id="swing_volatility_limit" step="0.5" min="1" max="30" onchange="markUnsaved(this)">
                 </div>
                 <div class="config-row">
                     <label>DCA Max Volatility (%)</label>
-                    <input type="number" id="dca_volatility_limit" step="0.5" min="1" max="30" onchange="markUnsaved()">
+                    <input type="number" id="dca_volatility_limit" step="0.5" min="1" max="30" onchange="markUnsaved(this)">
                 </div>
             </div>
             <div class="config-group">
                 <h3>Cumulative Decline Protection <span class="section-tooltip" data-tooltip="Monitors sustained market declines over 24-48 hour periods. Triggers protective measures when cumulative drops exceed thresholds.">ⓘ</span></h3>
                 <div class="config-row">
                     <label>24h Decline Threshold (%)</label>
-                    <input type="number" id="decline_24h" step="1" min="-20" max="-1" onchange="markUnsaved()">
+                    <input type="number" id="decline_24h" step="1" min="-20" max="-1" onchange="markUnsaved(this)">
                 </div>
                 <div class="config-row">
                     <label>48h Decline Threshold (%)</label>
-                    <input type="number" id="decline_48h" step="1" min="-30" max="-1" onchange="markUnsaved()">
+                    <input type="number" id="decline_48h" step="1" min="-30" max="-1" onchange="markUnsaved(this)">
                 </div>
             </div>
         </div>
@@ -3198,34 +3198,34 @@ ADMIN_TEMPLATE = r"""
                 <h3>Consecutive Stop Loss Limits <span class="section-tooltip" data-tooltip="Prevents repeated losses on the same symbol. After hitting the max consecutive stops, trading is paused for that symbol's cooldown period.">ⓘ</span></h3>
                 <div class="config-row">
                     <label>Max Consecutive Stops</label>
-                    <input type="number" id="max_consecutive_stops" step="1" min="1" max="10" onchange="markUnsaved()">
+                    <input type="number" id="max_consecutive_stops" step="1" min="1" max="10" onchange="markUnsaved(this)">
                 </div>
                 <div class="config-row">
                     <label>Reset on 50% Take Profit</label>
-                    <input type="checkbox" id="reset_on_tp" onchange="markUnsaved()">
+                    <input type="checkbox" id="reset_on_tp" onchange="markUnsaved(this)">
                 </div>
                 <div class="config-row">
                     <label>Reset on Trailing Stop</label>
-                    <input type="checkbox" id="reset_on_trailing" onchange="markUnsaved()">
+                    <input type="checkbox" id="reset_on_trailing" onchange="markUnsaved(this)">
                 </div>
             </div>
             <div class="config-group">
                 <h3>Cooldown Hours by Tier <span class="section-tooltip" data-tooltip="How long to pause trading after consecutive stop losses. Longer cooldowns for riskier assets (memecoins) to allow market conditions to stabilize.">ⓘ</span></h3>
                 <div class="config-row">
                     <label>Large Cap Cooldown (hours)</label>
-                    <input type="number" id="cooldown_large" step="1" min="1" max="48" onchange="markUnsaved()">
+                    <input type="number" id="cooldown_large" step="1" min="1" max="48" onchange="markUnsaved(this)">
                 </div>
                 <div class="config-row">
                     <label>Mid Cap Cooldown (hours)</label>
-                    <input type="number" id="cooldown_mid" step="1" min="1" max="48" onchange="markUnsaved()">
+                    <input type="number" id="cooldown_mid" step="1" min="1" max="48" onchange="markUnsaved(this)">
                 </div>
                 <div class="config-row">
                     <label>Small Cap Cooldown (hours)</label>
-                    <input type="number" id="cooldown_small" step="1" min="1" max="72" onchange="markUnsaved()">
+                    <input type="number" id="cooldown_small" step="1" min="1" max="72" onchange="markUnsaved(this)">
                 </div>
                 <div class="config-row">
                     <label>Memecoin Cooldown (hours)</label>
-                    <input type="number" id="cooldown_meme" step="1" min="1" max="168" onchange="markUnsaved()">
+                    <input type="number" id="cooldown_meme" step="1" min="1" max="168" onchange="markUnsaved(this)">
                 </div>
             </div>
         </div>
@@ -3236,45 +3236,45 @@ ADMIN_TEMPLATE = r"""
                 <h3>Daily & Drawdown Limits <span class="section-tooltip" data-tooltip="Maximum acceptable losses per day and from peak equity. When exceeded, trading halts to preserve capital and allow for strategy review.">ⓘ</span></h3>
                 <div class="config-row">
                     <label>Max Daily Loss (%)</label>
-                    <input type="number" id="max_daily_loss_pct" step="1" min="1" max="50" onchange="markUnsaved()">
+                    <input type="number" id="max_daily_loss_pct" step="1" min="1" max="50" onchange="markUnsaved(this)">
                 </div>
                 <div class="config-row">
                     <label>Max Daily Loss ($)</label>
-                    <input type="number" id="max_daily_loss_usd" step="100" min="100" max="10000" onchange="markUnsaved()">
+                    <input type="number" id="max_daily_loss_usd" step="100" min="100" max="10000" onchange="markUnsaved(this)">
                 </div>
                 <div class="config-row">
                     <label>Max Drawdown (%)</label>
-                    <input type="number" id="max_drawdown" step="1" min="5" max="50" onchange="markUnsaved()">
+                    <input type="number" id="max_drawdown" step="1" min="5" max="50" onchange="markUnsaved(this)">
                 </div>
                 <div class="config-row">
                     <label>Max Open Risk ($)</label>
-                    <input type="number" id="max_open_risk" step="100" min="100" max="10000" onchange="markUnsaved()">
+                    <input type="number" id="max_open_risk" step="100" min="100" max="10000" onchange="markUnsaved(this)">
                 </div>
             </div>
             <div class="config-group">
                 <h3>Risk per Trade <span class="section-tooltip" data-tooltip="Controls position sizing based on risk tolerance. Limits how much capital can be lost on a single trade and consecutive losing streaks.">ⓘ</span></h3>
                 <div class="config-row">
                     <label>Risk per Trade (%)</label>
-                    <input type="number" id="risk_per_trade" step="0.5" min="0.5" max="10" onchange="markUnsaved()">
+                    <input type="number" id="risk_per_trade" step="0.5" min="0.5" max="10" onchange="markUnsaved(this)">
                 </div>
                 <div class="config-row">
                     <label>Consecutive Loss Limit</label>
-                    <input type="number" id="consecutive_loss_limit" step="1" min="1" max="20" onchange="markUnsaved()">
+                    <input type="number" id="consecutive_loss_limit" step="1" min="1" max="20" onchange="markUnsaved(this)">
                 </div>
             </div>
             <div class="config-group">
                 <h3>Emergency Controls <span class="section-tooltip" data-tooltip="Circuit breakers for extreme market conditions. Emergency stop halts all trading, while recovery mode reduces position sizes during drawdowns.">ⓘ</span></h3>
                 <div class="config-row">
                     <label>Emergency Stop Enabled</label>
-                    <input type="checkbox" id="emergency_stop_enabled" onchange="markUnsaved()">
+                    <input type="checkbox" id="emergency_stop_enabled" onchange="markUnsaved(this)">
                 </div>
                 <div class="config-row">
                     <label>Recovery Mode Enabled</label>
-                    <input type="checkbox" id="recovery_mode_enabled" onchange="markUnsaved()">
+                    <input type="checkbox" id="recovery_mode_enabled" onchange="markUnsaved(this)">
                 </div>
                 <div class="config-row">
                     <label>Recovery Position Size (%)</label>
-                    <input type="number" id="recovery_position_size" step="10" min="10" max="100" onchange="markUnsaved()">
+                    <input type="number" id="recovery_position_size" step="10" min="10" max="100" onchange="markUnsaved(this)">
                 </div>
             </div>
         </div>
@@ -3285,60 +3285,60 @@ ADMIN_TEMPLATE = r"""
                 <h3>Stop Loss Widening <span class="section-tooltip" data-tooltip="Dynamically adjusts stop losses based on market volatility. In high volatility, stops are widened to avoid premature exits from normal price swings.">ⓘ</span></h3>
                 <div class="config-row">
                     <label>Stop Widening Enabled</label>
-                    <input type="checkbox" id="stop_widening_enabled" onchange="markUnsaved()">
+                    <input type="checkbox" id="stop_widening_enabled" onchange="markUnsaved(this)">
                 </div>
                 <div class="config-row">
                     <label>Volatility Factor</label>
-                    <input type="number" id="volatility_factor" step="0.1" min="0.1" max="2" onchange="markUnsaved()">
+                    <input type="number" id="volatility_factor" step="0.1" min="0.1" max="2" onchange="markUnsaved(this)">
                 </div>
             </div>
             <div class="config-group">
                 <h3>Max Stop Loss by Tier <span class="section-tooltip" data-tooltip="Maximum allowable stop loss for each market cap tier. Prevents stops from being widened beyond reasonable limits, even in extreme volatility.">ⓘ</span></h3>
                 <div class="config-row">
                     <label>Large Cap Max SL (%)</label>
-                    <input type="number" id="max_sl_large" step="1" min="5" max="30" onchange="markUnsaved()">
+                    <input type="number" id="max_sl_large" step="1" min="5" max="30" onchange="markUnsaved(this)">
                 </div>
                 <div class="config-row">
                     <label>Mid Cap Max SL (%)</label>
-                    <input type="number" id="max_sl_mid" step="1" min="5" max="30" onchange="markUnsaved()">
+                    <input type="number" id="max_sl_mid" step="1" min="5" max="30" onchange="markUnsaved(this)">
                 </div>
                 <div class="config-row">
                     <label>Small Cap Max SL (%)</label>
-                    <input type="number" id="max_sl_small" step="1" min="5" max="40" onchange="markUnsaved()">
+                    <input type="number" id="max_sl_small" step="1" min="5" max="40" onchange="markUnsaved(this)">
                 </div>
                 <div class="config-row">
                     <label>Memecoin Max SL (%)</label>
-                    <input type="number" id="max_sl_meme" step="1" min="5" max="50" onchange="markUnsaved()">
+                    <input type="number" id="max_sl_meme" step="1" min="5" max="50" onchange="markUnsaved(this)">
                 </div>
             </div>
             <div class="config-group">
                 <h3>Regime Multipliers <span class="section-tooltip" data-tooltip="Adjusts trading parameters based on market regime. Higher multipliers in panic/caution modes widen stops and reduce position sizes for protection.">ⓘ</span></h3>
                 <div class="config-row">
                     <label>Panic Multiplier</label>
-                    <input type="number" id="panic_multiplier" step="0.1" min="1" max="3" onchange="markUnsaved()">
+                    <input type="number" id="panic_multiplier" step="0.1" min="1" max="3" onchange="markUnsaved(this)">
                 </div>
                 <div class="config-row">
                     <label>Caution Multiplier</label>
-                    <input type="number" id="caution_multiplier" step="0.1" min="1" max="2" onchange="markUnsaved()">
+                    <input type="number" id="caution_multiplier" step="0.1" min="1" max="2" onchange="markUnsaved(this)">
                 </div>
                 <div class="config-row">
                     <label>Euphoria Multiplier</label>
-                    <input type="number" id="euphoria_multiplier" step="0.1" min="1" max="2" onchange="markUnsaved()">
+                    <input type="number" id="euphoria_multiplier" step="0.1" min="1" max="2" onchange="markUnsaved(this)">
                 </div>
             </div>
             <div class="config-group">
                 <h3>Hysteresis Settings <span class="section-tooltip" data-tooltip="Prevents strategies from rapidly toggling on/off. Requires volatility to drop below re-enable threshold and stay there for cooldown period before reactivating.">ⓘ</span></h3>
                 <div class="config-row">
                     <label>Channel Disable Volatility (%)</label>
-                    <input type="number" id="channel_disable_vol" step="0.5" min="1" max="30" onchange="markUnsaved()">
+                    <input type="number" id="channel_disable_vol" step="0.5" min="1" max="30" onchange="markUnsaved(this)">
                 </div>
                 <div class="config-row">
                     <label>Channel Re-enable Volatility (%)</label>
-                    <input type="number" id="channel_reenable_vol" step="0.5" min="1" max="30" onchange="markUnsaved()">
+                    <input type="number" id="channel_reenable_vol" step="0.5" min="1" max="30" onchange="markUnsaved(this)">
                 </div>
                 <div class="config-row">
                     <label>Re-enable Cooldown (hours)</label>
-                    <input type="number" id="reenable_cooldown" step="1" min="1" max="24" onchange="markUnsaved()">
+                    <input type="number" id="reenable_cooldown" step="1" min="1" max="24" onchange="markUnsaved(this)">
                 </div>
             </div>
         </div>
@@ -3370,15 +3370,15 @@ ADMIN_TEMPLATE = r"""
                 <div class="config-group">
                     <div class="config-row">
                         <label>Take Profit (%)</label>
-                        <input type="number" id="tp_dca_large" step="0.1" min="1" max="50" onchange="markUnsaved()">
+                        <input type="number" id="tp_dca_large" step="0.1" min="1" max="50" onchange="markUnsaved(this)">
                     </div>
                     <div class="config-row">
                         <label>Stop Loss (%)</label>
-                        <input type="number" id="sl_dca_large" step="0.1" min="1" max="20" onchange="markUnsaved()">
+                        <input type="number" id="sl_dca_large" step="0.1" min="1" max="20" onchange="markUnsaved(this)">
                     </div>
                     <div class="config-row">
                         <label>Trailing Stop (%)</label>
-                        <input type="number" id="trail_dca_large" step="0.1" min="1" max="10" onchange="markUnsaved()">
+                        <input type="number" id="trail_dca_large" step="0.1" min="1" max="10" onchange="markUnsaved(this)">
                     </div>
                 </div>
             </div>
@@ -3388,15 +3388,15 @@ ADMIN_TEMPLATE = r"""
                 <div class="config-group">
                     <div class="config-row">
                         <label>Take Profit (%)</label>
-                        <input type="number" id="tp_dca_mid" step="0.1" min="1" max="50" onchange="markUnsaved()">
+                        <input type="number" id="tp_dca_mid" step="0.1" min="1" max="50" onchange="markUnsaved(this)">
                     </div>
                     <div class="config-row">
                         <label>Stop Loss (%)</label>
-                        <input type="number" id="sl_dca_mid" step="0.1" min="1" max="20" onchange="markUnsaved()">
+                        <input type="number" id="sl_dca_mid" step="0.1" min="1" max="20" onchange="markUnsaved(this)">
                     </div>
                     <div class="config-row">
                         <label>Trailing Stop (%)</label>
-                        <input type="number" id="trail_dca_mid" step="0.1" min="1" max="10" onchange="markUnsaved()">
+                        <input type="number" id="trail_dca_mid" step="0.1" min="1" max="10" onchange="markUnsaved(this)">
                     </div>
                 </div>
             </div>
@@ -3406,15 +3406,15 @@ ADMIN_TEMPLATE = r"""
                 <div class="config-group">
                     <div class="config-row">
                         <label>Take Profit (%)</label>
-                        <input type="number" id="tp_dca_small" step="0.1" min="1" max="50" onchange="markUnsaved()">
+                        <input type="number" id="tp_dca_small" step="0.1" min="1" max="50" onchange="markUnsaved(this)">
                     </div>
                     <div class="config-row">
                         <label>Stop Loss (%)</label>
-                        <input type="number" id="sl_dca_small" step="0.1" min="1" max="20" onchange="markUnsaved()">
+                        <input type="number" id="sl_dca_small" step="0.1" min="1" max="20" onchange="markUnsaved(this)">
                     </div>
                     <div class="config-row">
                         <label>Trailing Stop (%)</label>
-                        <input type="number" id="trail_dca_small" step="0.1" min="1" max="10" onchange="markUnsaved()">
+                        <input type="number" id="trail_dca_small" step="0.1" min="1" max="10" onchange="markUnsaved(this)">
                     </div>
                 </div>
             </div>
@@ -3424,15 +3424,15 @@ ADMIN_TEMPLATE = r"""
                 <div class="config-group">
                     <div class="config-row">
                         <label>Take Profit (%)</label>
-                        <input type="number" id="tp_dca_meme" step="0.1" min="1" max="100" onchange="markUnsaved()">
+                        <input type="number" id="tp_dca_meme" step="0.1" min="1" max="100" onchange="markUnsaved(this)">
                     </div>
                     <div class="config-row">
                         <label>Stop Loss (%)</label>
-                        <input type="number" id="sl_dca_meme" step="0.1" min="1" max="30" onchange="markUnsaved()">
+                        <input type="number" id="sl_dca_meme" step="0.1" min="1" max="30" onchange="markUnsaved(this)">
                     </div>
                     <div class="config-row">
                         <label>Trailing Stop (%)</label>
-                        <input type="number" id="trail_dca_meme" step="0.1" min="1" max="20" onchange="markUnsaved()">
+                        <input type="number" id="trail_dca_meme" step="0.1" min="1" max="20" onchange="markUnsaved(this)">
                     </div>
                 </div>
             </div>
@@ -3453,15 +3453,15 @@ ADMIN_TEMPLATE = r"""
                 <div class="config-group">
                     <div class="config-row">
                         <label>Take Profit (%)</label>
-                        <input type="number" id="tp_swing_large" step="0.1" min="1" max="50" onchange="markUnsaved()">
+                        <input type="number" id="tp_swing_large" step="0.1" min="1" max="50" onchange="markUnsaved(this)">
                     </div>
                     <div class="config-row">
                         <label>Stop Loss (%)</label>
-                        <input type="number" id="sl_swing_large" step="0.1" min="1" max="20" onchange="markUnsaved()">
+                        <input type="number" id="sl_swing_large" step="0.1" min="1" max="20" onchange="markUnsaved(this)">
                     </div>
                     <div class="config-row">
                         <label>Trailing Stop (%)</label>
-                        <input type="number" id="trail_swing_large" step="0.1" min="1" max="10" onchange="markUnsaved()">
+                        <input type="number" id="trail_swing_large" step="0.1" min="1" max="10" onchange="markUnsaved(this)">
                     </div>
                 </div>
             </div>
@@ -3471,15 +3471,15 @@ ADMIN_TEMPLATE = r"""
                 <div class="config-group">
                     <div class="config-row">
                         <label>Take Profit (%)</label>
-                        <input type="number" id="tp_swing_mid" step="0.1" min="1" max="50" onchange="markUnsaved()">
+                        <input type="number" id="tp_swing_mid" step="0.1" min="1" max="50" onchange="markUnsaved(this)">
                     </div>
                     <div class="config-row">
                         <label>Stop Loss (%)</label>
-                        <input type="number" id="sl_swing_mid" step="0.1" min="1" max="20" onchange="markUnsaved()">
+                        <input type="number" id="sl_swing_mid" step="0.1" min="1" max="20" onchange="markUnsaved(this)">
                     </div>
                     <div class="config-row">
                         <label>Trailing Stop (%)</label>
-                        <input type="number" id="trail_swing_mid" step="0.1" min="1" max="10" onchange="markUnsaved()">
+                        <input type="number" id="trail_swing_mid" step="0.1" min="1" max="10" onchange="markUnsaved(this)">
                     </div>
                 </div>
             </div>
@@ -3489,15 +3489,15 @@ ADMIN_TEMPLATE = r"""
                 <div class="config-group">
                     <div class="config-row">
                         <label>Take Profit (%)</label>
-                        <input type="number" id="tp_swing_small" step="0.1" min="1" max="50" onchange="markUnsaved()">
+                        <input type="number" id="tp_swing_small" step="0.1" min="1" max="50" onchange="markUnsaved(this)">
                     </div>
                     <div class="config-row">
                         <label>Stop Loss (%)</label>
-                        <input type="number" id="sl_swing_small" step="0.1" min="1" max="20" onchange="markUnsaved()">
+                        <input type="number" id="sl_swing_small" step="0.1" min="1" max="20" onchange="markUnsaved(this)">
                     </div>
                     <div class="config-row">
                         <label>Trailing Stop (%)</label>
-                        <input type="number" id="trail_swing_small" step="0.1" min="1" max="10" onchange="markUnsaved()">
+                        <input type="number" id="trail_swing_small" step="0.1" min="1" max="10" onchange="markUnsaved(this)">
                     </div>
                 </div>
             </div>
@@ -3507,15 +3507,15 @@ ADMIN_TEMPLATE = r"""
                 <div class="config-group">
                     <div class="config-row">
                         <label>Take Profit (%)</label>
-                        <input type="number" id="tp_swing_meme" step="0.1" min="1" max="100" onchange="markUnsaved()">
+                        <input type="number" id="tp_swing_meme" step="0.1" min="1" max="100" onchange="markUnsaved(this)">
                     </div>
                     <div class="config-row">
                         <label>Stop Loss (%)</label>
-                        <input type="number" id="sl_swing_meme" step="0.1" min="1" max="30" onchange="markUnsaved()">
+                        <input type="number" id="sl_swing_meme" step="0.1" min="1" max="30" onchange="markUnsaved(this)">
                     </div>
                     <div class="config-row">
                         <label>Trailing Stop (%)</label>
-                        <input type="number" id="trail_swing_meme" step="0.1" min="1" max="20" onchange="markUnsaved()">
+                        <input type="number" id="trail_swing_meme" step="0.1" min="1" max="20" onchange="markUnsaved(this)">
                     </div>
                 </div>
             </div>
@@ -3536,15 +3536,15 @@ ADMIN_TEMPLATE = r"""
                 <div class="config-group">
                     <div class="config-row">
                         <label>Take Profit (%)</label>
-                        <input type="number" id="tp_channel_large" step="0.1" min="1" max="50" onchange="markUnsaved()">
+                        <input type="number" id="tp_channel_large" step="0.1" min="1" max="50" onchange="markUnsaved(this)">
                     </div>
                     <div class="config-row">
                         <label>Stop Loss (%)</label>
-                        <input type="number" id="sl_channel_large" step="0.1" min="1" max="20" onchange="markUnsaved()">
+                        <input type="number" id="sl_channel_large" step="0.1" min="1" max="20" onchange="markUnsaved(this)">
                     </div>
                     <div class="config-row">
                         <label>Trailing Stop (%)</label>
-                        <input type="number" id="trail_channel_large" step="0.1" min="1" max="10" onchange="markUnsaved()">
+                        <input type="number" id="trail_channel_large" step="0.1" min="1" max="10" onchange="markUnsaved(this)">
                     </div>
                 </div>
             </div>
@@ -3554,15 +3554,15 @@ ADMIN_TEMPLATE = r"""
                 <div class="config-group">
                     <div class="config-row">
                         <label>Take Profit (%)</label>
-                        <input type="number" id="tp_channel_mid" step="0.1" min="1" max="50" onchange="markUnsaved()">
+                        <input type="number" id="tp_channel_mid" step="0.1" min="1" max="50" onchange="markUnsaved(this)">
                     </div>
                     <div class="config-row">
                         <label>Stop Loss (%)</label>
-                        <input type="number" id="sl_channel_mid" step="0.1" min="1" max="20" onchange="markUnsaved()">
+                        <input type="number" id="sl_channel_mid" step="0.1" min="1" max="20" onchange="markUnsaved(this)">
                     </div>
                     <div class="config-row">
                         <label>Trailing Stop (%)</label>
-                        <input type="number" id="trail_channel_mid" step="0.1" min="1" max="10" onchange="markUnsaved()">
+                        <input type="number" id="trail_channel_mid" step="0.1" min="1" max="10" onchange="markUnsaved(this)">
                     </div>
                 </div>
             </div>
@@ -3572,15 +3572,15 @@ ADMIN_TEMPLATE = r"""
                 <div class="config-group">
                     <div class="config-row">
                         <label>Take Profit (%)</label>
-                        <input type="number" id="tp_channel_small" step="0.1" min="1" max="50" onchange="markUnsaved()">
+                        <input type="number" id="tp_channel_small" step="0.1" min="1" max="50" onchange="markUnsaved(this)">
                     </div>
                     <div class="config-row">
                         <label>Stop Loss (%)</label>
-                        <input type="number" id="sl_channel_small" step="0.1" min="1" max="20" onchange="markUnsaved()">
+                        <input type="number" id="sl_channel_small" step="0.1" min="1" max="20" onchange="markUnsaved(this)">
                     </div>
                     <div class="config-row">
                         <label>Trailing Stop (%)</label>
-                        <input type="number" id="trail_channel_small" step="0.1" min="1" max="10" onchange="markUnsaved()">
+                        <input type="number" id="trail_channel_small" step="0.1" min="1" max="10" onchange="markUnsaved(this)">
                     </div>
                 </div>
             </div>
@@ -3590,15 +3590,15 @@ ADMIN_TEMPLATE = r"""
                 <div class="config-group">
                     <div class="config-row">
                         <label>Take Profit (%)</label>
-                        <input type="number" id="tp_channel_meme" step="0.1" min="1" max="100" onchange="markUnsaved()">
+                        <input type="number" id="tp_channel_meme" step="0.1" min="1" max="100" onchange="markUnsaved(this)">
                     </div>
                     <div class="config-row">
                         <label>Stop Loss (%)</label>
-                        <input type="number" id="sl_channel_meme" step="0.1" min="1" max="30" onchange="markUnsaved()">
+                        <input type="number" id="sl_channel_meme" step="0.1" min="1" max="30" onchange="markUnsaved(this)">
                     </div>
                     <div class="config-row">
                         <label>Trailing Stop (%)</label>
-                        <input type="number" id="trail_channel_meme" step="0.1" min="1" max="20" onchange="markUnsaved()">
+                        <input type="number" id="trail_channel_meme" step="0.1" min="1" max="20" onchange="markUnsaved(this)">
                     </div>
                 </div>
             </div>
@@ -3818,15 +3818,19 @@ const strategies = ['DCA', 'SWING', 'CHANNEL'];
 let unsavedValues = {}; // Track unsaved input values
 
 // Mark configuration as having unsaved changes
-function markUnsaved() {
+function markUnsaved(element) {
     hasUnsavedChanges = true;
     updateUnsavedIndicator();
     
-    // Store all current input values
-    storeAllInputValues();
+    // Store only the changed input value (not all inputs)
+    if (element && element.id) {
+        unsavedValues[element.id] = element.type === 'checkbox' ? element.checked : element.value;
+        console.log(`Stored change for ${element.id}:`, unsavedValues[element.id]);
+        console.log('All unsaved values:', unsavedValues);
+    }
 }
 
-// Store all current input values
+// Store all current input values (only used for initial load)
 function storeAllInputValues() {
     document.querySelectorAll('input').forEach(input => {
         if (input.id) {
