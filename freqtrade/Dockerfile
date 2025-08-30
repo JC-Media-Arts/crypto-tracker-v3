@@ -19,7 +19,7 @@ COPY user_data/data/ /freqtrade/user_data/data/
 # Copy our configuration files
 COPY config/config.json /freqtrade/user_data/
 RUN mkdir -p /freqtrade/configs
-COPY ../configs/paper_trading_config_unified.json /freqtrade/configs/
+COPY paper_trading_config_unified.json /freqtrade/configs/
 
 # Ensure proper permissions
 RUN chown -R ftuser:ftuser /freqtrade/user_data /freqtrade/configs
