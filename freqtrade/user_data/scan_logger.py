@@ -290,8 +290,9 @@ def get_scan_logger() -> ScanLogger:
 
     if _scan_logger_instance is None:
         try:
-            _scan_logger_instance = ScanLogger()
-            logger.info("✅ Scan logger initialized successfully")
+            # Use smaller batch size for more frequent database writes
+            _scan_logger_instance = ScanLogger(batch_size=50, flush_interval=60)
+            logger.info("✅ Scan logger initialized successfully (batch_size=50, flush_interval=60s)")
         except Exception as e:
             logger.error(f"❌ Failed to initialize scan logger: {e}")
             logger.warning("⚠️ Continuing without scan logging - ML training data will not be collected")
