@@ -97,10 +97,11 @@ def test_kill_switch():
             with open(freqtrade_config_path, 'r') as f:
                 ft_config = json.load(f)
                 max_trades = ft_config.get('max_open_trades', 'N/A')
-                if max_trades == 10:
-                    print(f"   ✅ Freqtrade max_open_trades set to 10 (trading enabled)")
+                expected_max = config.get('position_management', {}).get('max_positions_total', 10)
+                if max_trades == expected_max:
+                    print(f"   ✅ Freqtrade max_open_trades set to {expected_max} (from admin panel)")
                 else:
-                    print(f"   ❌ Freqtrade max_open_trades is {max_trades} (expected 10)")
+                    print(f"   ❌ Freqtrade max_open_trades is {max_trades} (expected {expected_max})")
     else:
         print(f"   ❌ Failed to update config: {result.get('errors')}")
     
@@ -119,14 +120,19 @@ def test_kill_switch():
     else:
         print(f"   ❌ Failed to restore: {result.get('errors')}")
     
+    # Show current max positions setting
+    config = config_loader.load()
+    max_positions = config.get('position_management', {}).get('max_positions_total', 10)
+    
     print("\n" + "="*60)
     print("✅ Kill switch test complete!")
     print("\n💡 Notes:")
     print("   • Kill switch updates Freqtrade's max_open_trades")
     print("   • 0 = trading disabled (no new trades)")
-    print("   • 10 = trading enabled (normal operation)")
+    print(f"   • {max_positions} = trading enabled (value from admin panel)")
     print("   • Risk Manager checks config every 5 minutes in production")
     print("   • Changes from admin panel will be picked up automatically")
+    print("   • Max positions value comes from Position Management settings")
     print("="*60 + "\n")
 
 

@@ -548,9 +548,11 @@ class RiskManager:
             
             # Update max_open_trades based on kill switch
             if enabled:
-                # Enable trading - restore normal max_open_trades
-                freqtrade_config['max_open_trades'] = 10  # Or get from unified config
-                logger.info("Freqtrade trading ENABLED - max_open_trades set to 10")
+                # Enable trading - get max positions from unified config
+                config = self.config.load()
+                max_positions = config.get('position_management', {}).get('max_positions_total', 10)
+                freqtrade_config['max_open_trades'] = max_positions
+                logger.info(f"Freqtrade trading ENABLED - max_open_trades set to {max_positions}")
             else:
                 # Disable trading - set max_open_trades to 0
                 freqtrade_config['max_open_trades'] = 0
