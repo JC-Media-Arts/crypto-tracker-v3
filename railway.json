@@ -45,7 +45,7 @@
       "restartPolicyMaxRetries": 3
     },
     "Trading Dashboard": {
-      "startCommand": "cd /app && python freqtrade_dashboard.py",
+      "startCommand": "python -c \"import os; os.chdir('/app'); exec(open('freqtrade_dashboard.py').read())\"",
       "healthcheckPath": "/",
       "healthcheckTimeout": 30,
       "restartPolicyType": "ON_FAILURE",

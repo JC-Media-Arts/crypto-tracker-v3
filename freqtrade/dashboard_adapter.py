@@ -28,7 +28,9 @@ class FreqtradeDashboardAdapter:
                     Defaults to ./tradesv3.dryrun.sqlite
         """
         # Check if we're in production (Railway) or local
-        self.use_supabase = os.environ.get("RAILWAY_ENVIRONMENT") is not None
+        # Check both RAILWAY_ENVIRONMENT and ENVIRONMENT variables
+        self.use_supabase = (os.environ.get("RAILWAY_ENVIRONMENT") is not None or 
+                            os.environ.get("ENVIRONMENT") == "production")
         
         if self.use_supabase:
             # In production, use Supabase freqtrade_trades table
