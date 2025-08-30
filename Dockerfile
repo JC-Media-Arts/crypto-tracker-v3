@@ -30,4 +30,5 @@ USER ftuser
 # Set working directory
 WORKDIR /freqtrade
 
-# The entrypoint is inherited from the base image
+# Set the command to run Freqtrade
+CMD ["freqtrade", "trade", "--config", "/freqtrade/user_data/config.json", "--strategy", "ChannelStrategyV1", "--dry-run"]
