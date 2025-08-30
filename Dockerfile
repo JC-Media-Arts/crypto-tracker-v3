@@ -17,10 +17,12 @@ COPY freqtrade/user_data/scan_logger.py /freqtrade/user_data/
 COPY freqtrade/user_data/data/ /freqtrade/user_data/data/
 
 # Copy our configuration files
-COPY freqtrade/user_data/config.json /freqtrade/user_data/
+COPY freqtrade/config/config.json /freqtrade/user_data/
+RUN mkdir -p /freqtrade/configs
+COPY configs/paper_trading_config_unified.json /freqtrade/configs/
 
 # Ensure proper permissions
-RUN chown -R ftuser:ftuser /freqtrade/user_data
+RUN chown -R ftuser:ftuser /freqtrade/user_data /freqtrade/configs
 
 # Switch back to non-root user
 USER ftuser
