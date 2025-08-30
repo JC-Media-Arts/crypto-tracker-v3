@@ -11,13 +11,13 @@ RUN pip install --no-cache-dir \
     python-dotenv==1.0.0
 
 # Copy our custom strategy and modules
-COPY user_data/strategies/ /freqtrade/user_data/strategies/
-COPY user_data/config_bridge.py /freqtrade/user_data/
-COPY user_data/scan_logger.py /freqtrade/user_data/
-COPY user_data/data/ /freqtrade/user_data/data/
+COPY freqtrade/user_data/strategies/ /freqtrade/user_data/strategies/
+COPY freqtrade/user_data/config_bridge.py /freqtrade/user_data/
+COPY freqtrade/user_data/scan_logger.py /freqtrade/user_data/
+COPY freqtrade/user_data/data/ /freqtrade/user_data/data/
 
 # Copy our configuration files
-COPY user_data/config.json /freqtrade/user_data/
+COPY freqtrade/user_data/config.json /freqtrade/user_data/
 
 # Ensure proper permissions
 RUN chown -R ftuser:ftuser /freqtrade/user_data

@@ -1,6 +1,6 @@
 [build]
 builder = "DOCKERFILE"
-dockerfilePath = "./Dockerfile"
+dockerfilePath = "./Dockerfile.freqtrade"
 
 [deploy]
 startCommand = "freqtrade trade --config /freqtrade/user_data/config.json --strategy ChannelStrategyV1"
