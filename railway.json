@@ -10,9 +10,7 @@
   },
   "services": {
     "Freqtrade - Trading Engine": {
-      "builder": "DOCKERFILE",
-      "dockerfilePath": "./Dockerfile",
-      "startCommand": "freqtrade trade --config /freqtrade/user_data/config.json --strategy ChannelStrategyV1 --dry-run",
+      "startCommand": "python scripts/run_freqtrade.py",
       "healthcheckTimeout": 30,
       "restartPolicyType": "ON_FAILURE",
       "restartPolicyMaxRetries": 3

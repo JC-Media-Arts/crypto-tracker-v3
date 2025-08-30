@@ -1,15 +1,1 @@
-[phases.setup]
-nixPkgs = ["python311", "gcc"]
-
-[phases.install]
-cmds = [
-    "python -m venv /opt/venv",
-    ". /opt/venv/bin/activate && pip install --upgrade pip",
-    ". /opt/venv/bin/activate && pip install --no-cache-dir -r requirements.txt"
-]
-
-[start]
-cmd = ". /opt/venv/bin/activate && python scripts/run_paper_trading_simple.py"
-
-[variables]
-NIXPACKS_PYTHON_VERSION = "3.11"
+ 
