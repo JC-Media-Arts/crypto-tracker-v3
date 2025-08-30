@@ -570,15 +570,18 @@ BASE_TEMPLATE = r"""
         {{ content|safe }}
     </div>
 
-    <!-- Refresh Indicator -->
+    <!-- Refresh Indicator (not shown on Admin page) -->
+    {% if active_page != 'admin' %}
     <div class="refresh-indicator" id="refreshIndicator">
         <span id="refreshText">Auto-refresh: ON</span>
         <span id="refreshCountdown"></span>
     </div>
+    {% endif %}
 
     <!-- Scripts -->
     <script>
-        // Global refresh management
+        // Global refresh management (not on admin page)
+        {% if active_page != 'admin' %}
         let refreshInterval = 10000; // 10 seconds
         let countdown = refreshInterval / 1000;
 
@@ -595,6 +598,7 @@ BASE_TEMPLATE = r"""
         }
 
         setInterval(updateCountdown, 1000);
+        {% endif %}
     </script>
     {{ page_scripts|safe }}
 </body>
