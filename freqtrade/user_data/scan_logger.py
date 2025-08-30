@@ -289,6 +289,20 @@ def get_scan_logger() -> ScanLogger:
     global _scan_logger_instance
 
     if _scan_logger_instance is None:
-        _scan_logger_instance = ScanLogger()
+        try:
+            _scan_logger_instance = ScanLogger()
+            logger.info("✅ Scan logger initialized successfully")
+        except Exception as e:
+            logger.error(f"❌ Failed to initialize scan logger: {e}")
+            logger.warning("⚠️ Continuing without scan logging - ML training data will not be collected")
+            # Return a dummy logger that does nothing
+            class DummyScanLogger:
+                def log_entry_analysis(self, *args, **kwargs):
+                    pass
+                def log_exit_analysis(self, *args, **kwargs):
+                    pass
+                def flush(self):
+                    pass
+            _scan_logger_instance = DummyScanLogger()
 
     return _scan_logger_instance
