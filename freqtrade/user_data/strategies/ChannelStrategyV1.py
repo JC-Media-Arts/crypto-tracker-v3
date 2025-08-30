@@ -68,7 +68,18 @@ class ChannelStrategyV1(IStrategy):
         self.config_bridge = ConfigBridge()
 
         # Initialize scan logger
-        self.scan_logger = get_scan_logger()
+        try:
+            self.scan_logger = get_scan_logger()
+            logger.info("✅ Scan logger initialized in ChannelStrategyV1")
+        except Exception as e:
+            logger.error(f"❌ Failed to initialize scan logger: {e}")
+            # Create dummy logger
+            class DummyScanLogger:
+                def log_entry_analysis(self, *args, **kwargs):
+                    pass
+                def log_exit_analysis(self, *args, **kwargs):
+                    pass
+            self.scan_logger = DummyScanLogger()
 
         # Initialize data provider
         self.data_provider_supabase = SupabaseDataProvider()
@@ -182,12 +193,22 @@ class ChannelStrategyV1(IStrategy):
         if len(dataframe) > 0:
             latest_row = dataframe.iloc[-1]
             if not pd.isna(latest_row.get("enter_long", 0)):
-                self.scan_logger.log_entry_analysis(
-                    pair=metadata.get("pair", "UNKNOWN"),
-                    dataframe_row=latest_row.to_dict(),
-                    entry_signal=bool(latest_row.get("enter_long", 0)),
-                    strategy="CHANNEL",
-                )
+                try:
+                    self.scan_logger.log_entry_analysis(
+                        pair=metadata.get("pair", "UNKNOWN"),
+                        dataframe_row=latest_row.to_dict(),
+                        entry_signal=bool(latest_row.get("enter_long", 0)),
+                        strategy="CHANNEL",
+                    )
+                    # Log every 10th scan to confirm it's working
+                    if hasattr(self, '_scan_count'):
+                        self._scan_count += 1
+                    else:
+                        self._scan_count = 1
+                    if self._scan_count % 10 == 0:
+                        logger.info(f"📊 Logged scan #{self._scan_count} for {metadata.get('pair', 'UNKNOWN')}")
+                except Exception as e:
+                    logger.error(f"❌ Failed to log scan for {metadata.get('pair', 'UNKNOWN')}: {e}")
 
         return dataframe
 
