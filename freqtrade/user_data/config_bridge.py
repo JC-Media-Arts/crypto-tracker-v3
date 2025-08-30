@@ -77,13 +77,20 @@ class ConfigBridge:
         # Get detection thresholds (where the actual values are)
         detection = channel_config.get("detection_thresholds", {})
         
-        # IMPORTANT: Channel position is 0 at lower band, 1 at upper band
-        # For BUYING, we want LOW channel positions (near lower band)
-        # The entry_threshold values in config (0.88-0.9) appear to be inverted
-        # Using a reasonable default of 0.15 (bottom 15% of channel) for entries
+        # The config values appear to use a different convention:
+        # Config: 0.88 means "88% from bottom" (near top of channel)
+        # Strategy needs: 0.12 means "in bottom 12% of channel"
+        # So we need to invert: strategy_value = 1.0 - config_value
+        
+        entry_config = detection.get("entry_threshold", 0.85)
+        exit_config = detection.get("exit_threshold", 0.15)
+        
+        # Invert the values for the strategy
+        # Config 0.88 -> Strategy 0.12 (bottom 12% of channel for buying)
+        # Config 0.12 -> Strategy 0.88 (top 12% of channel for selling)
         return {
-            "entry_threshold": 0.15,  # Buy when in bottom 15% of channel
-            "exit_threshold": 0.85,  # Sell when in top 15% of channel  
+            "entry_threshold": 1.0 - entry_config,  # Invert for strategy
+            "exit_threshold": 1.0 - exit_config,    # Invert for strategy
             "rsi_min": detection.get("rsi_oversold", 30),  # RSI oversold threshold
             "rsi_max": detection.get("rsi_overbought", 70),  # RSI overbought threshold
             "volume_ratio_min": detection.get("volume_ratio_min", 1.0),
