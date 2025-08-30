@@ -1,6 +1,7 @@
 """
 Unified configuration loader for paper trading system.
 Single source of truth for all trading parameters.
+Now with Supabase support for Railway deployment.
 """
 
 import json
@@ -9,6 +10,11 @@ from typing import Dict, Any, Optional, List
 from pathlib import Path
 from loguru import logger
 from datetime import datetime
+from supabase import create_client, Client
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 
 class ConfigLoader:
@@ -18,6 +24,7 @@ class ConfigLoader:
     _config = None
     _config_path = None
     _last_loaded = None
+    _supabase_client = None
 
     def __new__(cls, config_path: Optional[str] = None):
         """Singleton pattern to ensure single config instance."""
@@ -39,9 +46,98 @@ class ConfigLoader:
             self._config_path = (
                 project_root / "configs" / "paper_trading_config_unified.json"
             )
+        
+        # Initialize Supabase client if not already done
+        if not self._supabase_client:
+            self._init_supabase()
+    
+    def _init_supabase(self):
+        """Initialize Supabase client."""
+        try:
+            supabase_url = os.getenv("SUPABASE_URL")
+            supabase_key = os.getenv("SUPABASE_KEY")
+            
+            if supabase_url and supabase_key:
+                self._supabase_client = create_client(supabase_url, supabase_key)
+                logger.info("Supabase client initialized for config management")
+            else:
+                logger.warning("Supabase credentials not found, using file-based config only")
+        except Exception as e:
+            logger.error(f"Failed to initialize Supabase client: {e}")
+            self._supabase_client = None
+    
+    def _load_from_supabase(self) -> Optional[Dict[str, Any]]:
+        """Load configuration from Supabase.
+        
+        Returns:
+            Configuration dictionary or None if not available
+        """
+        if not self._supabase_client:
+            return None
+        
+        try:
+            # Get active configuration from Supabase
+            response = self._supabase_client.table("trading_config").select("*").eq("config_key", "active").eq("is_valid", True).execute()
+            
+            if response.data and len(response.data) > 0:
+                config_data = response.data[0]["config_data"]
+                logger.info(f"Loaded configuration from Supabase (version: {config_data.get('version', 'unknown')})")
+                return config_data
+            else:
+                logger.debug("No active configuration found in Supabase")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Error loading config from Supabase: {e}")
+            return None
+    
+    def _save_to_supabase(self, config: Dict[str, Any]) -> bool:
+        """Save configuration to Supabase.
+        
+        Args:
+            config: Configuration dictionary to save
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        if not self._supabase_client:
+            return False
+        
+        try:
+            # Check if active config exists
+            response = self._supabase_client.table("trading_config").select("id").eq("config_key", "active").execute()
+            
+            config_version = config.get("version", "1.0.0")
+            
+            if response.data and len(response.data) > 0:
+                # Update existing config
+                update_response = self._supabase_client.table("trading_config").update({
+                    "config_version": config_version,
+                    "config_data": config,
+                    "updated_by": "ConfigLoader",
+                    "update_source": "admin_panel",
+                    "is_valid": True
+                }).eq("config_key", "active").execute()
+            else:
+                # Insert new config
+                insert_response = self._supabase_client.table("trading_config").insert({
+                    "config_key": "active",
+                    "config_version": config_version,
+                    "config_data": config,
+                    "updated_by": "ConfigLoader",
+                    "update_source": "admin_panel",
+                    "is_valid": True
+                }).execute()
+            
+            logger.info(f"Saved configuration to Supabase (version: {config_version})")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error saving config to Supabase: {e}")
+            return False
 
     def load(self, force_reload: bool = False) -> Dict[str, Any]:
-        """Load configuration from file.
+        """Load configuration from Supabase first, then file as fallback.
 
         Args:
             force_reload: Force reload even if already loaded
@@ -51,12 +147,30 @@ class ConfigLoader:
         """
         # Check if we need to reload (config changed or forced)
         if not force_reload and self._config is not None:
-            # Check if file was modified since last load
+            # For cached config, check if we should refresh (every 60 seconds)
             if self._last_loaded:
-                file_mtime = os.path.getmtime(self._config_path)
-                if file_mtime <= self._last_loaded.timestamp():
+                time_since_load = (datetime.now() - self._last_loaded).total_seconds()
+                if time_since_load < 60:  # Cache for 60 seconds
                     return self._config
 
+        # Try loading from Supabase first
+        config_from_supabase = self._load_from_supabase()
+        if config_from_supabase:
+            self._config = config_from_supabase
+            self._last_loaded = datetime.now()
+            
+            # Also save to local file for backup
+            try:
+                with open(self._config_path, "w") as f:
+                    json.dump(self._config, f, indent=2)
+                logger.debug("Synced Supabase config to local file")
+            except Exception as e:
+                logger.warning(f"Could not sync config to local file: {e}")
+            
+            return self._config
+        
+        # Fallback to file-based config if Supabase is not available
+        logger.info("Falling back to file-based configuration")
         try:
             with open(self._config_path, "r") as f:
                 self._config = json.load(f)
@@ -65,6 +179,12 @@ class ConfigLoader:
                 logger.debug(
                     f"Config version: {self._config.get('version', 'unknown')}"
                 )
+                
+                # Try to sync to Supabase if available
+                if self._supabase_client:
+                    if self._save_to_supabase(self._config):
+                        logger.info("Synced local config to Supabase")
+                
                 return self._config
         except FileNotFoundError:
             logger.error(f"Configuration file not found: {self._config_path}")
@@ -200,7 +320,7 @@ class ConfigLoader:
         return self.load(force_reload=True)
 
     def save(self, config: Dict[str, Any]) -> bool:
-        """Save configuration to file.
+        """Save configuration to both Supabase and file.
 
         Args:
             config: Configuration dictionary to save
@@ -213,16 +333,31 @@ class ConfigLoader:
             config["version"] = config.get("version", "1.0.0")
             config["last_updated"] = datetime.now().isoformat()
 
-            # Write to file with pretty formatting
-            with open(self._config_path, "w") as f:
-                json.dump(config, f, indent=2, sort_keys=False)
+            # Save to Supabase first (primary storage)
+            supabase_success = self._save_to_supabase(config)
+            
+            # Always save to file as well (backup and local development)
+            file_success = False
+            try:
+                with open(self._config_path, "w") as f:
+                    json.dump(config, f, indent=2, sort_keys=False)
+                file_success = True
+                logger.info(f"Saved configuration to {self._config_path}")
+            except Exception as e:
+                logger.error(f"Error saving configuration to file: {e}")
 
             # Update internal state
             self._config = config
             self._last_loaded = datetime.now()
 
-            logger.info(f"Saved configuration to {self._config_path}")
-            return True
+            # Consider successful if either storage method worked
+            success = supabase_success or file_success
+            if success:
+                logger.info(f"Configuration saved (Supabase: {supabase_success}, File: {file_success})")
+            else:
+                logger.error("Failed to save configuration to both Supabase and file")
+
+            return success
 
         except Exception as e:
             logger.error(f"Error saving configuration: {e}")

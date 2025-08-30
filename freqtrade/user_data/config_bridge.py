@@ -1,13 +1,19 @@
 """
 Configuration Bridge between unified config and Freqtrade
-Syncs settings from paper_trading_config_unified.json to Freqtrade
+Syncs settings from Supabase-stored configuration to Freqtrade
+Enables real-time config updates on Railway without file system dependencies
 """
 
 import json
 import os
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from datetime import datetime, timezone
 import logging
+from supabase import create_client, Client
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +21,8 @@ logger = logging.getLogger(__name__)
 class ConfigBridge:
     """
     Bridges the gap between our unified configuration system
-    and Freqtrade's configuration format
+    and Freqtrade's configuration format.
+    Now reads from Supabase for Railway deployment compatibility.
     """
 
     def __init__(self, unified_config_path: str = None):
@@ -23,12 +30,15 @@ class ConfigBridge:
         Initialize the configuration bridge
 
         Args:
-            unified_config_path: Path to unified config file
+            unified_config_path: Path to unified config file (fallback only)
         """
+        self.supabase_client = None
+        self._init_supabase()
+        # Keep file path as fallback
         if unified_config_path is None:
-            # Try multiple possible locations
+            # Try multiple possible locations for fallback
             possible_paths = [
-                # In Railway/Docker container (mounted volume)
+                # In Railway/Docker container (mounted volume) - won't work but kept for reference
                 "/app/configs/paper_trading_config_unified.json",
                 # Local development
                 os.path.join(
@@ -41,28 +51,94 @@ class ConfigBridge:
             for path in possible_paths:
                 if os.path.exists(path):
                     unified_config_path = path
-                    logger.info(f"Found unified config at: {path}")
+                    logger.info(f"Found fallback config file at: {path}")
                     break
             else:
                 # Fallback to expected path
-                unified_config_path = possible_paths[0]
-                logger.warning(f"Config not found, using default path: {unified_config_path}")
+                unified_config_path = possible_paths[1]  # Use local path as default
+                logger.debug(f"Config file not found, will rely on Supabase")
 
         self.unified_config_path = unified_config_path
         self.config = self.load_unified_config()
+        self._last_loaded = datetime.now()
 
+    def _init_supabase(self):
+        """Initialize Supabase client."""
+        try:
+            supabase_url = os.getenv("SUPABASE_URL")
+            supabase_key = os.getenv("SUPABASE_KEY")
+            
+            if supabase_url and supabase_key:
+                self.supabase_client = create_client(supabase_url, supabase_key)
+                logger.info("Supabase client initialized in ConfigBridge")
+            else:
+                logger.warning("Supabase credentials not found in ConfigBridge")
+        except Exception as e:
+            logger.error(f"Failed to initialize Supabase client: {e}")
+            self.supabase_client = None
+    
+    def _load_from_supabase(self) -> Optional[Dict[str, Any]]:
+        """Load configuration from Supabase.
+        
+        Returns:
+            Configuration dictionary or None if not available
+        """
+        if not self.supabase_client:
+            return None
+        
+        try:
+            # Get active configuration from Supabase
+            response = self.supabase_client.table("trading_config").select("*").eq("config_key", "active").eq("is_valid", True).execute()
+            
+            if response.data and len(response.data) > 0:
+                config_data = response.data[0]["config_data"]
+                logger.info(f"Loaded config from Supabase (version: {config_data.get('version', 'unknown')})")
+                return config_data
+            else:
+                logger.debug("No active configuration found in Supabase")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Error loading config from Supabase: {e}")
+            return None
+    
     def load_unified_config(self) -> Dict[str, Any]:
-        """Load the unified configuration file"""
+        """Load the unified configuration from Supabase first, then file as fallback"""
+        # Try Supabase first
+        config = self._load_from_supabase()
+        if config:
+            return config
+        
+        # Fallback to file
+        logger.info("Falling back to file-based configuration")
         try:
             with open(self.unified_config_path, "r") as f:
                 return json.load(f)
         except Exception as e:
-            logger.error(f"Error loading unified config: {e}")
-            return {}
+            logger.error(f"Error loading config file: {e}")
+            # Return a minimal working config if all else fails
+            return {
+                "strategies": {
+                    "CHANNEL": {
+                        "enabled": True,
+                        "detection_thresholds": {
+                            "buy_zone": 0.03,
+                            "sell_zone": 0.97
+                        }
+                    }
+                }
+            }
     
     def get_config(self) -> Dict[str, Any]:
         """Get the full unified config (reloads to get latest)"""
+        # Cache for 60 seconds to avoid excessive Supabase calls
+        if hasattr(self, '_last_loaded') and self._last_loaded is not None:
+            time_since_load = (datetime.now() - self._last_loaded).total_seconds()
+            if time_since_load < 60:
+                return self.config
+        
         self.config = self.load_unified_config()
+        self._last_loaded = datetime.now()
         return self.config
 
     def get_strategy_config(self, strategy_name: str = "CHANNEL") -> Dict[str, Any]:

@@ -1,344 +1,277 @@
 {
+  "filters": {
+    "min_price": 0.01,
+    "max_spread": 0.005,
+    "min_volume_24h": 100000,
+    "trade_weekends": true,
+    "avoid_news_hours": false
+  },
   "version": "1.0.37",
-  "last_updated": "2025-08-30T06:22:06.379569",
-  "description": "Unified paper trading configuration - single source of truth",
-  "global_settings": {
-    "trading_enabled": true,
-    "initial_balance": 10000.0,
-    "trading_cycle_seconds": 300,
-    "environment": "paper"
-  },
-  "position_management": {
-    "max_positions_total": 50,
-    "max_positions_per_strategy": 50,
-    "max_positions_per_symbol": 3,
-    "position_sizing": {
-      "mode": "fixed_dollar",
-      "base_position_size_usd": 50.0,
-      "position_size_multiplier": 1.5,
-      "max_percent_of_balance": 0.5,
-      "sizing_modes": {
-        "fixed_dollar": {
-          "enabled": true,
-          "amount": 50.0
-        },
-        "percent_portfolio": {
-          "enabled": false,
-          "percent": 2.0
-        },
-        "volatility_based": {
-          "enabled": false,
-          "base_amount": 50.0,
-          "volatility_multiplier": 1.0
-        },
-        "confidence_based": {
-          "enabled": false,
-          "min_size": 25.0,
-          "max_size": 100.0,
-          "confidence_multiplier": 2.0
-        }
-      }
-    },
-    "max_hold_hours": 96
-  },
-  "ml_confidence": {
-    "ml_confidence_threshold": 0.55,
-    "min_signal_strength": 0.6,
-    "required_confirmations": 2
-  },
   "strategies": {
     "DCA": {
       "enabled": true,
-      "min_confidence": 0.5,
-      "detection_thresholds": {
-        "drop_threshold": -2.25,
-        "volume_requirement": 0.85,
-        "volume_threshold": 100000
+      "exits_by_tier": {
+        "mid_cap": {
+          "stop_loss": 0.08,
+          "take_profit": 0.07,
+          "trailing_stop": 0.035,
+          "trailing_activation": 0.035
+        },
+        "memecoin": {
+          "stop_loss": 0.15,
+          "take_profit": 0.12,
+          "trailing_stop": 0.08,
+          "trailing_activation": 0.06
+        },
+        "large_cap": {
+          "stop_loss": 0.06,
+          "take_profit": 0.04,
+          "trailing_stop": 0.02,
+          "trailing_activation": 0.02
+        },
+        "small_cap": {
+          "stop_loss": 0.11,
+          "take_profit": 0.1,
+          "trailing_stop": 0.06,
+          "trailing_activation": 0.05
+        }
       },
       "grid_settings": {
         "grid_levels": 5,
         "grid_spacing": 0.02,
         "max_grids_per_symbol": 3
       },
-      "exits_by_tier": {
-        "large_cap": {
-          "take_profit": 0.04,
-          "stop_loss": 0.06,
-          "trailing_stop": 0.02,
-          "trailing_activation": 0.02
-        },
-        "mid_cap": {
-          "take_profit": 0.07,
-          "stop_loss": 0.08,
-          "trailing_stop": 0.035,
-          "trailing_activation": 0.035
-        },
-        "small_cap": {
-          "take_profit": 0.1,
-          "stop_loss": 0.11,
-          "trailing_stop": 0.06,
-          "trailing_activation": 0.05
-        },
-        "memecoin": {
-          "take_profit": 0.12,
-          "stop_loss": 0.15,
-          "trailing_stop": 0.08,
-          "trailing_activation": 0.06
-        }
-      },
       "drop_threshold": -4,
+      "min_confidence": 0.5,
+      "detection_thresholds": {
+        "drop_threshold": -2.25,
+        "volume_threshold": 100000,
+        "volume_requirement": 0.85
+      },
       "detection_thresholds_by_tier": {
-        "large_cap": {
-          "drop_threshold": -1.75,
-          "volume_requirement": 0.75,
-          "volume_threshold": 100000,
-          "grid_levels": 3,
-          "grid_spacing": 0.02
-        },
         "mid_cap": {
-          "drop_threshold": -2.25,
-          "volume_requirement": 0.85,
-          "volume_threshold": 75000,
           "grid_levels": 4,
-          "grid_spacing": 0.025
-        },
-        "small_cap": {
-          "drop_threshold": -3.0,
-          "volume_requirement": 0.9,
-          "volume_threshold": 50000,
-          "grid_levels": 5,
-          "grid_spacing": 0.03
+          "grid_spacing": 0.025,
+          "drop_threshold": -2.25,
+          "volume_threshold": 75000,
+          "volume_requirement": 0.85
         },
         "memecoin": {
-          "drop_threshold": -4.0,
-          "volume_requirement": 1.1,
-          "volume_threshold": 25000,
           "grid_levels": 5,
-          "grid_spacing": 0.04
+          "grid_spacing": 0.04,
+          "drop_threshold": -4.0,
+          "volume_threshold": 25000,
+          "volume_requirement": 1.1
+        },
+        "large_cap": {
+          "grid_levels": 3,
+          "grid_spacing": 0.02,
+          "drop_threshold": -1.75,
+          "volume_threshold": 100000,
+          "volume_requirement": 0.75
+        },
+        "small_cap": {
+          "grid_levels": 5,
+          "grid_spacing": 0.03,
+          "drop_threshold": -3.0,
+          "volume_threshold": 50000,
+          "volume_requirement": 0.9
         }
       }
     },
     "SWING": {
       "enabled": true,
-      "min_confidence": 0.5,
-      "detection_thresholds": {
-        "breakout_threshold": 1.01,
-        "breakout_confirmation": 0.015,
-        "volume_surge": 1.3,
-        "rsi_min": 45,
-        "rsi_max": 75,
-        "min_score": 40
-      },
+      "volume_surge": 1.5,
       "exits_by_tier": {
-        "large_cap": {
-          "take_profit": 0.05,
-          "stop_loss": 0.04,
-          "trailing_stop": 0.025,
-          "trailing_activation": 0.025
-        },
         "mid_cap": {
-          "take_profit": 0.08,
           "stop_loss": 0.06,
+          "take_profit": 0.08,
           "trailing_stop": 0.04,
           "trailing_activation": 0.04
         },
-        "small_cap": {
-          "take_profit": 0.12,
-          "stop_loss": 0.08,
-          "trailing_stop": 0.06,
-          "trailing_activation": 0.06
-        },
         "memecoin": {
-          "take_profit": 0.15,
           "stop_loss": 0.12,
+          "take_profit": 0.15,
           "trailing_stop": 0.08,
           "trailing_activation": 0.08
-        }
-      },
-      "breakout_threshold": 1.015,
-      "volume_surge": 1.5,
-      "detection_thresholds_by_tier": {
-        "large_cap": {
-          "breakout_threshold": 1.008,
-          "breakout_confirmation": 0.01,
-          "volume_surge": 1.2,
-          "rsi_min": 45,
-          "rsi_max": 75,
-          "min_score": 35
         },
-        "mid_cap": {
-          "breakout_threshold": 1.01,
-          "breakout_confirmation": 0.015,
-          "volume_surge": 1.3,
-          "rsi_min": 45,
-          "rsi_max": 75,
-          "min_score": 40
+        "large_cap": {
+          "stop_loss": 0.04,
+          "take_profit": 0.05,
+          "trailing_stop": 0.025,
+          "trailing_activation": 0.025
         },
         "small_cap": {
-          "breakout_threshold": 1.015,
-          "breakout_confirmation": 0.02,
-          "volume_surge": 1.4,
-          "rsi_min": 40,
-          "rsi_max": 80,
-          "min_score": 45
+          "stop_loss": 0.08,
+          "take_profit": 0.12,
+          "trailing_stop": 0.06,
+          "trailing_activation": 0.06
+        }
+      },
+      "min_confidence": 0.5,
+      "breakout_threshold": 1.015,
+      "detection_thresholds": {
+        "rsi_max": 75,
+        "rsi_min": 45,
+        "min_score": 40,
+        "volume_surge": 1.3,
+        "breakout_threshold": 1.01,
+        "breakout_confirmation": 0.015
+      },
+      "detection_thresholds_by_tier": {
+        "mid_cap": {
+          "rsi_max": 75,
+          "rsi_min": 45,
+          "min_score": 40,
+          "volume_surge": 1.3,
+          "breakout_threshold": 1.01,
+          "breakout_confirmation": 0.015
         },
         "memecoin": {
-          "breakout_threshold": 1.02,
-          "breakout_confirmation": 0.025,
-          "volume_surge": 1.5,
-          "rsi_min": 35,
           "rsi_max": 90,
-          "min_score": 50
+          "rsi_min": 35,
+          "min_score": 50,
+          "volume_surge": 1.5,
+          "breakout_threshold": 1.02,
+          "breakout_confirmation": 0.025
+        },
+        "large_cap": {
+          "rsi_max": 75,
+          "rsi_min": 45,
+          "min_score": 35,
+          "volume_surge": 1.2,
+          "breakout_threshold": 1.008,
+          "breakout_confirmation": 0.01
+        },
+        "small_cap": {
+          "rsi_max": 80,
+          "rsi_min": 40,
+          "min_score": 45,
+          "volume_surge": 1.4,
+          "breakout_threshold": 1.015,
+          "breakout_confirmation": 0.02
         }
       }
     },
     "CHANNEL": {
       "enabled": true,
-      "min_confidence": 0.75,
-      "detection_thresholds": {
-        "entry_threshold": 0.9,
-        "exit_threshold": 0.1,
-        "channel_width_min": 0.03,
-        "channel_touches": 5,
-        "buy_zone": 0.03,
-        "sell_zone": 0.97,
-        "channel_strength_min": 0.9
-      },
+      "buy_zone": 0.05,
       "exits_by_tier": {
-        "large_cap": {
-          "take_profit": 0.02,
-          "stop_loss": 0.02,
-          "trailing_stop": 0.005,
-          "trailing_activation": 0.01
-        },
         "mid_cap": {
-          "take_profit": 0.025,
           "stop_loss": 0.025,
+          "take_profit": 0.025,
           "trailing_stop": 0.006999999999999999,
           "trailing_activation": 0.012
         },
-        "small_cap": {
-          "take_profit": 0.03,
-          "stop_loss": 0.03,
-          "trailing_stop": 0.01,
-          "trailing_activation": 0.015
-        },
         "memecoin": {
-          "take_profit": 0.04,
           "stop_loss": 0.04,
+          "take_profit": 0.04,
           "trailing_stop": 0.015,
           "trailing_activation": 0.02
-        }
-      },
-      "detection_thresholds_by_tier": {
-        "large_cap": {
-          "entry_threshold": 0.88,
-          "exit_threshold": 0.12,
-          "channel_width_min": 0.02,
-          "channel_width_max": 0.08,
-          "channel_strength_min": 0.82,
-          "buy_zone": 0.025
         },
-        "mid_cap": {
-          "entry_threshold": 0.87,
-          "exit_threshold": 0.13,
-          "channel_width_min": 0.03,
-          "channel_width_max": 0.1,
-          "channel_strength_min": 0.77,
-          "buy_zone": 0.04
+        "large_cap": {
+          "stop_loss": 0.02,
+          "take_profit": 0.02,
+          "trailing_stop": 0.005,
+          "trailing_activation": 0.01
         },
         "small_cap": {
-          "entry_threshold": 0.85,
-          "exit_threshold": 0.15,
-          "channel_width_min": 0.04,
-          "channel_width_max": 0.12,
-          "channel_strength_min": 0.72,
-          "buy_zone": 0.06
-        },
-        "memecoin": {
-          "entry_threshold": 0.92,
-          "exit_threshold": 0.08,
-          "channel_width_min": 0.05,
-          "channel_width_max": 0.15,
-          "channel_strength_min": 0.6,
-          "buy_zone": 0.12
+          "stop_loss": 0.03,
+          "take_profit": 0.03,
+          "trailing_stop": 0.01,
+          "trailing_activation": 0.015
         }
       },
-      "buy_zone": 0.05
+      "min_confidence": 0.75,
+      "detection_thresholds": {
+        "buy_zone": 0.07,
+        "sell_zone": 0.97,
+        "exit_threshold": 0.1,
+        "channel_touches": 5,
+        "entry_threshold": 0.9,
+        "channel_width_min": 0.03,
+        "channel_strength_min": 0.9
+      },
+      "detection_thresholds_by_tier": {
+        "mid_cap": {
+          "buy_zone": 0.04,
+          "exit_threshold": 0.13,
+          "entry_threshold": 0.87,
+          "channel_width_max": 0.1,
+          "channel_width_min": 0.03,
+          "channel_strength_min": 0.77
+        },
+        "memecoin": {
+          "buy_zone": 0.12,
+          "exit_threshold": 0.08,
+          "entry_threshold": 0.92,
+          "channel_width_max": 0.15,
+          "channel_width_min": 0.05,
+          "channel_strength_min": 0.6
+        },
+        "large_cap": {
+          "buy_zone": 0.025,
+          "exit_threshold": 0.12,
+          "entry_threshold": 0.88,
+          "channel_width_max": 0.08,
+          "channel_width_min": 0.02,
+          "channel_strength_min": 0.82
+        },
+        "small_cap": {
+          "buy_zone": 0.06,
+          "exit_threshold": 0.15,
+          "entry_threshold": 0.85,
+          "channel_width_max": 0.12,
+          "channel_width_min": 0.04,
+          "channel_strength_min": 0.72
+        }
+      }
     }
   },
-  "market_protection": {
-    "enabled": true,
-    "enhanced_regime": {
-      "enabled": true,
-      "panic_threshold": -0.1,
-      "caution_threshold": -0.05,
-      "euphoria_threshold": 0.05,
-      "check_intervals": {
-        "1h": true,
-        "4h": true
-      }
-    },
-    "volatility_thresholds": {
-      "panic": 12.0,
-      "high": 8.0,
-      "moderate": 5.0,
-      "strategy_limits": {
-        "CHANNEL": 8.0,
-        "SWING": 15.0,
-        "DCA": 20.0
-      }
-    },
-    "cumulative_decline": {
-      "enabled": true,
-      "24h_threshold": -3.0,
-      "48h_threshold": -5.0,
-      "check_from_peak": true
-    },
-    "trade_limiter": {
-      "enabled": true,
-      "max_consecutive_stops": 3,
-      "cooldown_hours_by_tier": {
-        "large_cap": 4,
-        "mid_cap": 6,
-        "small_cap": 12,
-        "memecoin": 24
-      },
-      "reset_on_50pct_tp": true,
-      "reset_on_trailing_stop": true,
-      "persist_state": true
-    },
-    "stop_widening": {
-      "enabled": true,
-      "volatility_factor": 0.3,
-      "max_stop_loss_by_tier": {
-        "large_cap": 0.1,
-        "mid_cap": 0.12,
-        "small_cap": 0.15,
-        "memecoin": 0.15
-      },
-      "regime_multipliers": {
-        "PANIC": 1.5,
-        "CAUTION": 1.3,
-        "EUPHORIA": 1.2,
-        "NORMAL": 1.0
-      }
-    },
-    "hysteresis": {
-      "channel_disable_volatility": 8.0,
-      "channel_reenable_volatility": 6.0,
-      "reenable_cooldown_hours": 2
-    }
+  "timeframes": {
+    "trend": "4h",
+    "primary": "15m",
+    "confirmation": "1h"
+  },
+  "description": "Unified paper trading configuration - single source of truth",
+  "last_updated": "2025-08-30T14:20:09.079530",
+  "ml_confidence": {
+    "min_signal_strength": 0.6,
+    "required_confirmations": 2,
+    "ml_confidence_threshold": 0.55
+  },
+  "notifications": {
+    "report_times": [
+      "07:00",
+      "12:00",
+      "19:00"
+    ],
+    "alerts_channel": "#system-alerts",
+    "report_channel": "#trades",
+    "report_timezone": "America/Los_Angeles",
+    "summary_reports": true,
+    "individual_trades": false
+  },
+  "global_settings": {
+    "environment": "paper",
+    "initial_balance": 10000.0,
+    "trading_enabled": true,
+    "trading_cycle_seconds": 300
+  },
+  "risk_management": {
+    "max_drawdown": 0.2,
+    "max_open_risk": 2000,
+    "max_daily_loss": 0.1,
+    "risk_per_trade": 0.02,
+    "max_daily_loss_pct": 15,
+    "max_daily_loss_usd": 1000,
+    "emergency_stop_loss": 0.3,
+    "recovery_mode_enabled": false,
+    "consecutive_loss_limit": 5,
+    "emergency_stop_enabled": false,
+    "recovery_position_size": 50
   },
   "market_cap_tiers": {
-    "large_cap": [
-      "BTC",
-      "ETH",
-      "BNB",
-      "SOL",
-      "XRP",
-      "ADA"
-    ],
     "mid_cap": [
       "LINK",
       "MATIC",
@@ -409,12 +342,6 @@
       "FET",
       "RPL"
     ],
-    "small_cap": [
-      "SHIB",
-      "TRX",
-      "APT",
-      "DOGE"
-    ],
     "memecoin": [
       "PEPE",
       "WIF",
@@ -436,55 +363,128 @@
       "BRETT",
       "GIGA",
       "HIPPO"
+    ],
+    "large_cap": [
+      "BTC",
+      "ETH",
+      "BNB",
+      "SOL",
+      "XRP",
+      "ADA"
+    ],
+    "small_cap": [
+      "SHIB",
+      "TRX",
+      "APT",
+      "DOGE"
     ]
   },
   "fees_and_slippage": {
     "exchange_fees": {
-      "kraken_taker": 0.003,
-      "kraken_maker": 0.002
+      "kraken_maker": 0.002,
+      "kraken_taker": 0.003
     },
     "slippage_by_tier": {
-      "large_cap": 0.0015,
       "mid_cap": 0.0025,
-      "small_cap": 0.005,
-      "memecoin": 0.0075
+      "memecoin": 0.0075,
+      "large_cap": 0.0015,
+      "small_cap": 0.005
     }
   },
-  "filters": {
-    "min_volume_24h": 100000,
-    "min_price": 0.01,
-    "max_spread": 0.005,
-    "trade_weekends": true,
-    "avoid_news_hours": false
+  "market_protection": {
+    "enabled": true,
+    "hysteresis": {
+      "reenable_cooldown_hours": 2,
+      "channel_disable_volatility": 8.0,
+      "channel_reenable_volatility": 6.0
+    },
+    "stop_widening": {
+      "enabled": true,
+      "volatility_factor": 0.3,
+      "regime_multipliers": {
+        "PANIC": 1.5,
+        "NORMAL": 1.0,
+        "CAUTION": 1.3,
+        "EUPHORIA": 1.2
+      },
+      "max_stop_loss_by_tier": {
+        "mid_cap": 0.12,
+        "memecoin": 0.15,
+        "large_cap": 0.1,
+        "small_cap": 0.15
+      }
+    },
+    "trade_limiter": {
+      "enabled": true,
+      "persist_state": true,
+      "reset_on_50pct_tp": true,
+      "max_consecutive_stops": 3,
+      "cooldown_hours_by_tier": {
+        "mid_cap": 6,
+        "memecoin": 24,
+        "large_cap": 4,
+        "small_cap": 12
+      },
+      "reset_on_trailing_stop": true
+    },
+    "enhanced_regime": {
+      "enabled": true,
+      "check_intervals": {
+        "1h": true,
+        "4h": true
+      },
+      "panic_threshold": -0.1,
+      "caution_threshold": -0.05,
+      "euphoria_threshold": 0.05
+    },
+    "cumulative_decline": {
+      "enabled": true,
+      "24h_threshold": -3.0,
+      "48h_threshold": -5.0,
+      "check_from_peak": true
+    },
+    "volatility_thresholds": {
+      "high": 8.0,
+      "panic": 12.0,
+      "moderate": 5.0,
+      "strategy_limits": {
+        "DCA": 20.0,
+        "SWING": 15.0,
+        "CHANNEL": 8.0
+      }
+    }
   },
-  "notifications": {
-    "individual_trades": false,
-    "summary_reports": true,
-    "report_times": [
-      "07:00",
-      "12:00",
-      "19:00"
-    ],
-    "report_timezone": "America/Los_Angeles",
-    "report_channel": "#trades",
-    "alerts_channel": "#system-alerts"
-  },
-  "timeframes": {
-    "primary": "15m",
-    "confirmation": "1h",
-    "trend": "4h"
-  },
-  "risk_management": {
-    "risk_per_trade": 0.02,
-    "max_daily_loss": 0.1,
-    "max_drawdown": 0.2,
-    "emergency_stop_loss": 0.3,
-    "max_daily_loss_pct": 15,
-    "max_daily_loss_usd": 1000,
-    "max_open_risk": 2000,
-    "consecutive_loss_limit": 5,
-    "emergency_stop_enabled": false,
-    "recovery_mode_enabled": false,
-    "recovery_position_size": 50
+  "position_management": {
+    "max_hold_hours": 96,
+    "position_sizing": {
+      "mode": "fixed_dollar",
+      "sizing_modes": {
+        "fixed_dollar": {
+          "amount": 50.0,
+          "enabled": true
+        },
+        "confidence_based": {
+          "enabled": false,
+          "max_size": 100.0,
+          "min_size": 25.0,
+          "confidence_multiplier": 2.0
+        },
+        "volatility_based": {
+          "enabled": false,
+          "base_amount": 50.0,
+          "volatility_multiplier": 1.0
+        },
+        "percent_portfolio": {
+          "enabled": false,
+          "percent": 2.0
+        }
+      },
+      "base_position_size_usd": 50.0,
+      "max_percent_of_balance": 0.5,
+      "position_size_multiplier": 1.5
+    },
+    "max_positions_total": 50,
+    "max_positions_per_symbol": 3,
+    "max_positions_per_strategy": 50
   }
 }
