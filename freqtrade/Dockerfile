@@ -32,4 +32,5 @@ USER ftuser
 WORKDIR /freqtrade
 
 # Set the command to run Freqtrade
-CMD ["freqtrade", "trade", "--config", "/freqtrade/user_data/config.json", "--strategy", "ChannelStrategyV1", "--dry-run"]
+# Note: The freqtrade base image already has freqtrade as the entrypoint
+CMD ["trade", "--config", "/freqtrade/user_data/config.json", "--strategy", "ChannelStrategyV1", "--dry-run"]
