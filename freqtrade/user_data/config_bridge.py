@@ -26,11 +26,27 @@ class ConfigBridge:
             unified_config_path: Path to unified config file
         """
         if unified_config_path is None:
-            unified_config_path = os.path.join(
-                os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
-                "configs",
-                "paper_trading_config_unified.json",
-            )
+            # Try multiple possible locations
+            possible_paths = [
+                # In Railway/Docker container (mounted volume)
+                "/app/configs/paper_trading_config_unified.json",
+                # Local development
+                os.path.join(
+                    os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+                    "configs",
+                    "paper_trading_config_unified.json",
+                ),
+            ]
+            
+            for path in possible_paths:
+                if os.path.exists(path):
+                    unified_config_path = path
+                    logger.info(f"Found unified config at: {path}")
+                    break
+            else:
+                # Fallback to expected path
+                unified_config_path = possible_paths[0]
+                logger.warning(f"Config not found, using default path: {unified_config_path}")
 
         self.unified_config_path = unified_config_path
         self.config = self.load_unified_config()
