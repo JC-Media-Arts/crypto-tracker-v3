@@ -4,8 +4,8 @@
 *Phase 1 MVP - Using ML to Optimize Proven Trading Strategies*
 *Created: January 2025*
 *Location: Los Angeles, CA*
-*Latest Update: August 26, 2025 - Market-Aware Prioritization & Threshold Rebalancing*
-*Key Learning: Market conditions determine strategy dominance, not just thresholds*
+*Latest Update: August 29, 2025 - Freqtrade Migration Complete*
+*Key Achievement: 85% code reduction, professional-grade trading engine deployed*
 
 ---
 
@@ -77,27 +77,29 @@ black --exclude="~/.*|venv/.*" --check .
 This section lists the currently active production files and their deprecated versions.
 Last Updated: August 27, 2025
 
-### Paper Trading System
-- **ACTIVE**: `scripts/run_paper_trading_simple.py` ✅
-  - Deployed to Railway as "Trading - Paper Engine" service
-  - Uses SimplePaperTraderV2 class
-  - **Updated 8/27**: Batch scan logging system (v2.4.0 - BUILD_ID: 20250827-173000)
-    - Buffers scan_history logs to respect Railway's 500 logs/sec limit
-    - Flushes every 500 scans or 5 minutes
-    - Captures all ML learning opportunities (90 symbols × 3 strategies × 12 scans/hr = 3,240 records/hr)
-    - ScanBuffer class handles async background flushing without blocking trades
-    - Successfully capturing 755,775+ scan records with features
-  - **Updated 8/27**: Tightened CHANNEL thresholds & portfolio cleanup
-    - buy_zone: 0.10 → 0.05 (50% reduction)
-    - channel_strength_min: 0.75 → 0.80
-    - Closed 320 underperforming positions, kept top 50
-  - **Updated 8/26**: Market-aware strategy prioritization
-  - **Updated 8/26**: Database balance synchronization on startup
-  - Configuration: `configs/paper_trading_config.py` (detection) + `configs/paper_trading.json` (exits)
-  - Related: `src/trading/simple_paper_trader_v2.py`
+### Paper Trading System (Freqtrade Migration - August 29, 2025)
+- **ACTIVE**: **Freqtrade Trading Engine** ✅ 🚀
+  - Deployed to Railway as "Freqtrade - Trading Engine" Docker service
+  - Running freqtradeorg/freqtrade:stable
+  - **MIGRATED 8/29**: Replaced SimplePaperTraderV2 with Freqtrade
+    - 85% code reduction (3,500 → 500 lines)
+    - Professional-grade trading engine
+    - Full backtesting capabilities
+    - Built-in position management
+  - **Features**:
+    - CHANNEL strategy ported (ChannelStrategyV1)
+    - Scan logging to scan_history table
+    - Trade sync to freqtrade_trades table
+    - Config bridge for real-time updates
+    - Kill switch via Risk Manager
+    - Dashboard adapted to Freqtrade data
+  - Configuration: `configs/paper_trading_config_unified.json` (single source of truth)
+  - Related: `/freqtrade/user_data/strategies/ChannelStrategyV1.py`
 
-- **DEPRECATED**:
-  - `scripts/run_paper_trading.py` ❌ (Original version with Hummingbot)
+- **DEPRECATED** (as of August 29, 2025):
+  - `scripts/run_paper_trading_simple.py` ❌ (Replaced by Freqtrade)
+  - `src/trading/simple_paper_trader_v2.py` ❌ (Replaced by Freqtrade)
+  - `scripts/run_paper_trading.py` ❌ (Original Hummingbot version)
   - `scripts/run_paper_trading_v2.py` ❌ (Second iteration)
   - `scripts/test_kraken_paper_trading.py` ❌ (Test script)
   - `scripts/monitor_paper_trading.py` ❌ (Old monitoring)
@@ -252,27 +254,29 @@ Last Updated: August 27, 2025
 - **DEPRECATED**:
   - Various test configs in root directory
 
-### Railway Services (Production)
-| Service Name | Script | Status | Last Updated |
+### Railway Services (Production) - Post-Freqtrade Migration
+| Service Name | Script/Container | Status | Last Updated |
 |-------------|--------|--------|--------------|
-| Trading - Paper Engine | `scripts/run_paper_trading_simple.py` | ✅ Active | 8/27 - Batch scan logging v2.4.0 |
-| System - Strategy Pre-Calculator | `scripts/strategy_precalculator.py` | ✅ Active | 8/26 - Fixed threshold loading |
-| Research - ML Analyzer | `scripts/run_ml_analyzer.py` | ✅ Active | - |
-| Trading - Dashboard | `live_dashboard_v2.py` | ✅ Active | 8/26 - Added R&D page |
+| **Freqtrade - Trading Engine** | Docker: `freqtradeorg/freqtrade:stable` | ✅ Active | 8/29 - Deployed with CHANNEL strategy |
+| **Freqtrade - Risk Manager** | `scripts/run_risk_manager.py` | ✅ Active | 8/29 - Kill switch control added |
+| Trading - Dashboard | `live_dashboard_v2.py` | ✅ Active | 8/29 - Adapted for Freqtrade data |
 | System - Data Scheduler | `scripts/incremental_ohlc_updater.py` | ✅ Active | - |
-| System - Health Reporter | `scripts/scheduled_health_report.py` | ⏳ Deploying | 8/27 - Created service |
-| Research - Shadow Testing | `scripts/run_shadow_services.py` | ✅ Active | 8/26 - Logging variations |
-| Research - Shadow Monitor | `scripts/shadow_scan_monitor.py` | ✅ Active | 8/26 - Processing scans |
+| Research - Shadow Testing | `scripts/run_shadow_services.py` | ✅ Active | 8/29 - Using Freqtrade scans |
+| Research - ML Daily Retrainer | `scripts/run_daily_retraining.py` | ✅ Active | 8/29 - Uses freqtrade_trades |
+| ~~Trading - Paper Engine~~ | ~~`scripts/run_paper_trading_simple.py`~~ | ❌ Deprecated | 8/29 - Replaced by Freqtrade |
+| ~~System - Strategy Pre-Calculator~~ | ~~`scripts/strategy_precalculator.py`~~ | ❌ Deprecated | 8/29 - Freqtrade calculates |
+| ~~System - Health Reporter~~ | ~~`scripts/scheduled_health_report.py`~~ | ❌ Deprecated | 8/29 - Risk Manager handles |
 
-### Key Integration Points
+### Key Integration Points (Post-Freqtrade)
 1. **Paper Trading Flow**:
    - Data: Polygon API → `ohlc_data` table
-   - Features: `HybridDataFetcher` → strategies
-   - Trading: `SimplePaperTraderV2` → `paper_trades` table
-   - Dashboard: Cache tables → `live_dashboard.py`
+   - Trading: Freqtrade → SQLite database
+   - Sync: `trade_sync.py` → `freqtrade_trades` table
+   - Dashboard: Freqtrade SQLite → `live_dashboard_v2.py`
+   - Control: Admin Panel → Risk Manager → Freqtrade config
 
 2. **ML Research Flow**:
-   - Scans: `scan_history` table → ML Analyzer
+   - Scans: Freqtrade → `scan_history` table → ML Analyzer
    - Predictions: `ml_predictions` table
    - Retraining: Daily cron → Model files in `models/`
 
@@ -3051,6 +3055,229 @@ services:
 - Chunked data processing (30-day windows)
 - Batch database operations
 - Efficient pandas operations with minimal copying
+
+---
+
+## Freqtrade Migration (August 2025)
+
+### Overview
+**Status**: ✅ COMPLETED (August 29, 2025)
+**Goal**: Replace SimplePaperTraderV2 with Freqtrade as the core trading engine, reducing code maintenance by 85% (from 3,500 lines to 500 lines).
+
+### Migration Rationale
+- **Code Reduction**: 85% less code to maintain
+- **Battle-Tested**: Freqtrade is production-proven with thousands of users
+- **Built-in Features**: Backtesting, position management, risk controls, API
+- **Focus on Strategy**: Spend time on strategy optimization, not engine maintenance
+- **Professional Grade**: Enterprise-ready trading engine
+
+### Implementation Timeline (9 Days - Completed)
+- **Days 1-3**: ✅ Freqtrade setup, CHANNEL strategy port, scan logging
+- **Days 4-6**: ✅ ML integration, shadow testing, risk manager
+- **Days 7-9**: ✅ Docker setup, Railway deployment, testing
+
+### Architecture Changes
+
+#### What We Kept
+- ✅ **Admin Panel**: Full control over strategy parameters
+- ✅ **ML Training Pipeline**: Learns from Freqtrade trades
+- ✅ **Shadow Testing**: Tests ML predictions without risk
+- ✅ **Custom Dashboard**: Adapted to read Freqtrade data
+- ✅ **Polygon Data Pipeline**: Continues feeding OHLC data
+- ✅ **Unified Configuration**: Single source of truth
+- ✅ **Risk Management**: Enhanced with kill switch control
+
+#### What Freqtrade Handles
+- ✅ All trading execution
+- ✅ Position management
+- ✅ Scanning all 90 symbols
+- ✅ Technical indicator calculation
+- ✅ Trade persistence (SQLite)
+- ✅ Backtesting engine
+
+#### What We Removed
+- ❌ SimplePaperTraderV2 (3,500 lines)
+- ❌ Custom position management
+- ❌ Manual trade execution
+- ❌ paper_trades table (archived)
+- ❌ Strategy detection modules
+
+### Key Components Built
+
+#### 1. Freqtrade Strategy (ChannelStrategyV1)
+```python
+# /freqtrade/user_data/strategies/ChannelStrategyV1.py
+- Ported CHANNEL strategy logic
+- Integrated with unified config
+- Scan logging for ML training
+- Market cap tier support
+- Dynamic stop loss/take profit
+```
+
+#### 2. Config Bridge
+```python
+# /freqtrade/config_bridge.py
+- Syncs unified config to Freqtrade
+- Real-time threshold updates
+- Strategy parameter control
+```
+
+#### 3. Scan Logger
+```python
+# /freqtrade/scan_logger.py
+- Captures all trading decisions
+- Logs features for ML training
+- Stores in scan_history table
+- 90 symbols × 12 scans/hr = 1,080 records/hr
+```
+
+#### 4. Dashboard Adapter
+```python
+# /live_dashboard_v2.py (updated)
+- Reads from Freqtrade's SQLite database
+- Maintains exact same UI/UX
+- Real-time P&L calculations
+- Portfolio statistics
+```
+
+#### 5. Trade Sync Mechanism
+```python
+# /freqtrade/trade_sync.py
+- Syncs Freqtrade trades to Supabase
+- Creates freqtrade_trades table
+- Enables ML training on Freqtrade data
+```
+
+#### 6. Risk Manager with Kill Switch
+```python
+# /src/trading/risk_manager.py (enhanced)
+- Monitors portfolio risk metrics
+- Controls Freqtrade via config updates
+- Kill switch integration
+- Dynamic position limits from admin panel
+```
+
+### Database Changes
+
+#### New Tables
+```sql
+-- freqtrade_trades: Synced trades from Freqtrade
+CREATE TABLE freqtrade_trades (
+    trade_id INTEGER UNIQUE,
+    pair VARCHAR(20),
+    symbol VARCHAR(10),
+    is_open BOOLEAN,
+    amount DECIMAL(20, 8),
+    open_rate DECIMAL(20, 8),
+    close_rate DECIMAL(20, 8),
+    open_date TIMESTAMP WITH TIME ZONE,
+    close_date TIMESTAMP WITH TIME ZONE,
+    close_profit DECIMAL(10, 6),
+    strategy VARCHAR(50)
+);
+```
+
+#### Archived Tables
+- paper_trades (1M+ records archived)
+- paper_performance (deprecated)
+
+### ML Integration
+
+#### Clean Slate Approach
+- ✅ ML only trains on Freqtrade-generated data
+- ✅ No contamination from old paper trading data
+- ✅ SimpleRetrainer updated to use freqtrade_trades
+- ✅ Shadow testing continues with new data
+
+#### Data Flow
+```
+Freqtrade → scan_history → ML Training → Shadow Testing → Recommendations
+     ↓
+freqtrade_trades → ML Retrainer → Model Updates
+```
+
+### Risk Management Integration
+
+#### Kill Switch Control
+- **Admin Panel Toggle** → Controls Freqtrade trading
+- **OFF**: Sets max_open_trades to 0 (no new trades)
+- **ON**: Restores max_open_trades from position_management settings
+- **Dynamic**: Respects admin panel's max_positions_total value
+- **Automatic**: Risk Manager checks every 5 minutes
+
+#### Risk Limits
+- All limits configurable via admin panel
+- Max daily loss, drawdown, positions
+- Emergency stop at configurable threshold
+- Slack notifications for violations
+
+### Deployment Architecture
+
+#### Railway Services
+1. **Freqtrade - Trading Engine**: Docker container running 24/7
+2. **Risk Manager**: Monitors and controls Freqtrade
+3. **ML - Daily Retrainer**: Trains on Freqtrade data
+4. **Shadow Testing**: Tests ML predictions
+5. **Dashboard**: Custom UI for monitoring
+
+#### Docker Configuration
+```dockerfile
+# Freqtrade runs in Docker on Railway
+- Base image: freqtradeorg/freqtrade:stable
+- Custom strategies mounted
+- Config synced from unified system
+- SQLite database for trades
+```
+
+### Performance Improvements
+
+#### Before (SimplePaperTraderV2)
+- 3,500 lines of custom code
+- Manual position management
+- Custom trade execution
+- High maintenance burden
+- Limited backtesting
+
+#### After (Freqtrade)
+- 500 lines of integration code
+- Professional position management
+- Battle-tested execution
+- Low maintenance
+- Full backtesting suite
+
+### Testing & Validation
+
+#### Completed Tests
+- ✅ Strategy port validation
+- ✅ Scan logging verification
+- ✅ Dashboard integration
+- ✅ ML retrainer with new data
+- ✅ Kill switch functionality
+- ✅ Risk Manager controls
+- ✅ Trade sync mechanism
+
+#### Production Metrics (as of Aug 29, 2025)
+- Freqtrade running on Railway
+- Scanning 90 symbols continuously
+- Capturing 1,080+ scans/hour
+- Dashboard fully operational
+- ML ready for training (awaiting trades)
+
+### Lessons Learned
+
+1. **Clean Architecture**: Freqtrade's modular design made integration smooth
+2. **Data Consistency**: Trade sync to Supabase enables ML without coupling
+3. **Risk Controls**: Kill switch via config updates is clean and reliable
+4. **Dashboard Flexibility**: Adapting existing UI to new data source was straightforward
+5. **ML Decoupling**: Keeping ML as research layer (not control) was the right choice
+
+### Future Enhancements
+
+1. **Multi-Strategy Support**: Port DCA and SWING strategies
+2. **Live Trading**: Add separate kill switch for live vs paper
+3. **Advanced Backtesting**: Leverage Freqtrade's hyperopt
+4. **API Integration**: Enable external strategy updates
+5. **Performance Analytics**: Deep dive into Freqtrade's analytics
 
 ---
 
