@@ -189,26 +189,26 @@ class ChannelStrategyV1(IStrategy):
 
         dataframe.loc[conditions, "enter_long"] = 1
 
-        # Log scan decisions for the latest candle
+        # Log scan decisions for the latest candle (always log, not just on entry signals)
         if len(dataframe) > 0:
             latest_row = dataframe.iloc[-1]
-            if not pd.isna(latest_row.get("enter_long", 0)):
-                try:
-                    self.scan_logger.log_entry_analysis(
-                        pair=metadata.get("pair", "UNKNOWN"),
-                        dataframe_row=latest_row.to_dict(),
-                        entry_signal=bool(latest_row.get("enter_long", 0)),
-                        strategy="CHANNEL",
-                    )
-                    # Log every 10th scan to confirm it's working
-                    if hasattr(self, '_scan_count'):
-                        self._scan_count += 1
-                    else:
-                        self._scan_count = 1
-                    if self._scan_count % 10 == 0:
-                        logger.info(f"📊 Logged scan #{self._scan_count} for {metadata.get('pair', 'UNKNOWN')}")
-                except Exception as e:
-                    logger.error(f"❌ Failed to log scan for {metadata.get('pair', 'UNKNOWN')}: {e}")
+            try:
+                # Always log the scan, whether there's an entry signal or not
+                self.scan_logger.log_entry_analysis(
+                    pair=metadata.get("pair", "UNKNOWN"),
+                    dataframe_row=latest_row.to_dict(),
+                    entry_signal=bool(latest_row.get("enter_long", 0)),
+                    strategy="CHANNEL",
+                )
+                # Log every 10th scan to confirm it's working
+                if hasattr(self, '_scan_count'):
+                    self._scan_count += 1
+                else:
+                    self._scan_count = 1
+                if self._scan_count % 10 == 0:
+                    logger.info(f"📊 Logged scan #{self._scan_count} for {metadata.get('pair', 'UNKNOWN')} (signal={bool(latest_row.get('enter_long', 0))})")
+            except Exception as e:
+                logger.error(f"❌ Failed to log scan for {metadata.get('pair', 'UNKNOWN')}: {e}")
 
         return dataframe
 
