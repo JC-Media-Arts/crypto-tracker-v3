@@ -579,11 +579,13 @@ BASE_TEMPLATE = r"""
         {{ content|safe }}
     </div>
 
-    <!-- Refresh Indicator -->
+    <!-- Refresh Indicator (not shown on Admin page) -->
+    {% if active_page != 'admin' %}
     <div class="refresh-indicator" id="refreshIndicator">
         <span id="refreshText">Auto-refresh: ON</span>
         <span id="refreshCountdown"></span>
     </div>
+    {% endif %}
 
     <!-- Scripts -->
     <script>
@@ -592,15 +594,21 @@ BASE_TEMPLATE = r"""
         let countdown = refreshInterval / 1000;
 
         function updateCountdown() {
+            // Only update if the refresh indicator exists (not on admin page)
+            const indicator = document.getElementById('refreshIndicator');
+            const countdownElement = document.getElementById('refreshCountdown');
+            
+            if (!indicator || !countdownElement) return;
+            
             countdown--;
             if (countdown <= 0) {
                 countdown = refreshInterval / 1000;
-                document.getElementById('refreshIndicator').classList.add('updating');
+                indicator.classList.add('updating');
                 setTimeout(() => {
-                    document.getElementById('refreshIndicator').classList.remove('updating');
+                    indicator.classList.remove('updating');
                 }, 1000);
             }
-            document.getElementById('refreshCountdown').innerText = `(${countdown}s)`;
+            countdownElement.innerText = `(${countdown}s)`;
         }
 
         setInterval(updateCountdown, 1000);
