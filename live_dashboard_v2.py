@@ -4616,17 +4616,30 @@ function showValidationMessages(messages, type) {
     document.body.appendChild(modal);
 }
 
+// Prevent any auto-refresh on admin page
+if (window.location.pathname === '/admin') {
+    // Override setInterval to prevent any auto-refresh
+    const originalSetInterval = window.setInterval;
+    window.setInterval = function(callback, delay) {
+        // Block any interval that looks like auto-refresh
+        const callbackStr = callback.toString();
+        if (callbackStr.includes('fetch') || callbackStr.includes('refresh') || callbackStr.includes('load')) {
+            console.log('Blocked auto-refresh interval on admin page:', callbackStr.substring(0, 50));
+            return -1; // Return fake interval ID
+        }
+        // Allow other intervals (like UI updates)
+        return originalSetInterval(callback, delay);
+    };
+    
+    // Clear any existing intervals
+    for (let i = 1; i < 99999; i++) {
+        window.clearInterval(i);
+    }
+    console.log('Admin page: Auto-refresh disabled, existing intervals cleared');
+}
+
 // Initialize on load
 document.addEventListener('DOMContentLoaded', function() {
-    // Disable any auto-refresh on admin page to prevent losing changes
-    if (window.location.pathname === '/admin') {
-        // Clear any existing intervals that might interfere
-        for (let i = 1; i < 99999; i++) {
-            window.clearInterval(i);
-        }
-        console.log('All intervals cleared on admin page to prevent interference');
-    }
-    
     loadConfig();
     loadConfigHistory();
     
