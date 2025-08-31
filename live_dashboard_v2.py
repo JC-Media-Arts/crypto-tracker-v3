@@ -4618,6 +4618,15 @@ function showValidationMessages(messages, type) {
 
 // Initialize on load
 document.addEventListener('DOMContentLoaded', function() {
+    // Disable any auto-refresh on admin page to prevent losing changes
+    if (window.location.pathname === '/admin') {
+        // Clear any existing intervals that might interfere
+        for (let i = 1; i < 99999; i++) {
+            window.clearInterval(i);
+        }
+        console.log('All intervals cleared on admin page to prevent interference');
+    }
+    
     loadConfig();
     loadConfigHistory();
     
