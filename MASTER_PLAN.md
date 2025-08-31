@@ -77,6 +77,18 @@ black --exclude="~/.*|venv/.*" --check .
 This section lists the currently active production files and their deprecated versions.
 Last Updated: August 27, 2025
 
+### Dashboard System (Updated December 30, 2025)
+- **ACTIVE**: `freqtrade_dashboard.py` ✅ 🚀
+  - Deployed to Railway as "Freqtrade - Dashboard" service
+  - Start command: `python freqtrade_dashboard.py`
+  - **CRITICAL**: This is the PRIMARY dashboard file for all production changes
+  - Features all admin panel functionality including tier-specific thresholds
+  - Auto-refresh DISABLED on admin panel to prevent losing unsaved changes
+- **DEPRECATED**: `live_dashboard_v2.py` ⚠️
+  - Only for local development/testing
+  - DO NOT make production changes to this file
+  - Consider removing to prevent future confusion
+
 ### Paper Trading System (Freqtrade Migration - August 30, 2025)
 - **ACTIVE**: **Freqtrade Trading Engine** ✅ 🚀
   - Deployed to Railway as "Freqtrade - Trading Engine" Docker service
@@ -297,10 +309,67 @@ Last Updated: August 27, 2025
 
 ## Daily Check-in & Progress Tracking
 
+### Daily Check-in - December 30, 2025
+
+📅 **Date**: December 30, 2025
+**Time**: 2:30 PM PST
+
+### ⚠️ CRITICAL DASHBOARD UPDATE
+**IMPORTANT**: `freqtrade_dashboard.py` is now the PRIMARY dashboard file for Railway deployment
+- **ACTIVE**: `freqtrade_dashboard.py` - Deployed on Railway as "Freqtrade - Dashboard"
+- **DEPRECATED**: `live_dashboard_v2.py` - Only for local development/testing
+- **Railway Start Command**: `python freqtrade_dashboard.py`
+- All future dashboard changes MUST be made to `freqtrade_dashboard.py`
+
+### ✅ Completed Today
+- [x] **Fixed Critical Dashboard File Confusion**
+  - Discovered Railway uses `freqtrade_dashboard.py`, NOT `live_dashboard_v2.py`
+  - Applied all recent changes to the correct file
+  - Removed auto-refresh intervals from admin panel (lines 4626-4627)
+  - Verified all other fixes were already present in `freqtrade_dashboard.py`
+  
+- [x] **Resolved Admin Panel Auto-Refresh Issue**
+  - Removed `setInterval(loadConfig, 30000)` - was refreshing every 30 seconds
+  - Removed `setInterval(loadConfigHistory, 60000)` - was refreshing every minute
+  - Admin panel no longer loses unsaved changes due to auto-refresh
+  - Users can still manually refresh if needed
+
+### 📝 Important Lessons Learned
+1. **Always verify which file is being deployed** before making changes
+2. **Check Railway start commands** to identify the active files
+3. **Document file purposes clearly** to avoid future confusion
+
+### 🔍 Detailed Analysis of Changes Made
+**What Happened**: We spent significant time making changes to `live_dashboard_v2.py` when Railway was actually deploying `freqtrade_dashboard.py`. This caused the auto-refresh issue to persist despite our fixes.
+
+**Changes Originally Made to live_dashboard_v2.py (Wrong File)**:
+1. ✅ Added tier-specific entry thresholds UI with nested tabs
+2. ✅ Implemented JavaScript state management (`unsavedValues` object)
+3. ✅ Fixed `collectChanges()` to use unsaved values for hidden tabs
+4. ✅ Fixed UI centering for unsaved indicator
+5. ✅ Removed auto-refresh intervals from admin panel
+6. ✅ Added debug logging for troubleshooting
+
+**Verification of freqtrade_dashboard.py (Correct File)**:
+- ✅ Tier-specific entry thresholds UI - ALREADY PRESENT
+- ✅ JavaScript state management - ALREADY PRESENT
+- ✅ collectChanges fixes - ALREADY PRESENT
+- ✅ UI centering fixes - ALREADY PRESENT
+- ❌ Auto-refresh intervals - STILL PRESENT (lines 4626-4627)
+
+**Final Fix Applied**: Only needed to remove two lines from `freqtrade_dashboard.py`:
+```javascript
+// REMOVED:
+setInterval(loadConfig, 30000);
+setInterval(loadConfigHistory, 60000);
+```
+
+---
+
 ### Daily Check-in - December 28, 2025
 
 📅 **Date**: December 28, 2025
-**Time**: 8:30 PM PST (Final Update)
+**Time**: 8:30 PM PST (Earlier Update)
 
 ### ✅ Completed Today
 - [x] **Implemented Complete Unified Configuration System**
