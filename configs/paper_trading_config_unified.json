@@ -6,7 +6,7 @@
     "trade_weekends": true,
     "avoid_news_hours": false
   },
-  "version": "1.0.37",
+  "version": "1.0.41",
   "strategies": {
     "DCA": {
       "enabled": true,
@@ -19,7 +19,7 @@
         },
         "memecoin": {
           "stop_loss": 0.15,
-          "take_profit": 0.12,
+          "take_profit": 0.15,
           "trailing_stop": 0.08,
           "trailing_activation": 0.06
         },
@@ -52,7 +52,7 @@
         "mid_cap": {
           "grid_levels": 4,
           "grid_spacing": 0.025,
-          "drop_threshold": -2.25,
+          "drop_threshold": -2.5,
           "volume_threshold": 75000,
           "volume_requirement": 0.85
         },
@@ -103,7 +103,7 @@
         },
         "small_cap": {
           "stop_loss": 0.08,
-          "take_profit": 0.12,
+          "take_profit": 0.15,
           "trailing_stop": 0.06,
           "trailing_activation": 0.06
         }
@@ -218,7 +218,7 @@
           "channel_strength_min": 0.82
         },
         "small_cap": {
-          "buy_zone": 0.06,
+          "buy_zone": 0.1,
           "exit_threshold": 0.15,
           "entry_threshold": 0.85,
           "channel_width_max": 0.12,
@@ -234,7 +234,7 @@
     "confirmation": "1h"
   },
   "description": "Unified paper trading configuration - single source of truth",
-  "last_updated": "2025-08-30T14:20:09.079530",
+  "last_updated": "2025-08-31T00:11:00.985433",
   "ml_confidence": {
     "min_signal_strength": 0.6,
     "required_confirmations": 2,
