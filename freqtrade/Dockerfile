@@ -14,10 +14,16 @@ RUN pip install --no-cache-dir \
 COPY user_data/strategies/ /freqtrade/user_data/strategies/
 COPY user_data/config_bridge.py /freqtrade/user_data/
 COPY user_data/scan_logger.py /freqtrade/user_data/
-COPY user_data/data/ /freqtrade/user_data/data/
+COPY user_data/freqtrade_supabase_bridge.py /freqtrade/user_data/
+COPY user_data/data/supabase_dataprovider.py /freqtrade/user_data/data/
+# Note: Data will be synced from Supabase on startup
 
-# Copy our configuration files
+# Copy our configuration files and startup script
 COPY config/config.json /freqtrade/user_data/
+COPY start.sh /freqtrade/
+
+# Make startup script executable
+RUN chmod +x /freqtrade/start.sh
 
 # Note: paper_trading_config_unified.json will be read from /app/configs/ at runtime
 # This allows real-time updates from the Admin dashboard
@@ -31,6 +37,7 @@ USER ftuser
 # Set working directory
 WORKDIR /freqtrade
 
-# Set the command to run Freqtrade
-# Note: The freqtrade base image already has freqtrade as the entrypoint
-CMD ["trade", "--config", "/freqtrade/user_data/config.json", "--strategy", "ChannelStrategyV1", "--dry-run"]
+# Set the command to run Freqtrade with Supabase data sync
+# Use our shell script that syncs data then starts Freqtrade
+ENTRYPOINT ["/bin/sh"]
+CMD ["/freqtrade/start.sh"]

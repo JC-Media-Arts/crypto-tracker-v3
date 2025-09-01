@@ -24,7 +24,7 @@ from loguru import logger
 # Import our custom modules
 from config_bridge import ConfigBridge
 from scan_logger import get_scan_logger
-from data.supabase_dataprovider import SupabaseDataProvider
+from custom_dataprovider import CustomDataProvider
 
 
 class ChannelStrategyV1(IStrategy):
@@ -83,8 +83,8 @@ class ChannelStrategyV1(IStrategy):
                     pass
             self.scan_logger = DummyScanLogger()
 
-        # Initialize data provider
-        self.data_provider_supabase = SupabaseDataProvider()
+        # Note: Data provider is now handled by Freqtrade using our custom provider
+        # No need to initialize SupabaseDataProvider here
 
         # Load configuration from unified config
         self._load_configuration()

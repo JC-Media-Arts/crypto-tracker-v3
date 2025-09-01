@@ -1,302 +1,326 @@
 #!/usr/bin/env python3
 """
-Backtest different threshold combinations for CHANNEL strategy
-Uses last 14 days of data to find optimal parameters
+CHANNEL Strategy Threshold Optimization Backtest
+Analyzes 7 days of data to find optimal buy/sell zones for each market cap tier
 """
 
 import pandas as pd
 import numpy as np
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+from typing import Dict, List, Tuple
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).parent.parent))
+
 from src.data.supabase_client import SupabaseClient
-from itertools import product
-from collections import defaultdict
+from src.config.config_loader import ConfigLoader
+from loguru import logger
 
-
-def simulate_trade(
-    entry_price, ohlc_data, stop_loss_pct, take_profit_pct, trailing_stop_pct
-):
-    """
-    Simulate a single trade with given thresholds
-    Returns: (exit_reason, pnl_pct, bars_held)
-    """
-    highest_price = entry_price
-    stop_price = entry_price * (1 - stop_loss_pct)
-    target_price = entry_price * (1 + take_profit_pct)
-
-    for i, bar in enumerate(ohlc_data):
-        # Update highest price for trailing stop
-        if bar["high"] > highest_price:
-            highest_price = bar["high"]
-
-        # Calculate current trailing stop
-        trailing_stop_price = highest_price * (1 - trailing_stop_pct)
-
-        # Check exit conditions (in order of priority)
-        # Check if stop loss hit
-        if bar["low"] <= stop_price:
-            exit_price = stop_price
-            pnl_pct = ((exit_price - entry_price) / entry_price) * 100
-            return "stop_loss", pnl_pct, i + 1
-
-        # Check if trailing stop hit (only if we were profitable)
-        if highest_price > entry_price * 1.001:  # Was profitable
-            if bar["low"] <= trailing_stop_price:
-                exit_price = trailing_stop_price
-                pnl_pct = ((exit_price - entry_price) / entry_price) * 100
-                return "trailing_stop", pnl_pct, i + 1
-
-        # Check if take profit hit
-        if bar["high"] >= target_price:
-            exit_price = target_price
-            pnl_pct = ((exit_price - entry_price) / entry_price) * 100
-            return "take_profit", pnl_pct, i + 1
-
-    # Max hold time reached
-    exit_price = ohlc_data[-1]["close"] if ohlc_data else entry_price
-    pnl_pct = ((exit_price - entry_price) / entry_price) * 100
-    return "time_exit", pnl_pct, len(ohlc_data)
-
-
-def backtest_strategy(
-    signals_df, ohlc_dict, stop_loss, take_profit, trailing_stop, max_bars=96
-):
-    """
-    Backtest strategy with given thresholds
-    max_bars: Maximum bars to hold (96 = 24 hours for 15min bars)
-    """
-    results = []
-
-    for _, signal in signals_df.iterrows():
-        symbol = signal["symbol"]
-        entry_time = signal["timestamp"]
-        entry_price = signal["entry_price"]
-
-        # Get OHLC data after entry
-        symbol_ohlc = ohlc_dict.get(symbol, pd.DataFrame())
-        if symbol_ohlc.empty:
-            continue
-
-        # Filter to bars after entry
-        future_bars = symbol_ohlc[symbol_ohlc["timestamp"] > entry_time].head(max_bars)
-        if future_bars.empty:
-            continue
-
-        # Simulate the trade
-        exit_reason, pnl_pct, bars_held = simulate_trade(
-            entry_price,
-            future_bars.to_dict("records"),
-            stop_loss,
-            take_profit,
-            trailing_stop,
+class ChannelBacktester:
+    def __init__(self):
+        self.client = SupabaseClient()
+        self.config_loader = ConfigLoader()
+        self.lookback_days = 7
+        self.channel_period = 20  # 20-period channel
+        
+        # Test ranges
+        self.buy_zone_range = np.arange(0.01, 0.11, 0.005)  # 1% to 10% in 0.5% steps
+        self.sell_zone_range = np.arange(0.01, 0.11, 0.005)  # 1% to 10% in 0.5% steps
+        
+        # Market cap tiers and their symbols
+        self.tiers = {
+            'large_cap': ['BTC', 'ETH', 'SOL', 'BNB', 'XRP'],
+            'mid_cap': ['AVAX', 'DOT', 'LINK', 'MATIC', 'UNI', 'NEAR', 'ATOM'],
+            'small_cap': ['FTM', 'SAND', 'MANA', 'AAVE', 'CRV', 'SNX', 'LDO'],
+            'memecoin': ['DOGE', 'SHIB', 'PEPE', 'FLOKI', 'WIF', 'BONK']
+        }
+        
+    def fetch_ohlc_data(self, symbol: str) -> pd.DataFrame:
+        """Fetch 7 days + channel period of OHLC data"""
+        try:
+            # Need extra days for channel calculation
+            start_date = datetime.now(timezone.utc) - timedelta(days=self.lookback_days + self.channel_period)
+            
+            response = self.client.client.table('ohlc_data').select(
+                'timestamp,open,high,low,close,volume'
+            ).eq('symbol', symbol).gte('timestamp', start_date.isoformat()).order('timestamp').execute()
+            
+            if not response.data:
+                return pd.DataFrame()
+                
+            df = pd.DataFrame(response.data)
+            df['timestamp'] = pd.to_datetime(df['timestamp'])
+            df.set_index('timestamp', inplace=True)
+            
+            # Convert to 15-minute bars for better signal quality
+            df_15m = df.resample('15T').agg({
+                'open': 'first',
+                'high': 'max',
+                'low': 'min',
+                'close': 'last',
+                'volume': 'sum'
+            }).dropna()
+            
+            return df_15m
+            
+        except Exception as e:
+            logger.error(f"Error fetching data for {symbol}: {e}")
+            return pd.DataFrame()
+    
+    def calculate_channel(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Calculate channel indicators"""
+        df = df.copy()
+        
+        # Calculate channel bounds
+        df['channel_high'] = df['high'].rolling(window=self.channel_period).max()
+        df['channel_low'] = df['low'].rolling(window=self.channel_period).min()
+        df['channel_mid'] = (df['channel_high'] + df['channel_low']) / 2
+        df['channel_width'] = (df['channel_high'] - df['channel_low']) / df['channel_mid']
+        
+        # Calculate position in channel (0 = bottom, 1 = top)
+        df['channel_position'] = (df['close'] - df['channel_low']) / (df['channel_high'] - df['channel_low'])
+        
+        # Drop NaN rows from rolling calculations
+        df.dropna(inplace=True)
+        
+        return df
+    
+    def backtest_thresholds(self, df: pd.DataFrame, buy_zone: float, sell_zone: float) -> Dict:
+        """Backtest specific threshold combination"""
+        if df.empty or len(df) < 100:  # Need minimum data
+            return {'trades': 0, 'win_rate': 0, 'avg_profit': 0, 'total_profit': 0, 'sharpe': 0, 'max_dd': 0}
+        
+        trades = []
+        position = None
+        
+        for idx, row in df.iterrows():
+            # Entry logic
+            if position is None:
+                # Buy when price is below mid-channel by buy_zone percentage
+                buy_threshold = row['channel_mid'] * (1 - buy_zone)
+                if row['close'] <= buy_threshold and row['channel_width'] > 0.02:  # Min 2% channel width
+                    position = {
+                        'entry_time': idx,
+                        'entry_price': row['close'],
+                        'channel_mid': row['channel_mid']
+                    }
+            
+            # Exit logic
+            elif position is not None:
+                # Sell when price is above mid-channel by sell_zone percentage
+                sell_threshold = position['channel_mid'] * (1 + sell_zone)
+                stop_loss = position['entry_price'] * 0.95  # 5% stop loss
+                
+                if row['close'] >= sell_threshold or row['close'] <= stop_loss:
+                    profit = (row['close'] - position['entry_price']) / position['entry_price']
+                    trades.append({
+                        'entry_time': position['entry_time'],
+                        'exit_time': idx,
+                        'entry_price': position['entry_price'],
+                        'exit_price': row['close'],
+                        'profit': profit,
+                        'win': profit > 0
+                    })
+                    position = None
+        
+        if len(trades) == 0:
+            return {'trades': 0, 'win_rate': 0, 'avg_profit': 0, 'total_profit': 0, 'sharpe': 0, 'max_dd': 0}
+        
+        # Calculate metrics
+        trades_df = pd.DataFrame(trades)
+        
+        metrics = {
+            'trades': len(trades),
+            'win_rate': trades_df['win'].mean() * 100,
+            'avg_profit': trades_df['profit'].mean() * 100,
+            'total_profit': trades_df['profit'].sum() * 100,
+            'sharpe': self.calculate_sharpe(trades_df['profit']),
+            'max_dd': self.calculate_max_drawdown(trades_df['profit'])
+        }
+        
+        return metrics
+    
+    def calculate_sharpe(self, returns: pd.Series) -> float:
+        """Calculate Sharpe ratio"""
+        if len(returns) < 2:
+            return 0
+        return (returns.mean() / returns.std()) * np.sqrt(252) if returns.std() > 0 else 0
+    
+    def calculate_max_drawdown(self, returns: pd.Series) -> float:
+        """Calculate maximum drawdown"""
+        cumulative = (1 + returns).cumprod()
+        running_max = cumulative.cummax()
+        drawdown = (cumulative - running_max) / running_max
+        return drawdown.min() * 100
+    
+    def optimize_tier(self, tier_name: str, symbols: List[str]) -> Dict:
+        """Optimize thresholds for a specific tier"""
+        logger.info(f"\nOptimizing {tier_name} tier with symbols: {symbols}")
+        
+        # Aggregate results across all symbols
+        all_results = []
+        
+        for symbol in symbols:
+            logger.info(f"  Fetching data for {symbol}...")
+            df = self.fetch_ohlc_data(symbol)
+            
+            if df.empty:
+                logger.warning(f"  No data for {symbol}, skipping")
+                continue
+                
+            df = self.calculate_channel(df)
+            
+            # Only use last 7 days for backtest
+            cutoff_date = datetime.now(timezone.utc) - timedelta(days=self.lookback_days)
+            df = df[df.index >= cutoff_date]
+            
+            logger.info(f"  Testing {symbol} with {len(df)} data points...")
+            
+            # Test all combinations
+            for buy_zone in self.buy_zone_range:
+                for sell_zone in self.sell_zone_range:
+                    metrics = self.backtest_thresholds(df, buy_zone, sell_zone)
+                    metrics['symbol'] = symbol
+                    metrics['buy_zone'] = buy_zone
+                    metrics['sell_zone'] = sell_zone
+                    all_results.append(metrics)
+        
+        if not all_results:
+            return {}
+        
+        # Convert to DataFrame for analysis
+        results_df = pd.DataFrame(all_results)
+        
+        # Filter out combinations with too few trades
+        min_trades = 3 * len(symbols)  # At least 3 trades per symbol average
+        results_df = results_df.groupby(['buy_zone', 'sell_zone']).agg({
+            'trades': 'sum',
+            'win_rate': 'mean',
+            'avg_profit': 'mean',
+            'total_profit': 'mean',
+            'sharpe': 'mean',
+            'max_dd': 'mean'
+        }).reset_index()
+        
+        results_df = results_df[results_df['trades'] >= min_trades]
+        
+        if results_df.empty:
+            logger.warning(f"No valid combinations found for {tier_name}")
+            return {}
+        
+        # Find conservative option (high win rate, low drawdown)
+        conservative_score = (
+            results_df['win_rate'] * 0.5 +  # 50% weight on win rate
+            (100 + results_df['max_dd']) * 0.3 +  # 30% weight on low drawdown (inverted)
+            results_df['sharpe'] * 10 * 0.2  # 20% weight on Sharpe ratio
         )
-
-        results.append(
-            {
-                "symbol": symbol,
-                "entry_time": entry_time,
-                "entry_price": entry_price,
-                "exit_reason": exit_reason,
-                "pnl_pct": pnl_pct,
-                "bars_held": bars_held,
+        conservative_idx = conservative_score.idxmax()
+        conservative = results_df.iloc[conservative_idx]
+        
+        # Find aggressive option (high profit, acceptable risk)
+        # Filter for minimum 50% win rate for aggressive
+        aggressive_df = results_df[results_df['win_rate'] >= 50]
+        if not aggressive_df.empty:
+            aggressive_score = (
+                aggressive_df['avg_profit'] * 0.6 +  # 60% weight on profit
+                aggressive_df['win_rate'] * 0.2 +  # 20% weight on win rate
+                aggressive_df['sharpe'] * 10 * 0.2  # 20% weight on Sharpe
+            )
+            aggressive_idx = aggressive_score.idxmax()
+            aggressive = aggressive_df.loc[aggressive_idx]
+        else:
+            # Fall back to best profit if no options with >50% win rate
+            aggressive_idx = results_df['avg_profit'].idxmax()
+            aggressive = results_df.iloc[aggressive_idx]
+        
+        return {
+            'conservative': {
+                'buy_zone': round(conservative['buy_zone'], 3),
+                'sell_zone': round(conservative['sell_zone'], 3),
+                'win_rate': round(conservative['win_rate'], 1),
+                'avg_profit': round(conservative['avg_profit'], 2),
+                'trades': int(conservative['trades']),
+                'sharpe': round(conservative['sharpe'], 2),
+                'max_dd': round(conservative['max_dd'], 2)
+            },
+            'aggressive': {
+                'buy_zone': round(aggressive['buy_zone'], 3),
+                'sell_zone': round(aggressive['sell_zone'], 3),
+                'win_rate': round(aggressive['win_rate'], 1),
+                'avg_profit': round(aggressive['avg_profit'], 2),
+                'trades': int(aggressive['trades']),
+                'sharpe': round(aggressive['sharpe'], 2),
+                'max_dd': round(aggressive['max_dd'], 2)
             }
-        )
-
-    return pd.DataFrame(results)
-
-
-def main():
-    db = SupabaseClient()
-
-    print("=" * 80)
-    print("CHANNEL STRATEGY BACKTEST - LAST 2 DAYS")
-    print("=" * 80)
-
-    # Get actual CHANNEL trades from last 2 days as entry signals
-    start_date = (datetime.now() - timedelta(days=2)).isoformat()
-
-    print("\n📊 Loading historical CHANNEL trades...")
-    # Get BUY trades (entries) from paper_trades
-    trades = (
-        db.client.table("paper_trades")
-        .select("*")
-        .eq("strategy_name", "CHANNEL")
-        .eq("side", "BUY")
-        .gte("created_at", start_date)
-        .execute()
-    )
-
-    if not trades.data:
-        print("No CHANNEL entry trades found in the last 14 days")
-        return
-
-    # Convert to signals format
-    signals_df = pd.DataFrame(trades.data)
-    signals_df["timestamp"] = pd.to_datetime(signals_df["created_at"])
-    signals_df["entry_price"] = signals_df["price"]
-    print(f"Found {len(signals_df)} CHANNEL entry signals")
-
-    # Get unique symbols
-    symbols = signals_df["symbol"].unique()
-    print(f"Across {len(symbols)} symbols")
-
-    # Load OHLC data for all symbols
-    print("\n📈 Loading price data...")
-    ohlc_dict = {}
-
-    for symbol in symbols:
-        ohlc = (
-            db.client.table("ohlc_recent")
-            .select("*")
-            .eq("symbol", symbol)
-            .eq("timeframe", "15min")
-            .gte("timestamp", start_date)
-            .order("timestamp")
-            .execute()
-        )
-
-        if ohlc.data:
-            ohlc_dict[symbol] = pd.DataFrame(ohlc.data)
-            ohlc_dict[symbol]["timestamp"] = pd.to_datetime(
-                ohlc_dict[symbol]["timestamp"]
-            )
-
-    print(f"Loaded data for {len(ohlc_dict)} symbols")
-
-    # Define parameter ranges to test
-    stop_losses = [0.02, 0.025, 0.03, 0.035, 0.04, 0.045, 0.05]  # 2% to 5%
-    take_profits = [0.02, 0.03, 0.04, 0.05, 0.06, 0.08, 0.10]  # 2% to 10%
-    trailing_stops = [0.01, 0.015, 0.02, 0.025, 0.03]  # 1% to 3%
-
-    print(
-        f"\n🔬 Testing {len(stop_losses) * len(take_profits) * len(trailing_stops)} parameter combinations..."
-    )
-
-    # Store results for all combinations
-    all_results = []
-
-    for sl, tp, ts in product(stop_losses, take_profits, trailing_stops):
-        # Skip invalid combinations
-        if tp <= sl:  # Take profit must be higher than stop loss
-            continue
-
-        results = backtest_strategy(signals_df, ohlc_dict, sl, tp, ts)
-
-        if len(results) > 0:
-            win_rate = (results["pnl_pct"] > 0).sum() / len(results) * 100
-            avg_pnl = results["pnl_pct"].mean()
-            total_pnl = results["pnl_pct"].sum()
-            sharpe = (
-                avg_pnl / results["pnl_pct"].std()
-                if results["pnl_pct"].std() > 0
-                else 0
-            )
-
-            # Count exit reasons
-            exit_counts = results["exit_reason"].value_counts().to_dict()
-
-            all_results.append(
-                {
-                    "stop_loss": sl * 100,
-                    "take_profit": tp * 100,
-                    "trailing_stop": ts * 100,
-                    "trades": len(results),
-                    "win_rate": win_rate,
-                    "avg_pnl_pct": avg_pnl,
-                    "total_pnl_pct": total_pnl,
-                    "sharpe": sharpe,
-                    "stop_losses": exit_counts.get("stop_loss", 0),
-                    "take_profits": exit_counts.get("take_profit", 0),
-                    "trailing_stops": exit_counts.get("trailing_stop", 0),
-                    "time_exits": exit_counts.get("time_exit", 0),
-                }
-            )
-
-    # Convert to DataFrame and sort by performance
-    results_df = pd.DataFrame(all_results)
-
-    # Sort by multiple criteria
-    results_df["score"] = (
-        results_df["win_rate"] * 0.3
-        + results_df["avg_pnl_pct"] * 0.4
-        + results_df["sharpe"] * 0.3
-    )
-    results_df = results_df.sort_values("score", ascending=False)
-
-    print("\n" + "=" * 80)
-    print("TOP 10 PARAMETER COMBINATIONS")
-    print("=" * 80)
-
-    top_10 = results_df.head(10)
-
-    for i, row in enumerate(top_10.itertuples(), 1):
-        print(f"\n#{i} COMBINATION:")
-        print(f"  Stop Loss: {row.stop_loss:.1f}%")
-        print(f"  Take Profit: {row.take_profit:.1f}%")
-        print(f"  Trailing Stop: {row.trailing_stop:.1f}%")
-        print(f"  ---")
-        print(f"  Win Rate: {row.win_rate:.1f}%")
-        print(f"  Avg PnL: {row.avg_pnl_pct:.2f}%")
-        print(f"  Total PnL: {row.total_pnl_pct:.1f}%")
-        print(f"  Sharpe: {row.sharpe:.2f}")
-        print(
-            f"  Exit Distribution: SL:{row.stop_losses} TP:{row.take_profits} TS:{row.trailing_stops} Time:{row.time_exits}"
-        )
-
-    # Compare with current settings (estimated from actual trades)
-    print("\n" + "=" * 80)
-    print("COMPARISON WITH CURRENT SETTINGS")
-    print("=" * 80)
-
-    current_settings = results_df[
-        (results_df["stop_loss"].between(4, 4.5)) & (results_df["take_profit"] > 5)
-    ]
-
-    if not current_settings.empty:
-        current = current_settings.iloc[0]
-        best = top_10.iloc[0]
-
-        print(f"\nCurrent (estimated ~4.2% SL):")
-        print(f"  Win Rate: {current.win_rate:.1f}%")
-        print(f"  Avg PnL: {current.avg_pnl_pct:.2f}%")
-
-        print(f"\nBest Found:")
-        print(
-            f"  Win Rate: {best.win_rate:.1f}% ({best.win_rate - current.win_rate:+.1f}%)"
-        )
-        print(
-            f"  Avg PnL: {best.avg_pnl_pct:.2f}% ({best.avg_pnl_pct - current.avg_pnl_pct:+.2f}%)"
-        )
-
-        print(f"\n💡 POTENTIAL IMPROVEMENT:")
-        print(f"  Win Rate: {best.win_rate / current.win_rate:.1f}x better")
-        print(
-            f"  Profitability: {abs(best.avg_pnl_pct / current.avg_pnl_pct):.1f}x better"
-        )
-
-    # Analyze patterns in best performers
-    print("\n" + "=" * 80)
-    print("PATTERNS IN TOP PERFORMERS")
-    print("=" * 80)
-
-    print(
-        f"\nOptimal Stop Loss Range: {top_10['stop_loss'].min():.1f}% - {top_10['stop_loss'].max():.1f}%"
-    )
-    print(
-        f"Optimal Take Profit Range: {top_10['take_profit'].min():.1f}% - {top_10['take_profit'].max():.1f}%"
-    )
-    print(
-        f"Optimal Trailing Stop Range: {top_10['trailing_stop'].min():.1f}% - {top_10['trailing_stop'].max():.1f}%"
-    )
-
-    print("\n🎯 RECOMMENDED SETTINGS:")
-    best = top_10.iloc[0]
-    print(f"  Stop Loss: {best.stop_loss:.1f}%")
-    print(f"  Take Profit: {best.take_profit:.1f}%")
-    print(f"  Trailing Stop: {best.trailing_stop:.1f}%")
-    print(f"\nExpected Performance (based on backtest):")
-    print(f"  Win Rate: {best.win_rate:.1f}%")
-    print(f"  Average Trade: {best.avg_pnl_pct:+.2f}%")
+        }
+    
+    def run_backtest(self):
+        """Run full backtest for all tiers"""
+        logger.info("=" * 80)
+        logger.info("CHANNEL STRATEGY THRESHOLD OPTIMIZATION - 7 DAY BACKTEST")
+        logger.info("=" * 80)
+        
+        results = {}
+        
+        for tier_name, symbols in self.tiers.items():
+            tier_results = self.optimize_tier(tier_name, symbols)
+            if tier_results:
+                results[tier_name] = tier_results
+        
+        # Display results
+        self.display_results(results)
+        
+        return results
+    
+    def display_results(self, results: Dict):
+        """Display results in a formatted table"""
+        print("\n" + "=" * 100)
+        print("CHANNEL STRATEGY THRESHOLD RECOMMENDATIONS (7-DAY BACKTEST)")
+        print("=" * 100)
+        
+        for tier_name in ['large_cap', 'mid_cap', 'small_cap', 'memecoin']:
+            if tier_name not in results:
+                continue
+                
+            tier_data = results[tier_name]
+            print(f"\n{tier_name.upper().replace('_', ' ')}:")
+            print("-" * 80)
+            
+            # Conservative
+            cons = tier_data['conservative']
+            print(f"  CONSERVATIVE:")
+            print(f"    Buy Zone:  {cons['buy_zone']:.3f} ({cons['buy_zone']*100:.1f}% below mid-channel)")
+            print(f"    Sell Zone: {cons['sell_zone']:.3f} ({cons['sell_zone']*100:.1f}% above mid-channel)")
+            print(f"    Performance: {cons['win_rate']:.1f}% win rate, {cons['avg_profit']:.2f}% avg profit/trade")
+            print(f"    Risk: {cons['max_dd']:.2f}% max drawdown, {cons['sharpe']:.2f} Sharpe ratio")
+            print(f"    Trades: {cons['trades']} in 7 days")
+            
+            # Aggressive
+            agg = tier_data['aggressive']
+            print(f"\n  AGGRESSIVE:")
+            print(f"    Buy Zone:  {agg['buy_zone']:.3f} ({agg['buy_zone']*100:.1f}% below mid-channel)")
+            print(f"    Sell Zone: {agg['sell_zone']:.3f} ({agg['sell_zone']*100:.1f}% above mid-channel)")
+            print(f"    Performance: {agg['win_rate']:.1f}% win rate, {agg['avg_profit']:.2f}% avg profit/trade")
+            print(f"    Risk: {agg['max_dd']:.2f}% max drawdown, {agg['sharpe']:.2f} Sharpe ratio")
+            print(f"    Trades: {agg['trades']} in 7 days")
+        
+        print("\n" + "=" * 100)
+        print("SUMMARY RECOMMENDATIONS FOR ADMIN PANEL:")
+        print("=" * 100)
+        
+        print("\nCONSERVATIVE SETTINGS (High Win Rate, Lower Risk):")
+        for tier_name in ['large_cap', 'mid_cap', 'small_cap', 'memecoin']:
+            if tier_name in results:
+                cons = results[tier_name]['conservative']
+                print(f"  {tier_name:12s}: Buy={cons['buy_zone']:.3f}, Sell={cons['sell_zone']:.3f}")
+        
+        print("\nAGGRESSIVE SETTINGS (Higher Profit, More Risk):")
+        for tier_name in ['large_cap', 'mid_cap', 'small_cap', 'memecoin']:
+            if tier_name in results:
+                agg = results[tier_name]['aggressive']
+                print(f"  {tier_name:12s}: Buy={agg['buy_zone']:.3f}, Sell={agg['sell_zone']:.3f}")
 
 
 if __name__ == "__main__":
-    main()
+    backtester = ChannelBacktester()
+    results = backtester.run_backtest()

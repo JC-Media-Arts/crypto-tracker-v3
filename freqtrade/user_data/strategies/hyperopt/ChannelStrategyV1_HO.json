@@ -1,0 +1,38 @@
+{
+  "strategy_name": "ChannelStrategyV1_HO",
+  "params": {
+    "roi": {
+      "0": 100
+    },
+    "max_open_trades": {
+      "max_open_trades": 150
+    },
+    "buy": {
+      "buy_bb_period": 30,
+      "buy_bb_std": 2.0,
+      "buy_channel_entry_threshold": 0.1,
+      "buy_price_drop_min": -8.9,
+      "buy_rsi_max": 65,
+      "buy_rsi_min": 32,
+      "buy_volatility_max": 0.03,
+      "buy_volume_ratio_min": 1.0
+    },
+    "sell": {
+      "sell_channel_exit_threshold": 0.94,
+      "sell_rsi_high": 72,
+      "sell_take_profit": 0.04
+    },
+    "protection": {},
+    "stoploss": {
+      "stoploss": -0.146
+    },
+    "trailing": {
+      "trailing_stop": true,
+      "trailing_stop_positive": 0.222,
+      "trailing_stop_positive_offset": 0.248,
+      "trailing_only_offset_is_reached": true
+    }
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2025-09-01 03:25:41.897576+00:00"
+}

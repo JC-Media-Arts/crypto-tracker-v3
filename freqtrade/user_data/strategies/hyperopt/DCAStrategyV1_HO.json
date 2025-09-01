@@ -1,0 +1,37 @@
+{
+  "strategy_name": "DCAStrategyV1_HO",
+  "params": {
+    "roi": {
+      "0": 100
+    },
+    "max_open_trades": {
+      "max_open_trades": 150
+    },
+    "buy": {
+      "buy_drop_threshold": -3.75,
+      "buy_grid_levels": 3,
+      "buy_grid_spacing": 0.014,
+      "buy_rsi_max": 56,
+      "buy_rsi_min": 28,
+      "buy_volatility_max": 0.15,
+      "buy_volume_requirement": 1.29,
+      "buy_volume_threshold": 73815
+    },
+    "sell": {
+      "sell_rsi_high": 77,
+      "sell_take_profit": 0.03
+    },
+    "protection": {},
+    "stoploss": {
+      "stoploss": -0.279
+    },
+    "trailing": {
+      "trailing_stop": true,
+      "trailing_stop_positive": 0.011,
+      "trailing_stop_positive_offset": 0.026,
+      "trailing_only_offset_is_reached": false
+    }
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2025-09-01 03:51:34.084511+00:00"
+}

@@ -6,34 +6,38 @@
     "trade_weekends": true,
     "avoid_news_hours": false
   },
-  "version": "1.0.41",
+  "version": "1.0.44",
   "strategies": {
     "DCA": {
       "enabled": true,
       "exits_by_tier": {
         "mid_cap": {
-          "stop_loss": 0.08,
-          "take_profit": 0.07,
-          "trailing_stop": 0.035,
-          "trailing_activation": 0.035
+          "rsi_high": 77,
+          "stop_loss": 0.279,
+          "take_profit": 0.03,
+          "trailing_stop": 0.026,
+          "trailing_activation": 0.011
         },
         "memecoin": {
-          "stop_loss": 0.15,
-          "take_profit": 0.15,
-          "trailing_stop": 0.08,
-          "trailing_activation": 0.06
+          "rsi_high": 77,
+          "stop_loss": 0.279,
+          "take_profit": 0.03,
+          "trailing_stop": 0.026,
+          "trailing_activation": 0.011
         },
         "large_cap": {
-          "stop_loss": 0.06,
-          "take_profit": 0.04,
-          "trailing_stop": 0.02,
-          "trailing_activation": 0.02
+          "rsi_high": 77,
+          "stop_loss": 0.279,
+          "take_profit": 0.03,
+          "trailing_stop": 0.026,
+          "trailing_activation": 0.011
         },
         "small_cap": {
-          "stop_loss": 0.11,
-          "take_profit": 0.1,
-          "trailing_stop": 0.06,
-          "trailing_activation": 0.05
+          "rsi_high": 77,
+          "stop_loss": 0.279,
+          "take_profit": 0.03,
+          "trailing_stop": 0.026,
+          "trailing_activation": 0.011
         }
       },
       "grid_settings": {
@@ -41,46 +45,58 @@
         "grid_spacing": 0.02,
         "max_grids_per_symbol": 3
       },
+      "hyperopt_date": "2025-08-31",
       "drop_threshold": -4,
       "min_confidence": 0.5,
+      "hyperopt_optimized": true,
       "detection_thresholds": {
-        "drop_threshold": -2.25,
-        "volume_threshold": 100000,
-        "volume_requirement": 0.85
+        "rsi_max": 56,
+        "rsi_min": 28,
+        "grid_levels": 3,
+        "grid_spacing": 0.014,
+        "drop_threshold": -3.75,
+        "volatility_max": 0.15,
+        "volume_threshold": 73815,
+        "volume_requirement": 1.29
+      },
+      "hyperopt_performance": {
+        "win_rate": 0.685,
+        "avg_profit": 0.004,
+        "total_profit": 0.002
       },
       "detection_thresholds_by_tier": {
         "mid_cap": {
-          "grid_levels": 4,
-          "grid_spacing": 0.025,
-          "drop_threshold": -2.5,
-          "volume_threshold": 75000,
-          "volume_requirement": 0.85
+          "grid_levels": 3,
+          "grid_spacing": 0.014,
+          "drop_threshold": -3.75,
+          "volume_threshold": 73815,
+          "volume_requirement": 1.29
         },
         "memecoin": {
-          "grid_levels": 5,
-          "grid_spacing": 0.04,
-          "drop_threshold": -4.0,
-          "volume_threshold": 25000,
-          "volume_requirement": 1.1
+          "grid_levels": 3,
+          "grid_spacing": 0.014,
+          "drop_threshold": -3.75,
+          "volume_threshold": 36907.5,
+          "volume_requirement": 1.29
         },
         "large_cap": {
           "grid_levels": 3,
-          "grid_spacing": 0.02,
-          "drop_threshold": -1.75,
-          "volume_threshold": 100000,
-          "volume_requirement": 0.75
+          "grid_spacing": 0.014,
+          "drop_threshold": -3.75,
+          "volume_threshold": 110722.5,
+          "volume_requirement": 1.29
         },
         "small_cap": {
-          "grid_levels": 5,
-          "grid_spacing": 0.03,
-          "drop_threshold": -3.0,
-          "volume_threshold": 50000,
-          "volume_requirement": 0.9
+          "grid_levels": 3,
+          "grid_spacing": 0.014,
+          "drop_threshold": -3.75,
+          "volume_threshold": 55361.25,
+          "volume_requirement": 1.29
         }
       }
     },
     "SWING": {
-      "enabled": true,
+      "enabled": false,
       "volume_surge": 1.5,
       "exits_by_tier": {
         "mid_cap": {
@@ -108,7 +124,10 @@
           "trailing_activation": 0.06
         }
       },
+      "hyperopt_date": "2025-08-31",
       "min_confidence": 0.5,
+      "disabled_reason": "No profitable parameters found during hyperopt on 5m timeframe",
+      "hyperopt_result": "failed",
       "breakout_threshold": 1.015,
       "detection_thresholds": {
         "rsi_max": 75,
@@ -158,72 +177,88 @@
       "buy_zone": 0.05,
       "exits_by_tier": {
         "mid_cap": {
-          "stop_loss": 0.025,
-          "take_profit": 0.025,
-          "trailing_stop": 0.006999999999999999,
-          "trailing_activation": 0.012
+          "rsi_high": 72,
+          "stop_loss": 0.146,
+          "take_profit": 0.04,
+          "trailing_stop": 0.248,
+          "trailing_activation": 0.222,
+          "channel_exit_threshold": 0.94
         },
         "memecoin": {
-          "stop_loss": 0.04,
+          "rsi_high": 72,
+          "stop_loss": 0.146,
           "take_profit": 0.04,
-          "trailing_stop": 0.015,
-          "trailing_activation": 0.02
+          "trailing_stop": 0.248,
+          "trailing_activation": 0.222,
+          "channel_exit_threshold": 0.94
         },
         "large_cap": {
-          "stop_loss": 0.02,
-          "take_profit": 0.02,
-          "trailing_stop": 0.005,
-          "trailing_activation": 0.01
+          "rsi_high": 72,
+          "stop_loss": 0.146,
+          "take_profit": 0.04,
+          "trailing_stop": 0.248,
+          "trailing_activation": 0.222,
+          "channel_exit_threshold": 0.94
         },
         "small_cap": {
-          "stop_loss": 0.03,
-          "take_profit": 0.03,
-          "trailing_stop": 0.01,
-          "trailing_activation": 0.015
+          "rsi_high": 72,
+          "stop_loss": 0.146,
+          "take_profit": 0.04,
+          "trailing_stop": 0.248,
+          "trailing_activation": 0.222,
+          "channel_exit_threshold": 0.94
         }
       },
+      "hyperopt_date": "2025-08-31",
       "min_confidence": 0.75,
+      "hyperopt_optimized": true,
       "detection_thresholds": {
-        "buy_zone": 0.07,
-        "sell_zone": 0.97,
-        "exit_threshold": 0.1,
-        "channel_touches": 5,
-        "entry_threshold": 0.9,
-        "channel_width_min": 0.03,
-        "channel_strength_min": 0.9
+        "bb_std": 2.0,
+        "rsi_max": 65,
+        "rsi_min": 32,
+        "bb_period": 30,
+        "price_drop_min": -8.9,
+        "volatility_max": 0.03,
+        "volume_ratio_min": 1.0,
+        "channel_entry_threshold": 0.1
+      },
+      "hyperopt_performance": {
+        "win_rate": 0.702,
+        "avg_profit": 0.004,
+        "total_profit": 0.0015
       },
       "detection_thresholds_by_tier": {
         "mid_cap": {
-          "buy_zone": 0.04,
+          "buy_zone": 0.045,
           "exit_threshold": 0.13,
-          "entry_threshold": 0.87,
+          "entry_threshold": 0.85,
           "channel_width_max": 0.1,
           "channel_width_min": 0.03,
-          "channel_strength_min": 0.77
+          "channel_strength_min": 0.7
         },
         "memecoin": {
-          "buy_zone": 0.12,
+          "buy_zone": 0.07,
           "exit_threshold": 0.08,
-          "entry_threshold": 0.92,
+          "entry_threshold": 0.75,
           "channel_width_max": 0.15,
           "channel_width_min": 0.05,
           "channel_strength_min": 0.6
         },
         "large_cap": {
-          "buy_zone": 0.025,
+          "buy_zone": 0.035,
           "exit_threshold": 0.12,
-          "entry_threshold": 0.88,
+          "entry_threshold": 0.9,
           "channel_width_max": 0.08,
           "channel_width_min": 0.02,
-          "channel_strength_min": 0.82
+          "channel_strength_min": 0.75
         },
         "small_cap": {
-          "buy_zone": 0.1,
+          "buy_zone": 0.055,
           "exit_threshold": 0.15,
-          "entry_threshold": 0.85,
+          "entry_threshold": 0.8,
           "channel_width_max": 0.12,
           "channel_width_min": 0.04,
-          "channel_strength_min": 0.72
+          "channel_strength_min": 0.65
         }
       }
     }
@@ -234,7 +269,7 @@
     "confirmation": "1h"
   },
   "description": "Unified paper trading configuration - single source of truth",
-  "last_updated": "2025-08-31T00:11:00.985433",
+  "last_updated": "2025-08-31T18:25:02.392399",
   "ml_confidence": {
     "min_signal_strength": 0.6,
     "required_confirmations": 2,
@@ -486,5 +521,6 @@
     "max_positions_total": 50,
     "max_positions_per_symbol": 3,
     "max_positions_per_strategy": 50
-  }
+  },
+  "last_hyperopt_update": "2025-09-01T04:06:00.926298"
 }

@@ -1,0 +1,71 @@
+{
+    "max_open_trades": 150,
+    "stake_currency": "USDT",
+    "stake_amount": "unlimited",
+    "tradable_balance_ratio": 0.99,
+    "fiat_display_currency": "USD",
+    "dry_run": true,
+    "dry_run_wallet": 10000,
+    "cancel_open_orders_on_exit": false,
+    "trading_mode": "spot",
+    "margin_mode": "",
+    "unfilledtimeout": {
+        "entry": 10,
+        "exit": 10,
+        "exit_timeout_count": 0,
+        "unit": "minutes"
+    },
+    "entry_pricing": {
+        "price_side": "same",
+        "use_order_book": true,
+        "order_book_top": 1,
+        "price_last_balance": 0.0,
+        "check_depth_of_market": {
+            "enabled": false,
+            "bids_to_ask_delta": 1
+        }
+    },
+    "exit_pricing": {
+        "price_side": "same",
+        "use_order_book": true,
+        "order_book_top": 1,
+        "price_last_balance": 0.0,
+        "check_depth_of_market": {
+            "enabled": false,
+            "bids_to_ask_delta": 1
+        }
+    },
+    "exchange": {
+        "name": "kraken",
+        "key": "",
+        "secret": "",
+        "password": "",
+        "ccxt_config": {},
+        "ccxt_async_config": {},
+        "pair_whitelist": [
+            "BTC/USDT", "ETH/USDT", "SOL/USDT", "XRP/USDT",
+            "ADA/USDT", "AVAX/USDT", "DOGE/USDT", "DOT/USDT", 
+            "LINK/USDT", "ATOM/USDT", "ALGO/USDT", "MANA/USDT"
+        ],
+        "pair_blacklist": [],
+        "markets_refresh_interval": 60
+    },
+    "pairlists": [
+        {
+            "method": "StaticPairList"
+        }
+    ],
+    "strategy": "ChannelStrategyV1",
+    "dataformat_ohlcv": "json",
+    "dry_run_wallet_limit": 0.99,
+    "minimal_roi": {
+        "0": 100
+    },
+    "stoploss": -0.1,
+    "trailing_stop": true,
+    "trailing_stop_positive": 0.01,
+    "trailing_stop_positive_offset": 0.02,
+    "trailing_only_offset_is_reached": true,
+    "timeframe": "5m",
+    "stake_amount_min_fiat": 10
+}
