@@ -47,6 +47,7 @@ class FreqtradeTradeSync:
             conn = sqlite3.connect(self.db_path)
             
             # Get all trades
+            # Note: Freqtrade 2025.x uses 'exit_reason' instead of 'sell_reason'
             query = """
             SELECT 
                 id as trade_id,
@@ -59,7 +60,7 @@ class FreqtradeTradeSync:
                 close_date,
                 close_profit,
                 close_profit_abs,
-                sell_reason,
+                exit_reason,
                 strategy,
                 timeframe,
                 fee_open,
