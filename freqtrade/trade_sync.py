@@ -31,7 +31,8 @@ class FreqtradeTradeSync:
             raise ValueError("SUPABASE_URL and SUPABASE_KEY must be set")
         self.supabase: Client = create_client(url, key)
         
-        self.db_path = Path("/freqtrade/user_data/tradesv3.dryrun.sqlite")
+        # Freqtrade creates the database in the working directory, not in user_data
+        self.db_path = Path("/freqtrade/tradesv3.dryrun.sqlite")
         self.sync_interval = 300  # 5 minutes
         
     def sync_trades(self):
