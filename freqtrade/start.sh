@@ -11,7 +11,7 @@ echo "API Port: ${PORT:-8080}"
 echo "Syncing data from Supabase..."
 cd /freqtrade
 # Use pairs from config file and sync more historical data
-python user_data/freqtrade_supabase_bridge.py --timeframe 5m --days 30 --pairs_from_config
+python user_data/freqtrade_supabase_bridge.py --timeframe 1m --days 7 --pairs_from_config
 
 # Check if sync was successful
 if [ $? -eq 0 ]; then
