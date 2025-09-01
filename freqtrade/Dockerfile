@@ -16,6 +16,7 @@ COPY user_data/config_bridge.py /freqtrade/user_data/
 COPY user_data/scan_logger.py /freqtrade/user_data/
 COPY user_data/freqtrade_supabase_bridge.py /freqtrade/user_data/
 COPY user_data/data/supabase_dataprovider.py /freqtrade/user_data/data/
+COPY trade_sync.py /freqtrade/
 # Note: Data will be synced from Supabase on startup
 
 # Copy our configuration files and startup script

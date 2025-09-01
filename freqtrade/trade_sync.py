@@ -13,18 +13,24 @@ from datetime import datetime, timezone
 from pathlib import Path
 import time
 from loguru import logger
+from supabase import create_client, Client
+from dotenv import load_dotenv
 
-# Add parent directory to path for imports
-sys.path.append(str(Path(__file__).parent.parent))
-
-from src.data.supabase_client import SupabaseClient
+# Load environment variables
+load_dotenv()
 
 
 class FreqtradeTradeSync:
     """Syncs Freqtrade trades to Supabase for ML training"""
     
     def __init__(self):
-        self.supabase = SupabaseClient()
+        # Initialize Supabase client
+        url = os.getenv("SUPABASE_URL")
+        key = os.getenv("SUPABASE_KEY")
+        if not url or not key:
+            raise ValueError("SUPABASE_URL and SUPABASE_KEY must be set")
+        self.supabase: Client = create_client(url, key)
+        
         self.db_path = Path("/freqtrade/user_data/tradesv3.dryrun.sqlite")
         self.sync_interval = 300  # 5 minutes
         
@@ -71,8 +77,8 @@ class FreqtradeTradeSync:
                 logger.info("No trades to sync")
                 return 0
             
-            # Extract symbol from pair (remove /USDT)
-            trades_df['symbol'] = trades_df['pair'].str.replace('/USDT', '')
+            # Extract symbol from pair (remove /USD or /USDT)
+            trades_df['symbol'] = trades_df['pair'].str.replace('/USD', '').str.replace('/USDT', '')
             
             # Convert to records for upsert
             trades_records = trades_df.to_dict('records')
@@ -86,7 +92,7 @@ class FreqtradeTradeSync:
                 
                 try:
                     # Upsert batch (insert or update based on trade_id)
-                    result = self.supabase.client.table('freqtrade_trades')\
+                    result = self.supabase.table('freqtrade_trades')\
                         .upsert(batch, on_conflict='trade_id')\
                         .execute()
                     

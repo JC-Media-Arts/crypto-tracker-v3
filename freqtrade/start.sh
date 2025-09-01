@@ -20,6 +20,12 @@ else
     echo "⚠️ Data sync failed, but continuing anyway..."
 fi
 
+# Start trade sync in background (runs every 5 minutes)
+echo "Starting trade sync service in background..."
+python /freqtrade/trade_sync.py &
+SYNC_PID=$!
+echo "Trade sync started with PID: $SYNC_PID"
+
 # Start Freqtrade with proper configuration
 echo "Starting Freqtrade trading engine..."
 exec freqtrade trade \
