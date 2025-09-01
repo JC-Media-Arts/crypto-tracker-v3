@@ -57,22 +57,12 @@ fi
 
 # Start Freqtrade with proper configuration
 echo "Starting Freqtrade trading engine..."
-if [ ! -z "$DATABASE_URL" ]; then
-    echo "Using PostgreSQL database for trade storage"
-    # Pass the database URL to Freqtrade
-    exec freqtrade trade \
-        --config user_data/config.json \
-        --strategy ChannelStrategyV1 \
-        --strategy-path user_data/strategies \
-        --datadir user_data/data \
-        --db-url "postgresql+psycopg2://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}" \
-        --logfile user_data/logs/freqtrade.log
-else
-    echo "Using SQLite database (default)"
-    exec freqtrade trade \
-        --config user_data/config.json \
-        --strategy ChannelStrategyV1 \
-        --strategy-path user_data/strategies \
-        --datadir user_data/data \
-        --logfile user_data/logs/freqtrade.log
-fi
+# For now, always use SQLite due to psycopg2/Python 3.13 compatibility issues
+# We'll sync trades to Supabase separately
+echo "Using SQLite database (temporary - Python 3.13 psycopg2 compatibility issue)"
+exec freqtrade trade \
+    --config user_data/config.json \
+    --strategy ChannelStrategyV1 \
+    --strategy-path user_data/strategies \
+    --datadir user_data/data \
+    --logfile user_data/logs/freqtrade.log
