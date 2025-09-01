@@ -220,7 +220,8 @@
         "price_drop_min": -8.9,
         "volatility_max": 0.03,
         "volume_ratio_min": 1.0,
-        "channel_entry_threshold": 0.1
+        "channel_entry_threshold": 0.1,
+        "sell_zone": 0.85
       },
       "hyperopt_performance": {
         "win_rate": 0.702,
@@ -234,7 +235,8 @@
           "entry_threshold": 0.85,
           "channel_width_max": 0.1,
           "channel_width_min": 0.03,
-          "channel_strength_min": 0.7
+          "channel_strength_min": 0.7,
+          "volume_ratio_min": 0.8
         },
         "memecoin": {
           "buy_zone": 0.07,
@@ -242,7 +244,8 @@
           "entry_threshold": 0.75,
           "channel_width_max": 0.15,
           "channel_width_min": 0.05,
-          "channel_strength_min": 0.6
+          "channel_strength_min": 0.6,
+          "volume_ratio_min": 0.5
         },
         "large_cap": {
           "buy_zone": 0.035,
@@ -250,7 +253,8 @@
           "entry_threshold": 0.9,
           "channel_width_max": 0.08,
           "channel_width_min": 0.02,
-          "channel_strength_min": 0.75
+          "channel_strength_min": 0.75,
+          "volume_ratio_min": 1.0
         },
         "small_cap": {
           "buy_zone": 0.055,
@@ -258,7 +262,8 @@
           "entry_threshold": 0.8,
           "channel_width_max": 0.12,
           "channel_width_min": 0.04,
-          "channel_strength_min": 0.65
+          "channel_strength_min": 0.65,
+          "volume_ratio_min": 0.6
         }
       }
     }

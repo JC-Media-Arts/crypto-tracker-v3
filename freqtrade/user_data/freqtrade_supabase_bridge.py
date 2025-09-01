@@ -94,7 +94,9 @@ class FreqtradeSupabaseBridge:
             data.sort(key=lambda x: x[0])
             
             # Save to JSON file in Freqtrade format
-            # Format: SYMBOL_QUOTE-TIMEFRAME.json (e.g., BTC_USDT-5m.json)
+            # Freqtrade expects files in kraken subdirectory for kraken exchange
+            # Format: SYMBOL_QUOTE-TIMEFRAME.json (e.g., BTC_USD-1m.json)
+            # But we need to match what Freqtrade is looking for
             symbol = pair.replace("/", "_")
             filename = f"{symbol}-{timeframe}.json"
             filepath = self.data_dir / filename

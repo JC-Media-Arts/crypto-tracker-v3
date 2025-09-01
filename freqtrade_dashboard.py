@@ -3025,12 +3025,20 @@ ADMIN_TEMPLATE = r"""
                         <input type="number" id="channel_large_cap_buy_zone" step="0.01" min="0" max="0.5" onchange="markUnsaved()">
                     </div>
                     <div class="config-row">
+                        <label>Sell Zone</label>
+                        <input type="number" id="channel_large_cap_sell_zone" step="0.01" min="0.5" max="1" onchange="markUnsaved()">
+                    </div>
+                    <div class="config-row">
                         <label>Entry Threshold</label>
                         <input type="number" id="channel_large_cap_entry" step="0.01" min="0" max="1" onchange="markUnsaved()">
                     </div>
                     <div class="config-row">
                         <label>Channel Strength</label>
                         <input type="number" id="channel_large_cap_strength" step="0.01" min="0" max="1" onchange="markUnsaved()">
+                    </div>
+                    <div class="config-row">
+                        <label>Volume Ratio Min</label>
+                        <input type="number" id="channel_large_cap_volume_ratio" step="0.1" min="0" max="5" onchange="markUnsaved()">
                     </div>
                 </div>
             </div>
@@ -3044,12 +3052,20 @@ ADMIN_TEMPLATE = r"""
                         <input type="number" id="channel_mid_cap_buy_zone" step="0.01" min="0" max="0.5" onchange="markUnsaved()">
                     </div>
                     <div class="config-row">
+                        <label>Sell Zone</label>
+                        <input type="number" id="channel_mid_cap_sell_zone" step="0.01" min="0.5" max="1" onchange="markUnsaved()">
+                    </div>
+                    <div class="config-row">
                         <label>Entry Threshold</label>
                         <input type="number" id="channel_mid_cap_entry" step="0.01" min="0" max="1" onchange="markUnsaved()">
                     </div>
                     <div class="config-row">
                         <label>Channel Strength</label>
                         <input type="number" id="channel_mid_cap_strength" step="0.01" min="0" max="1" onchange="markUnsaved()">
+                    </div>
+                    <div class="config-row">
+                        <label>Volume Ratio Min</label>
+                        <input type="number" id="channel_mid_cap_volume_ratio" step="0.1" min="0" max="5" onchange="markUnsaved()">
                     </div>
                 </div>
             </div>
@@ -3063,12 +3079,20 @@ ADMIN_TEMPLATE = r"""
                         <input type="number" id="channel_small_cap_buy_zone" step="0.01" min="0" max="0.5" onchange="markUnsaved()">
                     </div>
                     <div class="config-row">
+                        <label>Sell Zone</label>
+                        <input type="number" id="channel_small_cap_sell_zone" step="0.01" min="0.5" max="1" onchange="markUnsaved()">
+                    </div>
+                    <div class="config-row">
                         <label>Entry Threshold</label>
                         <input type="number" id="channel_small_cap_entry" step="0.01" min="0" max="1" onchange="markUnsaved()">
                     </div>
                     <div class="config-row">
                         <label>Channel Strength</label>
                         <input type="number" id="channel_small_cap_strength" step="0.01" min="0" max="1" onchange="markUnsaved()">
+                    </div>
+                    <div class="config-row">
+                        <label>Volume Ratio Min</label>
+                        <input type="number" id="channel_small_cap_volume_ratio" step="0.1" min="0" max="5" onchange="markUnsaved()">
                     </div>
                 </div>
             </div>
@@ -3082,12 +3106,20 @@ ADMIN_TEMPLATE = r"""
                         <input type="number" id="channel_memecoin_buy_zone" step="0.01" min="0" max="0.5" onchange="markUnsaved()">
                     </div>
                     <div class="config-row">
+                        <label>Sell Zone</label>
+                        <input type="number" id="channel_memecoin_sell_zone" step="0.01" min="0.5" max="1" onchange="markUnsaved()">
+                    </div>
+                    <div class="config-row">
                         <label>Entry Threshold</label>
                         <input type="number" id="channel_memecoin_entry" step="0.01" min="0" max="1" onchange="markUnsaved()">
                     </div>
                     <div class="config-row">
                         <label>Channel Strength</label>
                         <input type="number" id="channel_memecoin_strength" step="0.01" min="0" max="1" onchange="markUnsaved()">
+                    </div>
+                    <div class="config-row">
+                        <label>Volume Ratio Min</label>
+                        <input type="number" id="channel_memecoin_volume_ratio" step="0.1" min="0" max="5" onchange="markUnsaved()">
                     </div>
                 </div>
             </div>
@@ -3908,12 +3940,16 @@ async function loadConfig() {
         tiers.forEach(tier => {
             const tierData = channelThresholds[tier] || {};
             const buyZoneInput = document.getElementById(`channel_${tier}_buy_zone`);
+            const sellZoneInput = document.getElementById(`channel_${tier}_sell_zone`);
             const entryInput = document.getElementById(`channel_${tier}_entry`);
             const strengthInput = document.getElementById(`channel_${tier}_strength`);
+            const volumeRatioInput = document.getElementById(`channel_${tier}_volume_ratio`);
             
             if (buyZoneInput) buyZoneInput.value = tierData.buy_zone || 0.05;
+            if (sellZoneInput) sellZoneInput.value = tierData.sell_zone || 0.85;
             if (entryInput) entryInput.value = tierData.entry_threshold || 0.9;
             if (strengthInput) strengthInput.value = tierData.channel_strength_min || 0.75;
+            if (volumeRatioInput) volumeRatioInput.value = tierData.volume_ratio_min || 1.0;
         });
         
         // Populate Risk Management - Position & Portfolio
@@ -4121,8 +4157,10 @@ function collectChanges() {
     // CHANNEL Entry Thresholds by Tier
     tiers.forEach(tier => {
         checkChange(changes, `strategies.CHANNEL.detection_thresholds_by_tier.${tier}.buy_zone`, `channel_${tier}_buy_zone`);
+        checkChange(changes, `strategies.CHANNEL.detection_thresholds_by_tier.${tier}.sell_zone`, `channel_${tier}_sell_zone`);
         checkChange(changes, `strategies.CHANNEL.detection_thresholds_by_tier.${tier}.entry_threshold`, `channel_${tier}_entry`);
         checkChange(changes, `strategies.CHANNEL.detection_thresholds_by_tier.${tier}.channel_strength_min`, `channel_${tier}_strength`);
+        checkChange(changes, `strategies.CHANNEL.detection_thresholds_by_tier.${tier}.volume_ratio_min`, `channel_${tier}_volume_ratio`);
     });
     
     // Risk Management - Position & Portfolio
