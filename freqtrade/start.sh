@@ -64,8 +64,8 @@ echo "Using SQLite database (PostgreSQL temporarily disabled due to IPv6 issues)
 echo "Note: Trades will be stored locally but not persisted across deploys"
 
 exec freqtrade trade \
-    --config user_data/config.json \
-    --strategy ChannelStrategyV1 \
+    --config config/config.json \
+    --strategy SimpleChannelStrategy \
     --strategy-path user_data/strategies \
     --datadir user_data/data \
     --logfile user_data/logs/freqtrade.log
