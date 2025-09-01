@@ -1,17 +1,19 @@
 # Use the official Freqtrade image as base
 FROM freqtradeorg/freqtrade:stable
 
-# Switch to root to install packages
-USER root
+# The freqtrade image uses a virtual environment at /home/ftuser/.local
+# We need to install packages in that environment
+USER ftuser
 
 # Install additional Python packages needed for our custom strategy
-# Using pip3 explicitly and upgrading pip first
-RUN pip3 install --upgrade pip && \
-    pip3 install --no-cache-dir \
+RUN /home/ftuser/.local/bin/pip install --user --no-cache-dir \
     loguru==0.7.2 \
     supabase==2.10.0 \
     python-dotenv==1.0.0 \
     psycopg2-binary==2.9.9
+
+# Switch to root for file operations
+USER root
 
 # Copy our custom strategy and modules
 COPY user_data/strategies/ /freqtrade/user_data/strategies/
