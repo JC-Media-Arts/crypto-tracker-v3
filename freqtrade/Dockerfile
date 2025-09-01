@@ -1,15 +1,25 @@
 # Use the official Freqtrade image as base
 FROM freqtradeorg/freqtrade:stable
 
-# Stay as default user (ftuser) and use python -m pip
+# Switch to root to install system dependencies
+USER root
+
+# Install PostgreSQL client libraries needed for psycopg2
+RUN apt-get update && apt-get install -y \
+    libpq-dev \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+# Switch back to ftuser for Python packages
 USER ftuser
 
 # Install additional Python packages needed for our custom strategy
+# Note: psycopg2 (not binary) since we have the system libs now
 RUN python -m pip install --user --no-cache-dir \
     loguru==0.7.2 \
     supabase==2.10.0 \
     python-dotenv==1.0.0 \
-    psycopg2-binary==2.9.9
+    psycopg2==2.9.9
 
 # Switch to root for file operations
 USER root
