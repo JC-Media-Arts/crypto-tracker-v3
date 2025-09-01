@@ -112,7 +112,7 @@ if [ ! -z "$DATABASE_URL" ]; then
     echo "Using PostgreSQL with IPv4: ${DB_HOST}:${DB_PORT}/${DB_NAME}"
     
     exec freqtrade trade \
-        --config config/config.json \
+        --config user_data/config.json \
         --strategy SimpleChannelStrategy \
         --strategy-path user_data/strategies \
         --datadir user_data/data \
@@ -121,7 +121,7 @@ if [ ! -z "$DATABASE_URL" ]; then
 else
     echo "No DATABASE_URL found, using SQLite"
     exec freqtrade trade \
-        --config config/config.json \
+        --config user_data/config.json \
         --strategy SimpleChannelStrategy \
         --strategy-path user_data/strategies \
         --datadir user_data/data \
