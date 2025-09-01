@@ -180,9 +180,9 @@ def main():
     # Default pairs if none specified
     if not args.pairs:
         args.pairs = [
-            "BTC/USDT", "ETH/USDT", "SOL/USDT", "XRP/USDT",
-            "ADA/USDT", "AVAX/USDT", "DOGE/USDT", "DOT/USDT",
-            "LINK/USDT", "ATOM/USDT", "ALGO/USDT", "MANA/USDT"
+            "BTC/USD", "ETH/USD", "SOL/USD", "XRP/USD",
+            "ADA/USD", "AVAX/USD", "DOGE/USD", "DOT/USD",
+            "LINK/USD", "ATOM/USD", "ALGO/USD", "MANA/USD"
         ]
     
     if args.continuous:
