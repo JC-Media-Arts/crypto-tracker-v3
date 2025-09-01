@@ -72,25 +72,39 @@ if [ ! -z "$DATABASE_URL" ]; then
     
     echo "Original host: $DB_HOST"
     
-    # Try to resolve to IPv4 address
-    if command -v dig &> /dev/null; then
-        IPV4_ADDR=$(dig +short A $DB_HOST | head -n 1)
+    # Try to resolve to IPv4 address using available tools
+    IPV4_ADDR=""
+    
+    # Method 1: Try getent (usually available in Alpine/Debian)
+    if command -v getent &> /dev/null; then
+        IPV4_ADDR=$(getent ahostsv4 $DB_HOST 2>/dev/null | head -n 1 | awk '{print $1}')
         if [ ! -z "$IPV4_ADDR" ]; then
-            echo "Resolved to IPv4: $IPV4_ADDR"
-            DB_HOST="$IPV4_ADDR"
+            echo "Resolved to IPv4 using getent: $IPV4_ADDR"
         fi
-    elif command -v nslookup &> /dev/null; then
-        IPV4_ADDR=$(nslookup $DB_HOST | grep -A1 "Name:" | grep "Address:" | awk '{print $2}' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1)
+    fi
+    
+    # Method 2: Try Python if available (should be in Freqtrade container)
+    if [ -z "$IPV4_ADDR" ] && command -v python3 &> /dev/null; then
+        IPV4_ADDR=$(python3 -c "import socket; print(socket.gethostbyname('$DB_HOST'))" 2>/dev/null || echo "")
         if [ ! -z "$IPV4_ADDR" ]; then
-            echo "Resolved to IPv4: $IPV4_ADDR"
-            DB_HOST="$IPV4_ADDR"
+            echo "Resolved to IPv4 using Python: $IPV4_ADDR"
         fi
-    elif command -v getent &> /dev/null; then
-        IPV4_ADDR=$(getent ahostsv4 $DB_HOST | head -n 1 | awk '{print $1}')
+    fi
+    
+    # Method 3: Try nslookup if available
+    if [ -z "$IPV4_ADDR" ] && command -v nslookup &> /dev/null; then
+        IPV4_ADDR=$(nslookup $DB_HOST 2>/dev/null | grep -A1 "Name:" | grep "Address:" | awk '{print $2}' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1)
         if [ ! -z "$IPV4_ADDR" ]; then
-            echo "Resolved to IPv4: $IPV4_ADDR"
-            DB_HOST="$IPV4_ADDR"
+            echo "Resolved to IPv4 using nslookup: $IPV4_ADDR"
         fi
+    fi
+    
+    # If we got an IPv4 address, use it
+    if [ ! -z "$IPV4_ADDR" ]; then
+        DB_HOST="$IPV4_ADDR"
+    else
+        echo "Warning: Could not resolve to IPv4, using original hostname"
+        echo "This may cause connection issues if the host only supports IPv6"
     fi
     
     # Reconstruct DATABASE_URL with IPv4 address
