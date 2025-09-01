@@ -57,32 +57,15 @@ fi
 
 # Start Freqtrade with proper configuration
 echo "Starting Freqtrade trading engine..."
-if [ ! -z "$DATABASE_URL" ]; then
-    echo "Using PostgreSQL database for trade storage"
-    echo "DB_HOST: $DB_HOST"
-    echo "DB_PORT: $DB_PORT"
-    echo "DB_NAME: $DB_NAME"
-    echo "DB_USER: $DB_USER"
-    echo "DB_PASSWORD: [REDACTED]"
-    
-    # Build the full DB URL
-    FULL_DB_URL="postgresql+psycopg2://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
-    echo "Full DB URL (redacted): postgresql+psycopg2://${DB_USER}:***@${DB_HOST}:${DB_PORT}/${DB_NAME}"
-    
-    # Pass the database URL to Freqtrade
-    exec freqtrade trade \
-        --config user_data/config.json \
-        --strategy ChannelStrategyV1 \
-        --strategy-path user_data/strategies \
-        --datadir user_data/data \
-        --db-url "$FULL_DB_URL" \
-        --logfile user_data/logs/freqtrade.log
-else
-    echo "Using SQLite database (default)"
-    exec freqtrade trade \
-        --config user_data/config.json \
-        --strategy ChannelStrategyV1 \
-        --strategy-path user_data/strategies \
-        --datadir user_data/data \
-        --logfile user_data/logs/freqtrade.log
-fi
+
+# TEMPORARY: Skip PostgreSQL due to IPv6 connectivity issues on Railway
+# Use SQLite for now to get the service running
+echo "Using SQLite database (PostgreSQL temporarily disabled due to IPv6 issues)"
+echo "Note: Trades will be stored locally but not persisted across deploys"
+
+exec freqtrade trade \
+    --config user_data/config.json \
+    --strategy ChannelStrategyV1 \
+    --strategy-path user_data/strategies \
+    --datadir user_data/data \
+    --logfile user_data/logs/freqtrade.log
