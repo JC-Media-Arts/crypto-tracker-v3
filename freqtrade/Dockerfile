@@ -29,8 +29,9 @@ RUN chmod +x /freqtrade/start.sh
 # Note: paper_trading_config_unified.json will be read from /app/configs/ at runtime
 # This allows real-time updates from the Admin dashboard
 
-# Ensure proper permissions
-RUN chown -R ftuser:ftuser /freqtrade/user_data
+# Ensure proper permissions and make start.sh executable
+RUN chown -R ftuser:ftuser /freqtrade/user_data && \
+    chmod +x /freqtrade/start.sh
 
 # Switch back to non-root user
 USER ftuser

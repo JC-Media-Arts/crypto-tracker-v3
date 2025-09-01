@@ -1,6 +1,9 @@
 #!/bin/sh
 # Startup script for Freqtrade on Railway with Supabase data sync
 
+echo "========================================="
+echo "FREQTRADE STARTUP SCRIPT EXECUTING"
+echo "========================================="
 echo "Starting Freqtrade with Supabase integration..."
 echo "SUPABASE_URL is set: $([ ! -z "$SUPABASE_URL" ] && echo "Yes" || echo "No")"
 echo "SUPABASE_KEY is set: $([ ! -z "$SUPABASE_KEY" ] && echo "Yes" || echo "No")"
@@ -8,7 +11,9 @@ echo "Trading mode: ${TRADING_MODE:-dry_run}"
 echo "API Port: ${PORT:-8080}"
 
 # First, sync data from Supabase to local JSON files
-echo "Syncing data from Supabase..."
+echo "========================================="
+echo "STARTING DATA SYNC FROM SUPABASE"
+echo "========================================="
 cd /freqtrade
 # Use pairs from config file and sync more historical data
 python user_data/freqtrade_supabase_bridge.py --timeframe 1m --days 7 --pairs_from_config
