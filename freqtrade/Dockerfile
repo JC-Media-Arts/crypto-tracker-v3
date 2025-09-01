@@ -5,11 +5,12 @@ FROM freqtradeorg/freqtrade:stable
 USER ftuser
 
 # Install additional Python packages needed for our custom strategy
-# Skip psycopg2 for now - we'll use SQLite and sync trades separately
+# Use older psycopg2-binary that's compatible with more Python versions
 RUN python -m pip install --user --no-cache-dir \
     loguru==0.7.2 \
     supabase==2.10.0 \
-    python-dotenv==1.0.0
+    python-dotenv==1.0.0 \
+    psycopg2-binary==2.9.5
 
 # Switch to root for file operations
 USER root
