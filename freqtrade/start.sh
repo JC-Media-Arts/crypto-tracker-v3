@@ -58,14 +58,58 @@ fi
 # Start Freqtrade with proper configuration
 echo "Starting Freqtrade trading engine..."
 
-# TEMPORARY: Skip PostgreSQL due to IPv6 connectivity issues on Railway
-# Use SQLite for now to get the service running
-echo "Using SQLite database (PostgreSQL temporarily disabled due to IPv6 issues)"
-echo "Note: Trades will be stored locally but not persisted across deploys"
-
-exec freqtrade trade \
-    --config config/config.json \
-    --strategy SimpleChannelStrategy \
-    --strategy-path user_data/strategies \
-    --datadir user_data/data \
-    --logfile user_data/logs/freqtrade.log
+# Use PostgreSQL if DATABASE_URL is set, otherwise SQLite
+if [ ! -z "$DATABASE_URL" ]; then
+    echo "Configuring PostgreSQL connection with IPv4..."
+    
+    # Parse DATABASE_URL components
+    # Format: postgresql://user:password@host:port/database
+    DB_USER=$(echo $DATABASE_URL | sed -n 's/.*:\/\/\([^:]*\):.*/\1/p')
+    DB_PASSWORD=$(echo $DATABASE_URL | sed -n 's/.*:\/\/[^:]*:\([^@]*\)@.*/\1/p')
+    DB_HOST=$(echo $DATABASE_URL | sed -n 's/.*@\([^:\/]*\).*/\1/p')
+    DB_PORT=$(echo $DATABASE_URL | sed -n 's/.*:\([0-9]*\)\/.*/\1/p')
+    DB_NAME=$(echo $DATABASE_URL | sed -n 's/.*\/\([^?]*\).*/\1/p')
+    
+    echo "Original host: $DB_HOST"
+    
+    # Try to resolve to IPv4 address
+    if command -v dig &> /dev/null; then
+        IPV4_ADDR=$(dig +short A $DB_HOST | head -n 1)
+        if [ ! -z "$IPV4_ADDR" ]; then
+            echo "Resolved to IPv4: $IPV4_ADDR"
+            DB_HOST="$IPV4_ADDR"
+        fi
+    elif command -v nslookup &> /dev/null; then
+        IPV4_ADDR=$(nslookup $DB_HOST | grep -A1 "Name:" | grep "Address:" | awk '{print $2}' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1)
+        if [ ! -z "$IPV4_ADDR" ]; then
+            echo "Resolved to IPv4: $IPV4_ADDR"
+            DB_HOST="$IPV4_ADDR"
+        fi
+    elif command -v getent &> /dev/null; then
+        IPV4_ADDR=$(getent ahostsv4 $DB_HOST | head -n 1 | awk '{print $1}')
+        if [ ! -z "$IPV4_ADDR" ]; then
+            echo "Resolved to IPv4: $IPV4_ADDR"
+            DB_HOST="$IPV4_ADDR"
+        fi
+    fi
+    
+    # Reconstruct DATABASE_URL with IPv4 address
+    DB_URL_IPV4="postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?connect_timeout=10"
+    echo "Using PostgreSQL with IPv4: ${DB_HOST}:${DB_PORT}/${DB_NAME}"
+    
+    exec freqtrade trade \
+        --config config/config.json \
+        --strategy SimpleChannelStrategy \
+        --strategy-path user_data/strategies \
+        --datadir user_data/data \
+        --db-url "${DB_URL_IPV4}" \
+        --logfile user_data/logs/freqtrade.log
+else
+    echo "No DATABASE_URL found, using SQLite"
+    exec freqtrade trade \
+        --config config/config.json \
+        --strategy SimpleChannelStrategy \
+        --strategy-path user_data/strategies \
+        --datadir user_data/data \
+        --logfile user_data/logs/freqtrade.log
+fi
