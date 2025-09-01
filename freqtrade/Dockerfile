@@ -1,16 +1,17 @@
-# Use the official Freqtrade image as base
-FROM freqtradeorg/freqtrade:stable
+# Use Freqtrade 2024.8 which has Python 3.12 for psycopg2 compatibility
+# Python 3.12 has stable support for psycopg2-binary, avoiding Python 3.13 issues
+FROM freqtradeorg/freqtrade:2024.8
 
 # Stay as default user (ftuser) and use python -m pip
 USER ftuser
 
 # Install additional Python packages needed for our custom strategy
-# Use older psycopg2-binary that's compatible with more Python versions
+# psycopg2-binary 2.9.9 works well with Python 3.12
 RUN python -m pip install --user --no-cache-dir \
     loguru==0.7.2 \
     supabase==2.10.0 \
     python-dotenv==1.0.0 \
-    psycopg2-binary==2.9.5
+    psycopg2-binary==2.9.9
 
 # Switch to root for file operations
 USER root
