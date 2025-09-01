@@ -5,7 +5,9 @@ FROM freqtradeorg/freqtrade:stable
 USER root
 
 # Install additional Python packages needed for our custom strategy
-RUN pip install --no-cache-dir \
+# Using pip3 explicitly and upgrading pip first
+RUN pip3 install --upgrade pip && \
+    pip3 install --no-cache-dir \
     loguru==0.7.2 \
     supabase==2.10.0 \
     python-dotenv==1.0.0 \
