@@ -26,7 +26,8 @@ COPY user_data/data/supabase_dataprovider.py /freqtrade/user_data/data/
 # Note: trade_sync.py no longer needed - using PostgreSQL directly
 
 # Copy our configuration files and startup script
-COPY config/config.json /freqtrade/user_data/
+# Note: The build context is the freqtrade/ directory
+COPY config/config.json /freqtrade/user_data/config.json
 COPY start.sh /freqtrade/
 
 # Make startup script executable
