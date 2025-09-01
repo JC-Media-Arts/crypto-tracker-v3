@@ -1,12 +1,11 @@
 # Use the official Freqtrade image as base
 FROM freqtradeorg/freqtrade:stable
 
-# The freqtrade image uses a virtual environment at /home/ftuser/.local
-# We need to install packages in that environment
+# Stay as default user (ftuser) and use python -m pip
 USER ftuser
 
 # Install additional Python packages needed for our custom strategy
-RUN /home/ftuser/.local/bin/pip install --user --no-cache-dir \
+RUN python -m pip install --user --no-cache-dir \
     loguru==0.7.2 \
     supabase==2.10.0 \
     python-dotenv==1.0.0 \
