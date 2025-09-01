@@ -219,9 +219,9 @@
         "bb_period": 30,
         "price_drop_min": -8.9,
         "volatility_max": 0.03,
-        "volume_ratio_min": 1.0,
-        "channel_entry_threshold": 0.1,
-        "sell_zone": 0.85
+        "volume_ratio_min": 0.8,
+        "channel_entry_threshold": 0.35,
+        "sell_zone": 0.75
       },
       "hyperopt_performance": {
         "win_rate": 0.702,

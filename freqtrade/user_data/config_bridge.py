@@ -174,10 +174,10 @@ class ConfigBridge:
         # sell_zone appears to be the correct field for exit (0.97 = top 3% of channel)
         
         return {
-            "entry_threshold": detection.get("buy_zone", 0.15),  # Use buy_zone from config
+            "entry_threshold": detection.get("channel_entry_threshold", detection.get("buy_zone", 0.35)),  # Try channel_entry_threshold first, then buy_zone
             "exit_threshold": detection.get("sell_zone", 0.85),   # Use sell_zone from config
-            "rsi_min": detection.get("rsi_oversold", 30),  # RSI oversold threshold
-            "rsi_max": detection.get("rsi_overbought", 70),  # RSI overbought threshold
+            "rsi_min": detection.get("rsi_min", 30),  # Use actual rsi_min from config
+            "rsi_max": detection.get("rsi_max", 70),  # Use actual rsi_max from config
             "volume_ratio_min": detection.get("volume_ratio_min", 1.0),
             "volatility_max": detection.get("volatility_max", 10),
             "channel_strength_min": detection.get("channel_strength_min", 0.90),
