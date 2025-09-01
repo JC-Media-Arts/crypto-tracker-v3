@@ -245,7 +245,8 @@ class ChannelStrategyV1(IStrategy):
         """
         
         # Get market cap tier for the symbol
-        symbol = pair.replace("/USDT", "")
+        # Extract base symbol from pair (works for both /USD and /USDT)
+        symbol = pair.split("/")[0] if "/" in pair else pair
         tier = self._get_market_cap_tier(symbol)
         
         # Get exit parameters for this tier
@@ -281,7 +282,9 @@ class ChannelStrategyV1(IStrategy):
         tier = self._get_market_cap_tier(pair)
 
         # Get exit parameters for this tier
-        exit_params = self.config_bridge.get_exit_params("CHANNEL", pair.replace("/USDT", ""))
+        # Extract base symbol from pair
+        symbol = pair.split("/")[0] if "/" in pair else pair
+        exit_params = self.config_bridge.get_exit_params("CHANNEL", symbol)
         
         # Check if we've hit take profit
         if current_profit >= exit_params.get("take_profit", 0.05):
@@ -398,8 +401,8 @@ class ChannelStrategyV1(IStrategy):
         Determine market cap tier for a given symbol
         Uses the same logic as SimplePaperTraderV2
         """
-        # Remove /USDT suffix if present
-        base_symbol = symbol.replace("/USDT", "").replace("-USDT", "")
+        # Extract base symbol from pair (works for /USD, /USDT, etc.)
+        base_symbol = symbol.split("/")[0] if "/" in symbol else symbol.split("-")[0] if "-" in symbol else symbol
         
         # Check each tier list in config
         for tier_name, symbols in self.market_cap_tiers.items():

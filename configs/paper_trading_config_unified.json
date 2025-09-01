@@ -518,7 +518,7 @@
       "max_percent_of_balance": 0.5,
       "position_size_multiplier": 1.5
     },
-    "max_positions_total": 50,
+    "max_positions_total": 150,
     "max_positions_per_symbol": 3,
     "max_positions_per_strategy": 50
   },
