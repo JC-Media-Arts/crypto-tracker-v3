@@ -8,7 +8,8 @@ USER root
 RUN pip install --no-cache-dir \
     loguru==0.7.2 \
     supabase==2.10.0 \
-    python-dotenv==1.0.0
+    python-dotenv==1.0.0 \
+    psycopg2-binary==2.9.9
 
 # Copy our custom strategy and modules
 COPY user_data/strategies/ /freqtrade/user_data/strategies/
@@ -16,8 +17,8 @@ COPY user_data/config_bridge.py /freqtrade/user_data/
 COPY user_data/scan_logger.py /freqtrade/user_data/
 COPY user_data/freqtrade_supabase_bridge.py /freqtrade/user_data/
 COPY user_data/data/supabase_dataprovider.py /freqtrade/user_data/data/
-COPY trade_sync.py /freqtrade/
 # Note: Data will be synced from Supabase on startup
+# Note: trade_sync.py no longer needed - using PostgreSQL directly
 
 # Copy our configuration files and startup script
 COPY config/config.json /freqtrade/user_data/
