@@ -24,7 +24,6 @@ from loguru import logger
 # Import our custom modules
 from config_bridge import ConfigBridge
 from scan_logger import get_scan_logger
-from custom_dataprovider import CustomDataProvider
 
 
 class ChannelStrategyV1(IStrategy):
