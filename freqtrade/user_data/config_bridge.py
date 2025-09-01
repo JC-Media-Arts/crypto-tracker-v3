@@ -161,7 +161,7 @@ class ConfigBridge:
         return strategies[strategy_name]
 
     def get_channel_thresholds(self) -> Dict[str, float]:
-        """Get CHANNEL strategy thresholds"""
+        """Get CHANNEL strategy thresholds (defaults only, use get_tier_thresholds for tier-specific)"""
         # Reload config to get latest values
         self.config = self.load_unified_config()
         channel_config = self.get_strategy_config("CHANNEL")
@@ -182,6 +182,64 @@ class ConfigBridge:
             "volatility_max": detection.get("volatility_max", 10),
             "channel_strength_min": detection.get("channel_strength_min", 0.90),
         }
+    
+    def _get_market_cap_tier(self, symbol: str) -> str:
+        """Determine market cap tier for a symbol"""
+        # Define tier mappings (same as in ChannelStrategyV1)
+        large_cap = ["BTC", "ETH"]
+        mid_cap = ["SOL", "XRP", "ADA", "AVAX", "DOGE", "DOT", "LINK", "UNI", 
+                   "ATOM", "NEAR", "ALGO", "AAVE", "SAND", "MANA"]
+        memecoins = ["SHIB", "PEPE", "WIF", "BONK", "FLOKI", "MEME", "POPCAT", 
+                     "MEW", "TURBO", "NEIRO", "PNUT", "GOAT", "ACT", "TRUMP", 
+                     "FARTCOIN", "MOG", "PONKE", "TREMP", "GIGA", "HIPPO"]
+        
+        # Remove any suffixes (e.g., /USD, /USDT)
+        base_symbol = symbol.split("/")[0] if "/" in symbol else symbol
+        base_symbol = base_symbol.replace("-USDT", "").replace("-USD", "")
+        
+        if base_symbol in large_cap:
+            return "large_cap"
+        elif base_symbol in mid_cap:
+            return "mid_cap"
+        elif base_symbol in memecoins:
+            return "memecoin"
+        else:
+            return "small_cap"  # Default for unknown coins
+    
+    def get_tier_thresholds(self, strategy: str, symbol: str) -> Dict[str, float]:
+        """Get tier-specific thresholds for a strategy and symbol"""
+        # Determine market cap tier
+        tier = self._get_market_cap_tier(symbol)
+        
+        # Get strategy config
+        strategy_config = self.get_strategy_config(strategy)
+        
+        # Get tier-specific thresholds
+        tier_thresholds = strategy_config.get("detection_thresholds_by_tier", {}).get(tier, {})
+        
+        # Get default thresholds as fallback
+        default_thresholds = strategy_config.get("detection_thresholds", {})
+        
+        if strategy == "CHANNEL":
+            # For CHANNEL strategy, map the tier-specific fields correctly
+            return {
+                "entry_threshold": tier_thresholds.get("buy_zone", 
+                                    tier_thresholds.get("entry_threshold",
+                                    default_thresholds.get("channel_entry_threshold", 0.35))),
+                "exit_threshold": tier_thresholds.get("sell_zone",
+                                   tier_thresholds.get("exit_threshold",
+                                   default_thresholds.get("sell_zone", 0.85))),
+                "volume_ratio_min": tier_thresholds.get("volume_ratio_min",
+                                     default_thresholds.get("volume_ratio_min", 1.0)),
+                "rsi_min": tier_thresholds.get("rsi_min",
+                            default_thresholds.get("rsi_min", 30)),
+                "rsi_max": tier_thresholds.get("rsi_max",
+                            default_thresholds.get("rsi_max", 70)),
+                "tier": tier  # Include tier for debugging
+            }
+        
+        # For other strategies, return tier_thresholds with defaults
+        return tier_thresholds
 
     def get_market_cap_tiers(self) -> Dict[str, Dict[str, float]]:
         """Get market cap tier configuration"""

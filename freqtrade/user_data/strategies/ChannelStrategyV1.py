@@ -165,18 +165,31 @@ class ChannelStrategyV1(IStrategy):
         """
         Define conditions for entering a position
         """
+        
+        # Get tier-specific thresholds for this pair
+        pair = metadata.get("pair", "UNKNOWN")
+        symbol = pair.split("/")[0] if "/" in pair else pair
+        
+        # Get tier-specific thresholds
+        tier_thresholds = self.config_bridge.get_tier_thresholds("CHANNEL", symbol)
+        
+        # Use tier-specific values or fall back to defaults
+        entry_threshold = tier_thresholds.get("entry_threshold", self.channel_entry_threshold)
+        volume_ratio_min = tier_thresholds.get("volume_ratio_min", self.volume_ratio_min)
+        rsi_min = tier_thresholds.get("rsi_min", self.rsi_min)
+        rsi_max = tier_thresholds.get("rsi_max", self.rsi_max)
 
-        # Create entry conditions using loaded configuration
+        # Create entry conditions using tier-specific configuration
         conditions = (
             # Price is in lower portion of Bollinger Band channel
-            (dataframe["channel_position"] <= self.channel_entry_threshold)
+            (dataframe["channel_position"] <= entry_threshold)
             &
             # RSI not oversold (avoid catching falling knives)
-            (dataframe["rsi"] > self.rsi_min)
-            & (dataframe["rsi"] < self.rsi_max)
+            (dataframe["rsi"] > rsi_min)
+            & (dataframe["rsi"] < rsi_max)
             &
             # Volume confirmation
-            (dataframe["volume_ratio"] > self.volume_ratio_min)
+            (dataframe["volume_ratio"] > volume_ratio_min)
             &
             # Volatility check (avoid extremely volatile conditions)
             (dataframe["volatility"] < self.volatility_max)
