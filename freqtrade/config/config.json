@@ -1,6 +1,6 @@
 {
     "max_open_trades": 150,
-    "stake_currency": "USDT",
+    "stake_currency": "USD",
     "stake_amount": 50,
     "tradable_balance_ratio": 0.99,
     "fiat_display_currency": "USD",
@@ -37,16 +37,24 @@
         "ccxt_config": {},
         "ccxt_async_config": {},
         "pair_whitelist": [
-            "BTC/USDT", "ETH/USDT", "SOL/USDT", "XRP/USDT",
-            "ADA/USDT", "AVAX/USDT", "DOGE/USDT", "DOT/USDT",
-            "LINK/USDT", "UNI/USDT", "ATOM/USDT", "NEAR/USDT",
-            "ALGO/USDT", "AAVE/USDT", "SAND/USDT", "MANA/USDT",
-            "SHIB/USDT", "TRX/USDT", "BCH/USDT", "APT/USDT",
-            "ICP/USDT", "ARB/USDT", "OP/USDT", "CRV/USDT",
-            "MKR/USDT", "LDO/USDT", "SUSHI/USDT", "COMP/USDT",
-            "SNX/USDT", "INJ/USDT", "GRT/USDT", "FIL/USDT",
-            "IMX/USDT", "FLOW/USDT", "CHZ/USDT", "GALA/USDT",
-            "XLM/USDT", "HBAR/USDT", "VET/USDT", "EOS/USDT"
+            "BTC/USD", "ETH/USD", "SOL/USD", "XRP/USD", "ADA/USD",
+            "AVAX/USD", "DOGE/USD", "DOT/USD", "LINK/USD", "UNI/USD",
+            "ATOM/USD", "NEAR/USD", "ALGO/USD", "AAVE/USD", "SAND/USD",
+            "MANA/USD", "SHIB/USD", "TRX/USD", "BCH/USD", "APT/USD",
+            "ICP/USD", "ARB/USD", "OP/USD", "CRV/USD", "MKR/USD",
+            "LDO/USD", "SUSHI/USD", "COMP/USD", "SNX/USD", "INJ/USD",
+            "GRT/USD", "FIL/USD", "IMX/USD", "FLOW/USD", "CHZ/USD",
+            "GALA/USD", "XLM/USD", "HBAR/USD", "BNB/USD", "AXS/USD",
+            "BAL/USD", "BLUR/USD", "ENS/USD", "FET/USD", "RPL/USD",
+            "PEPE/USD", "WIF/USD", "BONK/USD", "FLOKI/USD", "MEME/USD",
+            "POPCAT/USD", "MEW/USD", "TURBO/USD", "NEIRO/USD", "PNUT/USD",
+            "GOAT/USD", "ACT/USD", "TRUMP/USD", "FARTCOIN/USD", "MOG/USD",
+            "PONKE/USD", "TREMP/USD", "GIGA/USD", "HIPPO/USD", "RUNE/USD",
+            "LRC/USD", "OCEAN/USD", "QNT/USD", "XMR/USD", "ZEC/USD",
+            "DASH/USD", "KSM/USD", "STX/USD", "KAS/USD", "TIA/USD",
+            "JTO/USD", "JUP/USD", "PYTH/USD", "WLD/USD", "ONDO/USD",
+            "BEAM/USD", "SEI/USD", "PENDLE/USD", "RENDER/USD", "POL/USD",
+            "TON/USD"
         ],
         "pair_blacklist": []
     },
@@ -95,5 +103,19 @@
     "strategy": "ChannelStrategyV1",
     "strategy_path": "user_data/strategies/",
     "dataformat_ohlcv": "json",
-    "dataformat_trades": "jsongz"
+    "dataformat_trades": "jsongz",
+    "minimal_roi": {
+        "0": 100
+    },
+    "stoploss": -0.1,
+    "trailing_stop": true,
+    "trailing_stop_positive": 0.01,
+    "trailing_stop_positive_offset": 0.02,
+    "trailing_only_offset_is_reached": true,
+    "timeframe": "5m",
+    "use_exit_signal": true,
+    "exit_profit_only": false,
+    "ignore_roi_if_entry_signal": false,
+    "process_only_new_candles": true,
+    "startup_candle_count": 200
 }
