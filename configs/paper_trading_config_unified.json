@@ -182,7 +182,7 @@
           "take_profit": 0.04,
           "trailing_stop": 0.248,
           "trailing_activation": 0.222,
-          "channel_exit_threshold": 0.94
+          "channel_exit_threshold": 0.30
         },
         "memecoin": {
           "rsi_high": 72,
@@ -190,7 +190,7 @@
           "take_profit": 0.04,
           "trailing_stop": 0.248,
           "trailing_activation": 0.222,
-          "channel_exit_threshold": 0.94
+          "channel_exit_threshold": 0.30
         },
         "large_cap": {
           "rsi_high": 72,
@@ -198,7 +198,7 @@
           "take_profit": 0.04,
           "trailing_stop": 0.248,
           "trailing_activation": 0.222,
-          "channel_exit_threshold": 0.94
+          "channel_exit_threshold": 0.30
         },
         "small_cap": {
           "rsi_high": 72,
@@ -206,7 +206,7 @@
           "take_profit": 0.04,
           "trailing_stop": 0.248,
           "trailing_activation": 0.222,
-          "channel_exit_threshold": 0.94
+          "channel_exit_threshold": 0.30
         }
       },
       "hyperopt_date": "2025-08-31",
