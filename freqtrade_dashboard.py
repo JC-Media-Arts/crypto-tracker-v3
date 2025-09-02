@@ -19,14 +19,7 @@ from loguru import logger  # noqa: E402
 from src.strategies.regime_detector import RegimeDetector  # noqa: E402
 from src.trading.trade_limiter import TradeLimiter  # noqa: E402
 
-# Import Freqtrade adapter
-sys.path.append(str(Path(__file__).parent / "freqtrade"))
-from dashboard_adapter import FreqtradeDashboardAdapter  # noqa: E402
-
 app = Flask(__name__)
-
-# Initialize Freqtrade adapter (will use Supabase in production automatically)
-freqtrade_adapter = FreqtradeDashboardAdapter()
 
 # Initialize market protection components
 regime_detector = RegimeDetector(enabled=True)
