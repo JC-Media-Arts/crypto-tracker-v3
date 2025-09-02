@@ -66,17 +66,19 @@ if [ ! -z "$DATABASE_URL" ]; then
     # Add connection parameters for better compatibility
     # sslmode=require is needed for Supabase
     # connect_timeout helps with slow connections
+    DB_URL_WITH_SSL="${DATABASE_URL}"
     if [[ "$DATABASE_URL" != *"sslmode"* ]]; then
         if [[ "$DATABASE_URL" == *"?"* ]]; then
             DB_URL_WITH_SSL="${DATABASE_URL}&sslmode=require&connect_timeout=30"
         else
             DB_URL_WITH_SSL="${DATABASE_URL}?sslmode=require&connect_timeout=30"
         fi
-    else
-        DB_URL_WITH_SSL="${DATABASE_URL}"
     fi
     
     echo "Database URL configured with SSL and timeout parameters"
+    
+    # Export for Python script
+    export DB_URL_WITH_SSL
     
     # Create a temporary config file with the db_url added
     # This ensures dry-run trades are written to PostgreSQL
@@ -87,31 +89,39 @@ if [ ! -z "$DATABASE_URL" ]; then
 import json
 import os
 
+# Get the formatted DATABASE_URL
+db_url = os.environ.get('DB_URL_WITH_SSL', '')
+
+print(f'Database URL: {db_url[:30]}...')  # Print first 30 chars for security
+
 with open('user_data/config_with_db.json', 'r') as f:
     config = json.load(f)
 
 # Add db_url to config for PostgreSQL storage in dry-run mode
-config['db_url'] = os.environ.get('DATABASE_URL', '')
-
-# Add SSL and timeout parameters if not present
-if 'sslmode' not in config['db_url']:
-    if '?' in config['db_url']:
-        config['db_url'] += '&sslmode=require&connect_timeout=30'
-    else:
-        config['db_url'] += '?sslmode=require&connect_timeout=30'
+config['db_url'] = db_url
 
 with open('user_data/config_with_db.json', 'w') as f:
     json.dump(config, f, indent=4)
 
 print('✅ Config updated with PostgreSQL db_url for dry-run trades')
+print(f'✅ db_url key added: {\"db_url\" in config}')
+print(f'✅ db_url value: {bool(db_url)}')
 "
     
-    # Start Freqtrade with the modified config
+    # Debug: Show the config file to verify db_url is set
+    echo "========================================="
+    echo "DEBUG: Checking config_with_db.json for db_url"
+    python3 -c "import json; c=json.load(open('user_data/config_with_db.json')); print(f'db_url present: {\"db_url\" in c}'); print(f'db_url empty: {not c.get(\"db_url\", \"\")}') if 'db_url' in c else None"
+    echo "========================================="
+    
+    # Start Freqtrade with the modified config AND db-url parameter as backup
+    # Both config db_url and --db-url parameter to ensure it works
     exec freqtrade trade \
         --config user_data/config_with_db.json \
         --strategy SimpleChannelStrategy \
         --strategy-path user_data/strategies \
         --datadir user_data/data \
+        --db-url "${DB_URL_WITH_SSL}" \
         --logfile user_data/logs/freqtrade.log
 else
     echo "No DATABASE_URL found, using SQLite for dry-run trades"
