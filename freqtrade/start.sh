@@ -66,13 +66,21 @@ if [ ! -z "$DATABASE_URL" ]; then
     # Add connection parameters for better compatibility
     # sslmode=require is needed for Supabase
     # connect_timeout helps with slow connections
+    # options=-csearch_path=paper_trades tells PostgreSQL to use the paper_trades schema
     DB_URL_WITH_SSL="${DATABASE_URL}"
-    if [[ "$DATABASE_URL" != *"sslmode"* ]]; then
+    
+    # Add schema path for Freqtrade
+    if [[ "$DATABASE_URL" != *"options="* ]]; then
         if [[ "$DATABASE_URL" == *"?"* ]]; then
-            DB_URL_WITH_SSL="${DATABASE_URL}&sslmode=require&connect_timeout=30"
+            DB_URL_WITH_SSL="${DATABASE_URL}&options=-csearch_path%3Dpaper_trades"
         else
-            DB_URL_WITH_SSL="${DATABASE_URL}?sslmode=require&connect_timeout=30"
+            DB_URL_WITH_SSL="${DATABASE_URL}?options=-csearch_path%3Dpaper_trades"
         fi
+    fi
+    
+    # Add SSL if not present
+    if [[ "$DB_URL_WITH_SSL" != *"sslmode"* ]]; then
+        DB_URL_WITH_SSL="${DB_URL_WITH_SSL}&sslmode=require&connect_timeout=30"
     fi
     
     echo "Database URL configured with SSL and timeout parameters"

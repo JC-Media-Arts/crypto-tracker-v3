@@ -4990,7 +4990,7 @@ def get_trades():
 
         while batch_offset < max_trades_for_stats:
             batch_result = (
-                db.client.table("paper_trades")
+                db.client.schema("paper_trades").table("trades")
                 .select("*")
                 .order("created_at", desc=True)
                 .range(batch_offset, batch_offset + batch_limit - 1)
@@ -5582,7 +5582,7 @@ def get_ml_model_status():
         db = SupabaseClient()
         for strategy in ["CHANNEL", "DCA", "SWING"]:
             count_result = (
-                db.client.table("paper_trades")
+                db.client.schema("paper_trades").table("trades")
                 .select("*", count="exact")
                 .eq("strategy_name", strategy)
                 .eq("side", "SELL")
@@ -5736,7 +5736,7 @@ def get_ml_learning_progress():
         for strategy in ["CHANNEL", "DCA", "SWING"]:
             # Count completed trades
             count_result = (
-                db.client.table("paper_trades")
+                db.client.schema("paper_trades").table("trades")
                 .select("*", count="exact")
                 .eq("strategy_name", strategy)
                 .eq("side", "SELL")

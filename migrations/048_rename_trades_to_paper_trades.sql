@@ -39,9 +39,26 @@ UPDATE paper_trades SET
     created_at = CASE WHEN is_open = true THEN open_date ELSE close_date END,
     trade_group_id = CAST(id AS VARCHAR),  -- Use id as trade_group_id for Freqtrade
     strategy_name = strategy,
-    exit_reason = sell_reason,
     pnl = close_profit_abs
 WHERE true;
+
+-- Handle exit_reason - check if column exists (newer Freqtrade versions)
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.columns 
+               WHERE table_name = 'paper_trades' 
+               AND column_name = 'exit_reason' 
+               AND table_schema = 'public') THEN
+        -- exit_reason already exists, no need to update
+        NULL;
+    ELSIF EXISTS (SELECT 1 FROM information_schema.columns 
+                  WHERE table_name = 'paper_trades' 
+                  AND column_name = 'sell_reason' 
+                  AND table_schema = 'public') THEN
+        -- Old version with sell_reason, copy to exit_reason
+        UPDATE paper_trades SET exit_reason = sell_reason WHERE sell_reason IS NOT NULL;
+    END IF;
+END $$;
 
 -- Ensure we have the necessary indexes
 CREATE INDEX IF NOT EXISTS idx_paper_trades_is_open ON paper_trades(is_open);
