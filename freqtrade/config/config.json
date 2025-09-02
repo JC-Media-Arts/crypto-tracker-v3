@@ -4,7 +4,7 @@
     "stake_amount": 100,
     "tradable_balance_ratio": 0.99,
     "fiat_display_currency": "USD",
-    "dry_run": true,
+    "dry_run": false,
     "dry_run_wallet": 100000,
     "cancel_open_orders_on_exit": false,
     "trading_mode": "spot",
@@ -34,8 +34,14 @@
         "name": "kraken",
         "key": "",
         "secret": "",
-        "ccxt_config": {},
-        "ccxt_async_config": {},
+        "password": "",
+        "uid": "",
+        "ccxt_config": {
+            "enableRateLimit": true
+        },
+        "ccxt_async_config": {
+            "enableRateLimit": true
+        },
         "pair_whitelist": [
             "BTC/USD", "ETH/USD", "SOL/USD", "XRP/USD", "ADA/USD",
             "AVAX/USD", "DOGE/USD", "DOT/USD", "LINK/USD", "UNI/USD",
