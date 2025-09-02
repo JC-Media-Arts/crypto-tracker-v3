@@ -57,72 +57,19 @@ fi
 
 # Start Freqtrade with proper configuration
 echo "Starting Freqtrade trading engine..."
+echo "Railway Static Outbound IP enabled - using IPv4: 162.220.232.99"
 
 # Use PostgreSQL if DATABASE_URL is set, otherwise SQLite
 if [ ! -z "$DATABASE_URL" ]; then
-    echo "Configuring PostgreSQL connection with IPv4..."
-    
-    # Parse DATABASE_URL components
-    # Format: postgresql://user:password@host:port/database
-    DB_USER=$(echo $DATABASE_URL | sed -n 's/.*:\/\/\([^:]*\):.*/\1/p')
-    DB_PASSWORD=$(echo $DATABASE_URL | sed -n 's/.*:\/\/[^:]*:\([^@]*\)@.*/\1/p')
-    DB_HOST=$(echo $DATABASE_URL | sed -n 's/.*@\([^:\/]*\).*/\1/p')
-    DB_PORT=$(echo $DATABASE_URL | sed -n 's/.*:\([0-9]*\)\/.*/\1/p')
-    DB_NAME=$(echo $DATABASE_URL | sed -n 's/.*\/\([^?]*\).*/\1/p')
-    
-    echo "Original host: $DB_HOST"
-    
-    # Try to resolve to IPv4 address using available tools
-    IPV4_ADDR=""
-    
-    # Method 1: Try getent (usually available in Alpine/Debian)
-    if command -v getent &> /dev/null; then
-        IPV4_ADDR=$(getent ahostsv4 $DB_HOST 2>/dev/null | head -n 1 | awk '{print $1}')
-        if [ ! -z "$IPV4_ADDR" ]; then
-            echo "Resolved to IPv4 using getent: $IPV4_ADDR"
-        fi
-    fi
-    
-    # Method 2: Try Python with forced IPv4 resolution
-    if [ -z "$IPV4_ADDR" ] && command -v python3 &> /dev/null; then
-        IPV4_ADDR=$(python3 -c "
-import socket
-# Force IPv4 only resolution
-result = socket.getaddrinfo('$DB_HOST', None, socket.AF_INET)
-if result:
-    print(result[0][4][0])
-" 2>/dev/null || echo "")
-        if [ ! -z "$IPV4_ADDR" ]; then
-            echo "Resolved to IPv4 using Python: $IPV4_ADDR"
-        fi
-    fi
-    
-    # Method 3: Try nslookup if available
-    if [ -z "$IPV4_ADDR" ] && command -v nslookup &> /dev/null; then
-        IPV4_ADDR=$(nslookup $DB_HOST 2>/dev/null | grep -A1 "Name:" | grep "Address:" | awk '{print $2}' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1)
-        if [ ! -z "$IPV4_ADDR" ]; then
-            echo "Resolved to IPv4 using nslookup: $IPV4_ADDR"
-        fi
-    fi
-    
-    # If we got an IPv4 address, use it
-    if [ ! -z "$IPV4_ADDR" ]; then
-        DB_HOST="$IPV4_ADDR"
-    else
-        echo "Warning: Could not resolve to IPv4, using original hostname"
-        echo "This may cause connection issues if the host only supports IPv6"
-    fi
-    
-    # Reconstruct DATABASE_URL with IPv4 address
-    DB_URL_IPV4="postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?connect_timeout=10"
-    echo "Using PostgreSQL with IPv4: ${DB_HOST}:${DB_PORT}/${DB_NAME}"
+    echo "Using PostgreSQL database from DATABASE_URL"
+    # Railway's static outbound IP ensures IPv4 connection
     
     exec freqtrade trade \
         --config user_data/config.json \
         --strategy SimpleChannelStrategy \
         --strategy-path user_data/strategies \
         --datadir user_data/data \
-        --db-url "${DB_URL_IPV4}" \
+        --db-url "${DATABASE_URL}" \
         --logfile user_data/logs/freqtrade.log
 else
     echo "No DATABASE_URL found, using SQLite"
