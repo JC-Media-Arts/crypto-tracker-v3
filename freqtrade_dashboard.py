@@ -4961,16 +4961,8 @@ def get_trades():
     per_page = int(request.args.get("per_page", 100))
     filter_type = request.args.get("filter", "all")  # 'all', 'open', 'closed'
 
+    # Read directly from paper_trades.trades table
     try:
-        # Use Freqtrade adapter instead of Supabase
-        from freqtrade_trades_api import get_freqtrade_trades_data
-        return jsonify(get_freqtrade_trades_data(page=page, per_page=per_page, filter_type=filter_type))
-    except Exception as e:
-        logger.error(f"Error in Freqtrade adapter: {e}")
-        return jsonify({"trades": [], "open_trades": [], "stats": {}, "error": str(e)})
-    
-    # OLD CODE BELOW - NEVER REACHED
-    if False:  # This ensures the old code is never executed
         db = SupabaseClient()
 
         # For stats, we need all trades but we'll optimize this query
@@ -5272,6 +5264,9 @@ def get_trades():
                 },
             }
         )
+    except Exception as e:
+        logger.error(f"Error getting trades: {e}")
+        return jsonify({"trades": [], "open_trades": [], "stats": {}, "error": str(e)})
 
 
 @app.route("/api/strategy-status")
