@@ -83,9 +83,15 @@ if [ ! -z "$DATABASE_URL" ]; then
         fi
     fi
     
-    # Method 2: Try Python if available (should be in Freqtrade container)
+    # Method 2: Try Python with forced IPv4 resolution
     if [ -z "$IPV4_ADDR" ] && command -v python3 &> /dev/null; then
-        IPV4_ADDR=$(python3 -c "import socket; print(socket.gethostbyname('$DB_HOST'))" 2>/dev/null || echo "")
+        IPV4_ADDR=$(python3 -c "
+import socket
+# Force IPv4 only resolution
+result = socket.getaddrinfo('$DB_HOST', None, socket.AF_INET)
+if result:
+    print(result[0][4][0])
+" 2>/dev/null || echo "")
         if [ ! -z "$IPV4_ADDR" ]; then
             echo "Resolved to IPv4 using Python: $IPV4_ADDR"
         fi
