@@ -39,6 +39,9 @@ sdnotify>=0.3.2
 python-dateutil>=2.8.0
 pytz>=2023.3
 
+# PostgreSQL driver for database connectivity
+psycopg2-binary>=2.9.0
+
 # Supabase for scan logging
 supabase>=2.0.0
 postgrest>=0.10.0
